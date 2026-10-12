@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ETCH V0.70 · SikkenWorks</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header><div><h1>ETCH<span>70</span></h1><p>DRAW. MORPH. MODULATE.</p></div><div class="brand">SIKKENWORKS<br><small>DESKTOP LAB · V0.70</small></div></header>
+<main>
+<section class="instrument">
+  <div class="fm1-surface" aria-label="FM-1 control surface simulator">
+    <div class="surface-top">
+      <aside class="left-hardware" aria-label="FM-1 left controls">
+        <label class="master-control">MASTER <input id="masterLevel" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="Hardware master level"></label>
+        <div class="encoder" data-encoder-group="select"><span>SELECT</span><div><button data-encoder="select" data-turn="-1" aria-label="Turn SELECT left">◀</button><button data-encoder="select" data-turn="1" aria-label="Turn SELECT right">▶</button></div></div>
+        <div class="encoder" data-encoder-group="presets"><span>PRESETS</span><div><button data-encoder="presets" data-turn="-1" aria-label="Turn PRESETS left">◀</button><button data-encoder="presets" data-turn="1" aria-label="Turn PRESETS right">▶</button></div></div>
+        <div class="encoder" data-encoder-group="algorithm"><span>ALGORITHM</span><div><button data-encoder="algorithm" data-turn="-1" aria-label="Turn ALGORITHM left">◀</button><button data-encoder="algorithm" data-turn="1" aria-label="Turn ALGORITHM right">▶</button></div></div>
+        <div class="octave-buttons"><button id="octDown">OCT-</button><button id="octUp">OCT+</button></div>
+        <select id="octave" hidden aria-label="Keyboard octave"><option value="12">0</option><option value="24">1</option><option value="36">2</option><option value="48" selected>3</option><option value="60">4</option><option value="72">5</option><option value="84">6</option><option value="96">7</option></select>
+        <span id="octaveState">OCT 3</span>
+      </aside>
+
+      <div class="display"><canvas id="screen" width="240" height="240" aria-label="ETCH 240 by 240 waveform display"></canvas></div>
+
+      <aside class="right-hardware" aria-label="FM-1 right controls">
+        <div class="knob-headings"><span>KNOB1</span><span>KNOB2</span><span>KNOB3</span><span>KNOB4</span></div>
+        <div id="controls" class="live-controls" aria-label="Four live FM-1 knob assignments"></div>
+        <div class="function-grid" aria-label="FM-1 function buttons">
+          <button data-hw-page="FX">FX</button><button id="selButton">SEL</button><button data-hw-page="ENV">ENV</button><button data-hw-page="MOD WAVE">LFO</button><button data-hw-page="DRAW">EDIT</button><button data-hw-page="SYSTEM">GLO</button>
+          <button data-hw-page="PLAY">HOME</button><button id="hardwareSave">SAVE</button><button data-hw-page="ARP">ARP</button><button data-hw-page="SEQ">SEQ</button><button id="transport">PLAY/STOP</button><button id="record">REC</button>
+        </div>
+      </aside>
+    </div>
+    <div id="keyboard" class="fm1-keyboard" aria-label="FM-1 27-key silicone keyboard"></div>
+  </div>
+
+  <div class="panel">
+    <div class="headline"><span id="pageTitle">PLAY</span><span id="state">AUDIO OFF</span></div>
+    <p id="hardwareHint" class="hardware-hint">HOME view · SELECT turns through PLAY / MORPH / FILTER / LIBRARY.</p>
+    <div id="drawTools" hidden>
+      <div class="direction" aria-label="Four-knob draw directions"><button data-dir="-1"><b>K1</b> ◀</button><button data-dir="1"><b>K1</b> ▶</button><button data-dir="-2"><b>K2</b> ▼</button><button data-dir="2"><b>K2</b> ▲</button></div>
+      <div id="drawToolMenu" hidden>
+        <div class="tools"><button data-tool="undo">Undo</button><button data-tool="redo">Redo</button><button data-tool="smooth">Smooth</button><button data-tool="invert">Invert</button><button data-tool="mirror">Mirror</button><button data-tool="normalize">Normalize</button><button data-tool="rotate">Rotate</button><button data-tool="line">Line → cursor</button><button data-tool="anchor">Set anchor</button><button data-tool="flatten">Flatten</button></div>
+        <label>Step size<select id="stepSize"><option value="128">FINE</option><option value="512" selected>NORMAL</option><option value="2048">COARSE</option></select></label>
+        <label>New canvas <select id="primitive"><option>SINE</option><option>TRIANGLE</option><option>SAW</option><option>SQUARE</option></select></label><button id="newWave">Use canvas</button>
+        <label>Audition drawing as <select id="editTarget"><option>A</option><option>B</option><option>C</option></select></label>
+      </div>
+      <p class="hint">SEL opens/closes the DRAW tool menu. KNOB1 = LEFT / RIGHT, KNOB2 = DOWN / UP.</p>
+    </div>
+    <div class="save"><input id="waveName" maxlength="12" value="MY WAVE" aria-label="Wave name"><select id="saveSlot" aria-label="Save wave slot"></select><button id="saveWave">SAVE WAVE</button></div>
+    <div class="library"><label>Wave A<select id="slotA"></select></label><label>Wave B<select id="slotB"></select></label><label>Wave C<select id="slotC"></select></label><label class="edit-source">Open in editor<select id="editSource"><option>A</option><option>B</option><option>C</option></select></label><button id="editWave">EDIT SELECTED WAVE</button></div>
+  </div>
+</section>
+
+<section class="performance">
+  <div class="performance-row"><button id="power">START AUDIO</button><button id="panic">PANIC</button><span id="transportState">SEQ TRANSPORT IDLE</span><div class="battery-sim" aria-label="Target battery telemetry simulator"><label>BATTERY <input id="batteryLevel" type="range" min="0" max="100" step="1" value="82"></label><label><input id="batteryCharging" type="checkbox"> CHARGING</label><span id="batteryValue">82%</span></div></div>
+  <div class="midi"><button id="enableMidi">ENABLE MIDI</button><label>MIDI input<select id="midiInput" disabled><option value="">NO INPUT</option></select></label><label>MIDI output<select id="midiOutput" disabled><option value="">NO OUTPUT</option></select></label><label>Channel<select id="midiChannel"><option value="-1">ALL</option></select></label><label>Clock<select id="midiClockMode"><option value="INTERNAL">INTERNAL</option><option value="MIDI">MIDI</option></select></label><span id="midiState">MIDI OFF</span><span id="clockState">CLOCK INTERNAL</span></div>
+  <p class="hint midi-map">CC map: 1 MORPH · 2 ETCH · 74 CUTOFF · 71 RESONANCE</p>
+  <p class="hint">Computer keys play the first octave: A W S E D F T G Y H U J K · Draw: arrow keys · Escape: panic. The on-screen keybed is 27 keys like the FM-1.</p>
+</section>
+
+<section class="files">
+  <div><h2>Patch bank</h2><input id="patchName" maxlength="12" value="FIRST ETCH" aria-label="Patch name"><select id="patchSlot"></select><button id="savePatch">SAVE PATCH</button><button id="loadPatch">LOAD</button><button id="exportWav">EXPORT SOUND WAV</button></div>
+  <div><h2>Bank backup</h2><button id="export">EXPORT BANK</button><button id="import">IMPORT BANK</button><input type="file" id="file" accept=".etchbank,.json" hidden><p>64 waves · 32 patches · 16 projects · 32 patterns · V0.1–V0.18 import</p></div>
+
+  <div class="memory"><h2>Hardware memory</h2><div class="memory-line"><strong>PROJECT</strong><input id="projectName" maxlength="12" value="PROJECT 01"><select id="projectSlot"></select><button id="saveProject">SAVE</button><button id="loadProject">LOAD</button></div><div class="memory-line"><strong>PATTERN</strong><input id="patternName" maxlength="12" value="PATTERN 01"><select id="patternSlot"></select><button id="savePattern">SAVE</button><button id="loadPattern">LOAD</button></div><p>SAVE button on hardware opens PATCH / PROJECT / PATTERN save-load memory. SEQ defaults to PATTERN.</p></div>
+  <div class="transfer"><h2>ETCH transfer</h2><label>Object<select id="transferKind"><option value="wave">WAVE</option><option value="patch">PATCH</option></select></label><label>Slot<select id="transferSlot"></select></label><button id="exportSyx">EXPORT .SYX</button><button id="importSyx">IMPORT .SYX</button><button id="sendSyx" disabled>SEND MIDI</button><input type="file" id="syxFile" accept=".syx,application/octet-stream" hidden><p>Protocol v1 · wave payload v2 · patch payload v8 · MIDI manufacturer ID 0x7D · object transfer only, never firmware flashing.</p></div>
+</section>
+<div id="status" role="status">Ready. The desktop surface now follows the physical FM-1 controls.</div>
+<footer>Host simulator. FM-1 hardware backend and recovery validation are pending. No device writes or firmware flashing.</footer>
+<dialog id="dialog" aria-labelledby="dialogTitle"><h2 id="dialogTitle">ETCH</h2><p id="dialogMessage"></p><div id="dialogActions"></div></dialog>
+</main>
+<script type="module" src="app.mjs"></script>
+</body>
+</html>
