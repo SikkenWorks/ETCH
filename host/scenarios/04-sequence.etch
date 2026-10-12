@@ -1,0 +1,23 @@
+# Native sequencer uses mono note scheduling; 16, 32, 64 lengths.
+set seq_length 16
+seq_note 0 60
+seq_note 1 62
+seq_note 2 64
+seq_note 3 67
+seq_note 4 255
+set seq_rate 3
+set seq_gate 70
+set tempo 120
+set seq_run 1
+render_ms 1300
+check_audio nonzero
+check_perf_events 4
+set seq_run 0
+render_ms 300
+check_voices 0
+set seq_length 64
+set seq_run 1
+render_ms 500
+check_audio nonzero
+set seq_run 0
+render_ms 200

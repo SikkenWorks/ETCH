@@ -1,0 +1,38 @@
+# V0.39: authored HOLD should extend an underlying voice, and not retrigger.
+set tempo 240
+set seq_length 16
+set seq_rate 3
+set seq_gate 80
+set root 0
+set mode 0
+set keylock 0
+set chord 0
+bank on
+seq_poly 0 60 115 1
+seq_hold 1 60
+seq_hold 2 60
+seq_poly 1 60 95 1
+seq_poly 1 67 95 1
+check_hold_span 0 60 3
+check_hold_span 1 60 1
+set chord 2
+seq_bake 4 60 1
+set chord 0
+set seq_run 1
+render_frames 100
+check_held 60 1
+render_frames 1400
+check_held 60 2
+render_frames 1200
+check_held 60 1
+render_frames 1550
+check_held 60 0
+render_frames 1600
+check_held 60 1
+check_held 64 1
+check_held 67 1
+check_held 71 1
+check_audio nonzero
+set seq_run 0
+render_frames 32
+check_held 60 0

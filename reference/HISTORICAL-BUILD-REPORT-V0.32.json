@@ -1,0 +1,32 @@
+{
+  "version": "0.32.0",
+  "date": "2026-10-08",
+  "identity": "FM-1_932",
+  "hardware_accessed": false,
+  "hardware_verified": false,
+  "recovery_proven": false,
+  "full_specification_complete": false,
+  "release_candidate": false,
+  "tests": {
+    "native_sanitizers": "passed",
+    "host_dsp_ui_fault_injection": "passed",
+    "app_elf_ram_pool_audit": "passed",
+    "package_lz4_target_regressions": "passed",
+    "stock_to_dev_loader_source_simulation": "passed",
+    "dev_to_stock_loader_source_simulation": "passed",
+    "ram_flash_no_call_audit": "passed",
+    "installer_fake_device_suite": "passed; optional web/vendor fixtures skipped",
+    "real_packages_load_by_installer": "passed: FM-1_932 and FM-1_015",
+    "development_package_policy_rejection": "passed"
+  },
+  "pending": [
+    "physical recovery proof",
+    "physical codec/panel/USB tests",
+    "eight-voice DSP timing measurement",
+    "complete native feature port"
+  ],
+  "notes": [
+    "Source simulation is not proof of supplied loader binary behavior.",
+    "Windows scripts were not run on Windows."
+  ]
+}

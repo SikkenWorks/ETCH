@@ -1,0 +1,3 @@
+ONLY V0.32 ORIGINAL REFERENCE FILES. DO NOT INSTALL.
+The .fwsc named V0.32 is not ETCH V0.33 and does not contain V0.33 features.
+The pinned V15 file is an input for test packaging, NOT PROOF that independent ROM-level recovery works.

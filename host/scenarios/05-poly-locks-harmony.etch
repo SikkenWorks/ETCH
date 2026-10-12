@@ -1,0 +1,20 @@
+# 256-step mode, chord expansion, per-step velocity/length/parameter lock.
+set tempo 240
+set seq_length 256
+set seq_rate 3
+set seq_gate 70
+set root 0
+set mode 0
+set keylock 2
+set chord 1
+seq_poly 0 61 110 3
+seq_poly 1 65 93 1
+seq_lock 1 0 32767
+seq_lock 1 5 20000
+set seq_run 1
+render_ms 160
+check_audio nonzero
+check_perf_events 2
+set seq_run 0
+render_ms 600
+check_audio silent

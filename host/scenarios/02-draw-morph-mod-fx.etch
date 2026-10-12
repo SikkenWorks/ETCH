@@ -1,0 +1,32 @@
+# Test the exact C wave editor -> C table -> voice -> global FX path.
+wave_tool 0 9 0
+wave_tool 1 10 0
+wave_tool 2 7 0
+bank on
+set morph 8000
+set depth 6000
+set mod_target 0
+set mod_ratio 4
+set env_enabled 1
+set filter_type 1
+set cutoff 7000
+set drive 9000
+set chorus 15000
+set delay 17000
+set reverb 14000
+noteon 48 127
+noteon 55 110
+render_ms 600
+check_audio nonzero
+set morph 32767
+set depth 25000
+render_ms 600
+check_audio nonzero
+set mod_target 1
+set mod_mode 1
+set mod_inc 194702
+render_ms 500
+check_audio nonzero
+noteoff 48
+noteoff 55
+render_ms 500

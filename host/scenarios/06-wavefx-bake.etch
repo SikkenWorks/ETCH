@@ -1,0 +1,19 @@
+# Wave-FX uses actual native single-cycle processing before mip rebuild.
+wave_tool 0 10 0
+wave_fx 0 0 22000
+wave_fx 0 1 24000
+wave_fx 0 2 18000
+wave_fx 0 3 25000
+wave_fx 0 4 18000
+wave_fx 0 5 28000
+wave_fx 0 6 12000
+wave_fx 0 7 32767
+bank on
+keys 1
+render_ms 400
+check_audio nonzero
+wave_bake 0
+render_ms 400
+check_audio nonzero
+keys 0
+render_ms 100

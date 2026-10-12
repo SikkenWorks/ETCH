@@ -1,0 +1,20 @@
+# Real FM1 C voice engine: MIDI notes + hardware key simulation.
+render_ms 80
+check_audio silent
+noteon 60 110
+render_ms 400
+check_audio nonzero
+noteon 64 100
+noteon 67 127
+render_ms 400
+check_audio nonzero
+noteoff 60
+noteoff 64
+noteoff 67
+render_ms 650
+keys 0x7
+render_ms 330
+check_audio nonzero
+keys 0
+render_ms 300
+check_voices 0

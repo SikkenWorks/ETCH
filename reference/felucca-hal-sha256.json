@@ -1,0 +1,26 @@
+{
+  "upstream": "https://github.com/hugelton/Felucca",
+  "authors": "Leo Kuroshita / H\u00fcgelton Instruments",
+  "license": "GPL-3.0-only",
+  "verified_critical_files": {
+    "app.ld": "250b93c08ee74e64e17b5c3d43473aef02f20c59f0b917d8fd982e9bb72bae7f",
+    "crt0.S": "e26b8e38377cd477beaa2f238f5022c6e9d221947fc546d34fe857d9d3add0a0",
+    "lcd.c": "bd2e7421d1e309ba3addd3e7071ef41694fc2083ccf23467cf1b6b99a19bb50b",
+    "hal/fm1_vec.S": "8f9e787871332f522157d561dc3cfe8906ed0abf160139ed5819cfdeab66f01a",
+    "hal/fm1_isr.S": "2aad84e24a51c79b187ef3faf9d1bae108b1389bf78659f6b02dbbd95d8a7d7b",
+    "hal/fm1_adc.h": "1917870bd802de9134d33335efbcf886b296705dff06688925fd7325589c0c1a",
+    "hal/fm1_cc.h": "46c533a0926ba9298ae36705f857ed609a61b95511ba7f0d1800857b4760dd73",
+    "hal/fm1_gpio.h": "5e3937e32a3b4b9b9ae622c5b42c8819ec8a16f2d76dbddec91654703c77a216",
+    "hal/fm1_guard.h": "6a5ddde30c97ff094ba7f843be53eeafc820caf451fe3270c06a17be178a4608",
+    "hal/fm1_input.h": "7c3239642816e7cfe75a93518cb7a2d5880d722901d4e9bf88cb7f25bc2d6090",
+    "hal/fm1_irq.h": "0b2191dd30b5b992782bc334ec542e1027947124be469e9270962f5ce9e857a8",
+    "hal/fm1_lcd_hw.h": "9e78a5f9b75fe881d3e90529f39876a322e311d2ae317d068c782bd528b96cff",
+    "hal/fm1_led_anim.h": "8f595531f57101176ad20836f5388400158c439a7c10da0c15b70800be9a0e4d",
+    "hal/fm1_sys.h": "037bc64e65650fb2c8d3a23b218992fad347e9098352aae4938738622af2c224",
+    "hal/fm1_time.h": "22116c4b6a365c8510ba1dab12f0e8a452343a82435abff7640648c630b740fa",
+    "hal/fm1_timer.h": "d5e89b90035018207264fd89ea2b0988d5d716506df07233c9dd2c39741b71e8",
+    "hal/fm1_uart.h": "0df7266a58996c688a4279c6b7edbaa7921e18805c8a65f1ff156680b03fcff6",
+    "hal/fm1_usb.h": "12b9b31bde0dbb15fa15379a215eaec11e882bd33c18f4b250fa9e3a47c202f0",
+    "hal/fm1_xip.h": "dcba6ddb9cd2403e1d97c4db49d836110ef2805d2369db7ed323e3fbe26c56ed"
+  }
+}

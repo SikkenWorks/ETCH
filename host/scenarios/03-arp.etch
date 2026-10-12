@@ -1,0 +1,12 @@
+# Simulated FM1 held keys, native four-octave arp and release.
+set arp_mode 1
+set arp_rate 3
+set arp_octaves 2
+set tempo 135
+keys 0x15
+render_ms 1100
+check_audio nonzero
+check_perf_events 3
+keys 0
+render_ms 450
+check_voices 0
