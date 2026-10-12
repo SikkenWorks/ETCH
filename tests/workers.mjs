@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import {defaults,primitive} from '../sim/dsp.mjs';
+import {defaultWaveFx} from '../sim/wave-fx.mjs';
+const messages=[];globalThis.self={postMessage:message=>messages.push(message)};
+await import('../sim/wave-worker.mjs');const points=[primitive('SINE'),primitive('TRIANGLE'),primitive('SINE')],waves=points.map(points=>({points,fx:{...defaultWaveFx}}));
+self.onmessage({data:{id:7,waves}});assert.equal(messages[0].id,7);assert.equal(messages[0].bank.length,3);assert.equal(messages[0].bank[0][0].length,512);
+self.onmessage({data:{id:8,waves:[{points:[1,2],fx:{...defaultWaveFx}}]}});assert(messages[1].error);
+messages.length=0;await import('../sim/render-worker.mjs');self.onmessage({data:{waves,params:{...defaults,filter:'LP',cutoff:1500,drive:.4},notes:[48,55,60]}});
+assert(!messages[0].error);const v=new DataView(messages[0].buffer),frames=44100*3+Math.ceil((defaults.release+.1)*44100);assert.equal(v.byteLength,44+2*frames);assert.equal(v.getUint32(24,true),44100);assert.equal(v.getUint32(40,true),frames*2);assert.equal(v.getUint16(34,true),16);let peak=0;for(let i=44;i<v.byteLength;i+=2)peak=Math.max(peak,Math.abs(v.getInt16(i,true)));assert(peak>100);
+console.log('Wave compilation worker and PCM WAV export worker passed');
