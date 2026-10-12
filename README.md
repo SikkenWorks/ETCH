@@ -1,3 +1,6 @@
+<p align="center">
+  <img src="etchlogo.png" width="200" alt="ETCH Logo">
+</p>
 # ETCH
 
 **DRAW. MORPH. MODULATE.**
