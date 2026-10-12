@@ -63,7 +63,11 @@ The source code is here so you can inspect it, build it and change it. No propri
 
 I built ETCH as its own waveform-drawing and morphing synthesizer, but I definitely didn't start from nothing.
 
-**Felucca, by Leo Kuroshita / Hügelton Instruments, provided the essential FM1 hardware and firmware foundation.** ETCH reuses Felucca-derived startup/boot code, low-level FM1 drivers, interrupt handling, the LCD hardware interface and parts of the USB-MIDI / OTA update infrastructure. The browser installer's OTA transport is also based on Felucca's updater. Some USB, audio and storage integration code has since been changed for ETCH, so compatibility and hardware stability must be tested rather than assumed.
+**Felucca, by Leo Kuroshita / Hügelton Instruments, provided the essential FM1 hardware and firmware foundation.** ETCH reuses Felucca-derived startup/boot code, low-level FM1 drivers, interrupt handling, the LCD hardware interface and parts of the USB-MIDI / OTA update infrastructure. ETCH's web installer is based in part on Felucca's USB-MIDI firmware updater and OTA transport implementation, developed by Hügelton Instruments. The installer has been adapted and rebranded for ETCH.
+
+Some USB, audio and storage integration code has also been modified specifically for ETCH. As a result, compatibility and hardware stability should be tested rather than assumed.
+
+Full credit goes to the original Felucca developers for their work. The original copyright notices and GPL-3.0 licensing are preserved.
 
 The ETCH-specific sound engine, waveform editing workflow, A/B shape morphing, Wave C modulation and the additional sound-design features are developed around that foundation. The original names and copyright notices remain in the relevant source files. The update loader's protocol identifier is intentionally unchanged for compatibility, even though the visible installer and its logs use ETCH branding.
 
