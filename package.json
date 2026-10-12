@@ -1,0 +1,9 @@
+{
+  "name": "etch-host",
+  "version": "1.20.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node tests/test.mjs && node tests/ui-harness.mjs && node tests/fault-injection.mjs"
+  }
+}

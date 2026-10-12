@@ -1,0 +1,18 @@
+{
+  "name": "ETCH",
+  "version": "1.20",
+  "firmware_identity": "FM-1_1020",
+  "app_bytes": 171816,
+  "app_sha256": "76beaa9d83400a272c76d5e9912c6dec8ad57f96180d22d97b03d529e7d5a355",
+  "experimental_firmware_bytes": 610086,
+  "experimental_firmware_sha256": "e12567e491d56a16ef658fbae09447a46e6efe0be4b95d568728319b9ddfa7c0",
+  "webinstaller_sha256": "ec080ef5db4e1ae40717bea9b0f23b8e0b23c6d0297b6b2ce34590084e09a22d",
+  "previous_package_sha256": "bcb7a8b16e779496b751293e38cb664a904063a3ab3f79f0050c7d2e2b25cb6f",
+  "boot_header_matches_v119": true,
+  "ota_loader_matches_v119": true,
+  "project_format": "PJT21, unchanged",
+  "GPL_license": "GPL-3.0-only",
+  "hardware_tested": false,
+  "independent_restore_proven": false,
+  "status": "LAB / NOT HARDWARE QUALIFIED"
+}

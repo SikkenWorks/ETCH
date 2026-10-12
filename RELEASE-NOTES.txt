@@ -1,0 +1,7 @@
+ETCH V1.20 | SikkenWorks
+
+HOME hold increased from 650ms to 1500ms. PRESETS rotary now changes nothing outside the named PRESETS browser. SAVE slots remain accessible with K1.
+Web installer displays ETCH branding in status, logs and MIDI port names, including previous loader names. Internal loader protocol bytes are unchanged.
+Single English README.md, essential licenses and source retained. Historical changelogs/reports and the upstream ZIP no longer included.
+
+WARNING: The package is experimental. No independent hardware restoration test has been performed on the user device. Do not treat host tests as proof that flashing is safe.
