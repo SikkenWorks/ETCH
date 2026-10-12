@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "target": "M-VAVE FM-1 / JieLi AC791N-WL82 / pi32v2",
+  "app_xip_start": "0x02000120",
+  "app_slot_bytes": 581564,
+  "required_entry_symbol": "_start",
+  "required_entry_stub_hex": "04818000",
+  "ram_start": "0x01C00000",
+  "ram_safe_end_exclusive": "0x01C7F000",
+  "notes": [
+    "The upper RAM boot-info/vector/mailbox area is excluded from ETCH allocations.",
+    "A linked app is not flash-approved merely because this contract passes.",
+    "R0 recovery proof, verified FM-1 board bindings and updater path remain separate gates."
+  ]
+}

@@ -1,0 +1,16 @@
+ETCH FM-1 R2 TEST TARGET - V0.24
+================================
+
+THIS DIRECTORY IS NOT A FLASH APPROVAL.
+
+V0.24 contains real AC791N/pi32v2 target source plus an audited ELF -> app.bin
+and offline .fwsc.lab package pipeline. It intentionally does NOT bundle a
+hardware-verified fm1_sdk_bridge.cpp, CRT/startup, linker script, or a normal
+release .fwsc.
+
+ETCH's safety specification requires ROM-level recovery, two byte-identical full
+flash dumps and two successful complete stock restores on the exact target unit
+before original ETCH firmware is flashed.
+
+Passing the app/package validators proves structural consistency only. It does
+not prove the image will boot safely on the physical FM-1.
