@@ -1,0 +1,7 @@
+ETCH V1.27 Webinstaller Connection Fix
+
+Problem: V1.27 installer accidentally omitted FM-1_1026 from its accepted firmware version list. When connecting from ETCH V1.26 the FM1 identification was rejected and INSTALL remained disabled.
+
+Fix: Replace the version enumeration with a bounded policy: FM-1_989, FM-1_994 through the embedded firmware identity FM-1_1027 inclusive, and only the known OTA identity ota-FM-1_015. Stock and unknown versions remain rejected. Tests cover V1.26, same version, loader mode and disallowed IDs.
+
+The embedded firmware binary, SHA-256, protected boot header, OTA loader and update protocol are unchanged. Physical FM1 updating remains unverified and risky without independent hardware recovery.

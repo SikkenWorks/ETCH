@@ -1,9 +1,9 @@
 {
   "name": "etch-host",
-  "version": "1.20.0",
+  "version": "1.37.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node tests/test.mjs && node tests/ui-harness.mjs && node tests/fault-injection.mjs"
+    "test": "node tests/test.mjs && node tests/ui-harness.mjs && node tests/fault-injection.mjs && node tests/test_installer_ota_identity.mjs && node tests/test_installer_pkg_v130.mjs && node tests/test_installer_connection_v130.mjs && node tests/test_v129_advanced_controls.mjs && node tests/test_v130_control_routing.mjs && node tests/test_installer_pkg_v131.mjs && node tests/test_installer_connection_v131.mjs && node tests/test_installer_pkg_v132.mjs && node tests/test_installer_connection_v132.mjs && node tests/test_v132_spectral_label.mjs && node tests/test_installer_pkg_v133.mjs && node tests/test_installer_connection_v133.mjs && node tests/test_installer_pkg_v134.mjs && node tests/test_installer_pkg_v135.mjs && node tests/test_v136_riff_ui.mjs && node tests/test_installer_pkg_v136.mjs && node tests/test_installer_pkg_v137.mjs"
   }
 }

@@ -1,18 +1,24 @@
 {
   "name": "ETCH",
-  "version": "1.20",
-  "firmware_identity": "FM-1_1020",
-  "app_bytes": 171816,
-  "app_sha256": "76beaa9d83400a272c76d5e9912c6dec8ad57f96180d22d97b03d529e7d5a355",
+  "version": "1.37",
+  "firmware_identity": "FM-1_1037",
+  "project_format": "PJT27",
+  "description": "SEQ-held USB-MIDI keyboard boot (audio-free controller mode)",
+  "hardware_tested_v136": false,
+  "hardware_install_v133_reported_by_user": true,
+  "independent_rom_recovery_proven": false,
+  "app_bytes": 185876,
+  "app_sha256": "7091a7509b30195ea5c34f7b8dc9dd4f33ade9634f8a4c7414102a5f0420c5ad",
   "experimental_firmware_bytes": 610086,
-  "experimental_firmware_sha256": "e12567e491d56a16ef658fbae09447a46e6efe0be4b95d568728319b9ddfa7c0",
-  "webinstaller_sha256": "ec080ef5db4e1ae40717bea9b0f23b8e0b23c6d0297b6b2ce34590084e09a22d",
-  "previous_package_sha256": "bcb7a8b16e779496b751293e38cb664a904063a3ab3f79f0050c7d2e2b25cb6f",
-  "boot_header_matches_v119": true,
-  "ota_loader_matches_v119": true,
-  "project_format": "PJT21, unchanged",
-  "GPL_license": "GPL-3.0-only",
-  "hardware_tested": false,
-  "independent_restore_proven": false,
-  "status": "LAB / NOT HARDWARE QUALIFIED"
+  "experimental_firmware_sha256": "0ca1d0f16bc6658cbf13b0010a5341b8d20d0a56904c0d0118a393081b0f47d9",
+  "standalone_fwsc_released": true,
+  "fwsc_filename": "ETCH-FM1-V1.37.fwsc",
+  "fwsc_sha256": "0ca1d0f16bc6658cbf13b0010a5341b8d20d0a56904c0d0118a393081b0f47d9",
+  "webinstaller_sha256": "a91cf55cfdaebfd0a7e0756a0593e3af1b87f72ccbf438095ed02950abeffa5c",
+  "warnings": [
+    "V1.37 controller mode awaits physical FM1 USB-MIDI validation",
+    "Independent ROM restore path remains unverified",
+    "Normal synth polyphony stability and startup pop without USB remain hardware-open"
+  ],
+  "hardware_tested_v137": false
 }
