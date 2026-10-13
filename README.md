@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="/ETCH-GH-banner.png" width="400" alt="ETCH Logo">
+  <img src="/banner.png" width="400" alt="ETCH Logo">
 </p>
 
 # ETCH
