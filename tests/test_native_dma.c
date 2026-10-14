@@ -33,11 +33,13 @@ static volatile uint32_t native_nested_ticks; /* TIMER5 accumulates inside ALNK0
 int main(void){
  etch_editor_init(&native_editor);native_compile_edit();assert(native_controls.bank==&native_banks[0]);
  native_controls.gain=32767;native_start();assert(started==1&&!analog_enabled);
- /* PC6 must remain muted during 600ms silent I2S startup. Digital audio
-  * must remain silent for another 250ms AFTER the analog gate opens. */
+ /* PC6 remains muted until at least 2s uninterrupted USB-state stability.
+  * Digital audio remains muted for 1s AFTER the analog output is enabled. */
  fm1_in.notes=0;for(uint32_t k=0;k<ETCH_OUTPUT_MIN_DMA_HALVES;k++)fm1_alnk0_irq();
  native_output_poll();assert(!analog_enabled && !native_output_enabled);
  ticks+=ETCH_OUTPUT_CLOCK_SETTLE_TICKS;native_output_poll();
+ assert(!analog_enabled && !native_output_enabled);
+ ticks+=ETCH_OUTPUT_USB_STABLE_TICKS-ETCH_OUTPUT_CLOCK_SETTLE_TICKS;native_output_poll();
  assert(analog_enabled && !native_output_enabled);
  fm1_in.notes=1;
  for(int j=0;j<2;j++){fm1_alnk0_irq();for(int i=0;i<256;i++)assert(native_dma[i]==0);}
@@ -97,12 +99,16 @@ int main(void){
  usb.config=0;native_output_poll();
  ticks+=ETCH_OUTPUT_CLOCK_SETTLE_TICKS;
  usb.config=1;native_output_poll();assert(!analog_enabled);
- ticks+=6000000u-1u;native_output_poll();assert(!analog_enabled);
+ ticks+=ETCH_OUTPUT_USB_STABLE_TICKS-1u;native_output_poll();assert(!analog_enabled);
  ticks+=1u;native_output_poll();assert(analog_enabled);
- /* A repeatedly bouncing USB host has a bounded startup delay. */
+ /* A repeatedly bouncing USB host must NOT trigger a PC6 enable merely
+  * because total elapsed boot time exceeds the old three-second bypass. */
  native_start();usb.config=0;
  for(unsigned j=0;j<ETCH_OUTPUT_MIN_DMA_HALVES;j++)fm1_alnk0_irq();
  native_output_poll();ticks+=72000000u;
- usb.config=1;native_output_poll();assert(analog_enabled);
+ usb.config=1;native_output_poll();assert(!analog_enabled);
+ ticks+=ETCH_OUTPUT_USB_STABLE_TICKS-1u;
+ native_output_poll();assert(!analog_enabled);
+ ticks+=1u;native_output_poll();assert(analog_enabled);
  puts("DMA adapter: zero startup, USB gate, priming, stereo Q15 conversion, half selection, held-key panic and deadlines passed");
 }
