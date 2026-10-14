@@ -1,0 +1,74 @@
+--- ETCH-WebInstaller-V1.38-BEETLE-COMPAT.html
++++ ETCH-WebInstaller-V1.38-BEETLE-V042-COMPAT.html
+@@ -34,7 +34,7 @@
+ <body>
+ <main>
+   <header class="top">
+-    <div class="mark"><svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true"><rect x="1" y="1" width="42" height="42" rx="2" fill="#1a2c31" stroke="#65cdd6"/><path d="M4 23h7l5-13 8 25 7-14h9" fill="none" stroke="#f5f8f5" stroke-width="2"/></svg><div><div class="brand">ETCH</div><div class="version">SIKKENWORKS · V1.38 BEETLE COMPAT · EXPERIMENTAL</div></div></div>
++    <div class="mark"><svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true"><rect x="1" y="1" width="42" height="42" rx="2" fill="#1a2c31" stroke="#65cdd6"/><path d="M4 23h7l5-13 8 25 7-14h9" fill="none" stroke="#f5f8f5" stroke-width="2"/></svg><div><div class="brand">ETCH</div><div class="version">SIKKENWORKS · V1.38 BEETLE V0.42 COMPAT · EXPERIMENTAL</div></div></div>
+     <div class="top-right">FM-1 FIRMWARE INSTALLER<br>WEB MIDI / SYS EX</div>
+   </header>
+   <div class="hero">
+@@ -52,8 +52,8 @@
+       <div class="detail"><div class="product" id="firmware-name">ETCH FULL SYNTH / V1.38</div><p class="soft" id="firmware-sub">ETCH V1.38 preserves the V1.37 synth, MIDI-keyboard mode, presets, PJT27 storage and all prior functions. This release fixes an OTA compatibility restriction in the DEVICE firmware: it supports both the pinned ETCH/Felucca updater and the original M-VAVE V15 loader, but only when paired with the exact verified V15 flash image. To restore stock from V1.37 or older ETCH, install V1.38 first, reboot and then choose OFFICIAL V15. Physical restoration has not yet been verified on an FM1.</p>
+         <div class="meta"><span>IDENTITY</span><strong id="package-id">CHECKING</strong><span>SIZE</span><strong id="firmware-size">...</strong><span>SHA-256</span><strong class="hash" id="firmware-hash">VERIFYING...</strong></div>
+       </div>
+-      <div class="notice"><strong>BEETLE SUPPORT:</strong> This installer recognizes BEETLE <code>FM-1_2041</code> (V0.41) and the checked BEETLE V0.31–V0.33 identities for an <strong>ETCH V1.38</strong> update. The exact V0.41 binary is not bundled here, so its compatibility is not physically proven. The FM1 still validates the protected header and OTA loader at CHECK; a failure stops before flashing. To go from BEETLE to original stock, first install ETCH V1.38, reboot, reconnect, and then restore stock V15 using its exact verified file. This is experimental and does not back up BEETLE projects.</div>
+-       <div class="notice"><strong>RESTORE FIX / READ FIRST:</strong> BEETLE V0.41 and older ETCH versions (V0.89, V0.94–V1.37) are not verified to accept the original V15 loader. Their stock restore will display OTA-FAIL. Install ETCH V1.38 first, allow the FM1 to fully reboot, reconnect, then select the verified original stock V15 file. Never bypass CHECK and never alter the manufacturer's .fwsc. The device must remain responsive to USB-MIDI.</div>
++      <div class="notice"><strong>BEETLE SUPPORT:</strong> This installer recognizes BEETLE <code>FM-1_2042</code> (V0.42), <code>FM-1_2041</code> (V0.41), and V0.31–V0.33 for an <strong>ETCH V1.38</strong> update. The exact V0.42/V0.41 installed binaries were not available for direct comparison; compatibility is <strong>unverified</strong>. The FM1 must accept the package during its own protected-header/OTA CHECK; a failure stops the transfer. To return to original stock, first install ETCH V1.38, reboot and reconnect, then restore verified stock V15. BEETLE projects are not backed up.</div>
++       <div class="notice"><strong>RESTORE FIX / READ FIRST:</strong> BEETLE V0.42/V0.41 and older ETCH versions (V0.89, V0.94–V1.37) are not verified to accept the original V15 loader. Their stock restore will display OTA-FAIL. Install ETCH V1.38 first, allow the FM1 to fully reboot, reconnect, then select the verified original stock V15 file. Never bypass CHECK and never alter the manufacturer's .fwsc. The device must remain responsive to USB-MIDI.</div>
+        <div class="notice"><strong>UNVERIFIED LAB FIRMWARE. THIS IS NOT A CERTIFIED RELEASE.</strong> The complete ETCH engine is included, but it has not passed physical FM1 hardware qualification. A failed boot may require hardware-level recovery. Returning to official V15 requires a responsive USB updater; it cannot fix a completely inaccessible device. <strong>This installer does not back up user data.</strong></div>
+       <div class="buttons"><button type="button" id="connect" class="btn secondary" disabled>01 / CONNECT FM1</button><button type="button" id="install" class="btn" disabled>02 / INSTALL EXPERIMENTAL</button></div>
+       <div id="port-picker" hidden><label for="midi-choice" class="soft">Select the FM1 MIDI input/output pair:</label><select id="midi-choice"></select><button type="button" class="btn secondary" id="connect-selected">IDENTIFY DEVICE</button></div>
+@@ -6930,13 +6930,13 @@
+  * FM-1_989 was the compatibility starting point; V0.90-V0.93 are
+  * deliberately excluded because their protected header differs.
+  * No stock firmware or unknown loader is accepted on the ETCH path. */
+-/* BEETLE interoperability: only explicitly checked FM1 builds.
++/* BEETLE interoperability: explicit FM1 product IDs only.
+  * BEETLE 0.31-0.33: package bootheader and staged loader match ETCH.
+- * BEETLE 0.41 (FM-1_2041): shared OTA/boot base reported by its release;
+- * exact installed device bytes cannot be inspected by this installer.
+- * Device-side CHECK must still succeed; never bypass CHECK. */
++ * BEETLE 0.41-0.42 (FM-1_2041 / FM-1_2042): firmware images have
++ * not been provided for byte-level comparison. Their device-side CHECK
++ * must confirm OTA compatibility. Never bypass CHECK. */
+ const SUPPORTED_BEETLE_IDS = Object.freeze([
+-  'FM-1_2031', 'FM-1_2032', 'FM-1_2033', 'FM-1_2041'
++  'FM-1_2031', 'FM-1_2032', 'FM-1_2033', 'FM-1_2041', 'FM-1_2042'
+ ]);
+ function isSupportedBeetleIdentity(identity){
+   return SUPPORTED_BEETLE_IDS.includes(identity||'');
+@@ -7231,7 +7231,7 @@
+     device.link.close();throw new Error('Device reported '+device.id.text+', not an FM-1.');
+  }
+  if(choice==='etch' && !isSupportedEtchIdentity(device.id.text)) {
+-   device.link.close();throw new Error('This installer accepts the verified ETCH versions, BEETLE V0.31–V0.33 / V0.41 (FM-1_2041), or the known FM1 OTA loader. Detected '+device.id.text+'. No data sent.');
++   device.link.close();throw new Error('This installer accepts supported ETCH versions, BEETLE V0.31–V0.33 / V0.41–V0.42 (FM-1_2042), or the known FM1 OTA loader. V0.42 hardware compatibility is unverified. Detected '+device.id.text+'. No data sent.');
+  }
+  if(choice==='stock' && requiresRestoreBridge(device.id.text)) {
+    device.link.close();
+@@ -7245,11 +7245,11 @@
+  $('port-picker').hidden=true;$('install').disabled=false;$('connect').disabled=true;
+  step('connect',0,'FM1 identified: '+device.id.text);
+  if(isSupportedBeetleIdentity(device.id.text) && choice==='etch') {
+-   logLine('BEETLE compatibility path: '+device.id.text+' -> '+C.ID_ET+'; device CHECK remains mandatory.');
++   logLine('BEETLE compatibility path: '+device.id.text+' -> '+C.ID_ET+'; device CHECK remains mandatory. BEETLE 0.41/0.42 binaries were not independently checked.');
+  }
+  setMessage(device.id.loader ? 'FM1 is in OTA loader mode. The previously installed application cannot be verified from this mode. Continue only with a verified firmware package and an independently tested recovery route.' : 'FM1 connected. Review the warning and install when ready.', device.id.loader ? 'info' : 'ok');
+  if(isSupportedBeetleIdentity(device.id.text) && choice==='etch') {
+-   setMessage('BEETLE '+device.id.text+' recognized. The OTA CHECK on the FM1 must still accept ETCH V1.38. No flash is guaranteed without a verified recovery route.');
++   setMessage('BEETLE '+device.id.text+' recognized. The OTA CHECK on the FM1 must accept ETCH V1.38. The V0.42/V0.41 bootloader has not been independently verified; stop if CHECK fails.');
+  }
+  logLine('Identified FM1: '+device.id.text);
+ }
+@@ -7266,6 +7266,9 @@
+ async function install(){if(installing||!approvedPackage||!connected)return;
+  if(choice==='stock' && requiresRestoreBridge(connected.id.text)){
+    setMessage('To restore stock from this BEETLE/older ETCH version, first install ETCH V1.38 and reboot. No data sent.','error');return;
++ }
++ if(choice==='etch' && connected.id.text==='FM-1_2042'){
++   if(!window.confirm('BEETLE V0.42 (FM-1_2042) / UNVERIFIED SOURCE LOADER\n\nThe installed BEETLE V0.42 firmware binary has not been provided for byte-level OTA compatibility inspection. Device-side CHECK will still decide whether the package is accepted. If the FM1 displays OTA-FAIL, stop and export the diagnostic log. Continue?'))return;
+  }
+  if(!$('risk').checked){setMessage('Read and accept the firmware update risk before installing.','error');return;}
+  if(!window.confirm('EXPERIMENTAL LAB BUILD / NO VERIFIED RECOVERY\n\nInstall '+approvedPackage.product+' on the FM1? A failed update can leave it unusable. Do not disconnect USB. NO data backup is performed.'))return;

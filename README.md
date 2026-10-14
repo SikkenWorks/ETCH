@@ -1,3 +1,5 @@
+> **V1.38 OTA / STOCK RESTORE FIX:** Read [OTA-RESTORE-FIX-V1.38.md](OTA-RESTORE-FIX-V1.38.md) before flashing. This fixes the OTA-CHECK policy that rejected original M-VAVE stock V15 on previous ETCH versions. The fix has NOT been physically verified on an FM1. The historical V1.37 README follows unchanged.
+
 # ETCH V1.37 — SEQ BOOT MIDI KEYBOARD
 
 **New:** Hold the physical **SEQ** button (raw button 11) while powering on the M-VAVE FM1. ETCH boots into **MIDI KEYBOARD MODE**, a USB MIDI controller. The on-device synth audio/DAC DMA and PC6 analogue output remain disabled in this mode.

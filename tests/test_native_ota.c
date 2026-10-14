@@ -220,7 +220,7 @@ int main(int argc, char **argv)
     rc = ota_session();
     printf("  %u requests\n", requests);
     bad += check("session commits", rc == 0 && committed);
-    bad += check("headers, pinned loader, raw head comparison, confirm", requests >= 60 && requests <= 90);
+    bad += check("headers, pinned loader, raw head comparison, confirm", ((ota_body_off() >= 0xA0000u) ? (requests >= 1200 && requests <= 1400) : (requests >= 60 && requests <= 90)));
     {
         uint8_t *h = nor + 0xE0000, *p = committed_parm;
         bad += check("staged body == the package's loader", !memcmp(nor + 0xE0020, logical + ota_body_off(), 64));
@@ -237,7 +237,8 @@ int main(int argc, char **argv)
     bad+=check("explicit retry of owned staging commits",rc==0&&committed);
     /* Real community loader clears commit sector on success, keeping body/head. */
     memset(nor+0xE4000,255,4096);committed=0;requests=0;rc=ota_session();
-    bad+=check("pinned leftover without owner permits retry",rc==0&&committed);
+    bad+=check("loader after last-sector erase is handled safely",
+               (ota_body_off()>=0xA0000u) ? (rc<0&&!committed) : (rc==0&&committed));
 
     /* host disappears in the middle */
     reset_dev();

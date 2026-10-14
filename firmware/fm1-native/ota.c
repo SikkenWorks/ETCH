@@ -260,20 +260,35 @@ static int ota_ufw(uint8_t *hdr, uint32_t *fl_off, uint32_t *fl_len, uint32_t *o
     return 0;
 }
 
-/* ETCH additions: only the exact user-supplied community loader is allowed.
- * This pins reviewed bytes; it is not a signature or physical recovery proof. */
+/* ETCH V1.38 RESTORE FIX:
+ * Accept exactly TWO pinned OTA bodies, each WITH its matching flash.bin:
+ *  - Felucca/ETCH community app-only loader, boot header must match.
+ *  - Unmodified M-VAVE V15 full-flash loader, but ONLY with the exact
+ *    verified official V15 flash image. Allows returning to stock firmware.
+ * Neither path allows arbitrary loaders. Never accept an unknown flash head.
+ * Browser also verifies the complete stock .fwsc by SHA-256.
+ * Not a substitute for actual FM1 hardware/recovery qualification. */
 #define ETCH_OTA_BODY_LEN 6898u
+#define ETCH_STOCK_OTA_BODY_LEN 19937u
+static const uint8_t etch_stock_ota_digest[32]={
+ 0xa1,0x9b,0xb1,0xbe,0xe7,0x2c,0x12,0xaf,0x9d,0xb2,0x18,0xfd,0x71,0x3b,0x90,0x32,
+ 0x73,0xad,0x9d,0x4a,0xe8,0x68,0xd1,0x30,0x0d,0x80,0x41,0xd6,0x23,0x5d,0xc1,0x34
+};
 #define ETCH_OTA_OWNER (OTA_RES+0x80u)
 static const uint8_t etch_ota_digest[32]={0xd0,0xb1,0xa0,0x5c,0x63,0x03,0x0b,0x58,0xe5,0xbe,0x06,0xb9,0x37,0x51,0xe6,0xcc,0x37,0x5d,0x3d,0x34,0xee,0xc5,0x84,0x10,0x9f,0x97,0xfd,0x31,0xf0,0xa4,0x2a,0x78};
 static const uint8_t etch_ota_owner[16]="ETCH-OTA-STAGE-1";
 static uint8_t ota_touched;
-static int etch_ota_hash(uint32_t off,uint8_t *b,uint8_t from_host){
+static int etch_ota_hash_pinned(uint32_t off,uint8_t *b,uint8_t from_host,
+                                  uint32_t body_len,const uint8_t expected[32]){
  struct etch_sha256 h;uint8_t digest[32];etch_sha256_init(&h);
- for(uint32_t i=0;i<ETCH_OTA_BODY_LEN;){uint32_t n=ETCH_OTA_BODY_LEN-i;if(n>512)n=512;
+ for(uint32_t i=0;i<body_len;){uint32_t n=body_len-i;if(n>512)n=512;
   if(from_host?ota_read(off+i,b,n):ota_fread(off+i,b,n))return 0;
   etch_sha256_add(&h,b,n);i+=n;ota_idle();
  }
- etch_sha256_end(&h,digest);return ota_memeq(digest,etch_ota_digest,32);
+ etch_sha256_end(&h,digest);return ota_memeq(digest,expected,32);
+}
+static int etch_ota_hash(uint32_t off,uint8_t *b,uint8_t from_host){
+ return etch_ota_hash_pinned(off,b,from_host,ETCH_OTA_BODY_LEN,etch_ota_digest);
 }
 /* No automatic claim of nonblank unknown bytes in this reserved region.
  * A complete pinned older loader or our ownership token permits a retry. */
@@ -282,7 +297,13 @@ static int etch_ota_available(uint8_t *b){
  if(ota_fread(ETCH_OTA_OWNER,b,16))return 0;
  if(ota_memeq(b,etch_ota_owner,16))return 1;
  if(ota_fread(OTA_AREA,head,32))return 0;
- if(ota_rd16(head)==ota_crc16(head+2,30,0)&&ota_rd32(head+4)==OTA_AREA&&ota_rd32(head+8)==ETCH_OTA_BODY_LEN+32&&ota_memeq(head+16,(const uint8_t*)"LOADER.BIN",10)&&etch_ota_hash(OTA_AREA+32,b,0))return 1;
+ if(ota_rd16(head)==ota_crc16(head+2,30,0)&&ota_rd32(head+4)==OTA_AREA&&
+    ota_memeq(head+16,(const uint8_t*)"LOADER.BIN",10)){
+     uint32_t staged_len=ota_rd32(head+8);
+     if(staged_len==ETCH_OTA_BODY_LEN+32&&etch_ota_hash(OTA_AREA+32,b,0))return 1;
+     if(staged_len==ETCH_STOCK_OTA_BODY_LEN+32&&
+        etch_ota_hash_pinned(OTA_AREA+32,b,0,ETCH_STOCK_OTA_BODY_LEN,etch_stock_ota_digest))return 1;
+ }
  for(uint32_t i=0;i<OTA_AREA_LEN;i+=512){if(ota_fread(OTA_AREA+i,b,512))return 0;for(uint32_t j=0;j<512;j++)if(b[j]!=255)return 0;ota_idle();}
  return 1;
 }
@@ -300,6 +321,8 @@ static int ota_stage(void)                       /* steps 1..6; 0 = host said su
 {
     static uint8_t hdr[0x400], b[512], mine[512];
     uint32_t i, n, ota_off, ota_len, fl_off, fl_len, c, len;
+    const uint8_t *pinned_digest;
+    int is_stock;
     int rc;
     /* 1. UFW header + entry list */
     ota_show(1, 0);
@@ -317,9 +340,18 @@ static int ota_stage(void)                       /* steps 1..6; 0 = host said su
         ota_len != len + 0x20u || len > OTA_AREA_LEN - 0x200u || ota_crc16(b + 0x22, 30, 0) != ota_rd16(b + 0x20) ||
         ota_rd32(b + 0x20 + 8) != 0x01C0A800u)
         return -7;
-    /* Exact SHA-256 check before first erase; compare physical boot head
-     * for every allowed package, including the community app-only loader. */
-    if(len!=ETCH_OTA_BODY_LEN || !etch_ota_hash(ota_off+32,b,1))return -16;
+    /* Exact SHA-256 check before the first erase. The official V15 loader
+     * is allowed ONLY with the pinned official V15 full flash.bin image.
+     * Non-stock packages MUST use the pinned ETCH/Felucca app-only loader. */
+    is_stock=(len==ETCH_STOCK_OTA_BODY_LEN);
+    if(is_stock){
+        pinned_digest=etch_stock_ota_digest;
+        if(!etch_ota_hash_pinned(ota_off+32,b,1,len,pinned_digest))return -16;
+        if(!etch_ota_stock(fl_off,b))return -20;
+    } else {
+        pinned_digest=etch_ota_digest;
+        if(len!=ETCH_OTA_BODY_LEN || !etch_ota_hash_pinned(ota_off+32,b,1,len,pinned_digest))return -16;
+    }
     ota_show(2,0);
     for(i=0;i<0x4000u;i+=512u){
         if(ota_read(fl_off+i,b,512)||ota_fread(i,mine,512))return -4;
@@ -357,7 +389,7 @@ static int ota_stage(void)                       /* steps 1..6; 0 = host said su
         if (crc != c)
             return -11;
     }
-    if(!etch_ota_hash(OTA_AREA+32,b,0))return -16;
+    if(!etch_ota_hash_pinned(OTA_AREA+32,b,0,len,pinned_digest))return -16;
     if (ota_stage_head(len))
         return -12;
     /* 6. the host confirms: nothing is committed without it */
@@ -383,7 +415,7 @@ static int ota_session(void)
     uint32_t i;
     int rc;
     ota_touched=0;
-    ota_deadline = ota_now_ms() + 120000u;          /* step 1 normally takes ~5 s; a stalled host gives up after 2 min */
+    ota_deadline = ota_now_ms() + 240000u;          /* Exact stock V15 flash digest reads 1,176 blocks; allow bounded 4 min */
     rc = ota_stage();
     if (rc) {
         if(ota_unstage())rc=-17;

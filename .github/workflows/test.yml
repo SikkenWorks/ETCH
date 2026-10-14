@@ -1,0 +1,27 @@
+name: ETCH source checks
+on: [push, pull_request]
+jobs:
+  host:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install numpy
+      - run: python3 tools/audit_felucca_core.py
+      - run: python3 tests/test_v120_preset_policy.py
+      - run: gcc -std=c11 -O2 tests/test_native_preset_browser.c -o /tmp/etch_presets && /tmp/etch_presets
+      - run: cmake -S . -B build/host && cmake --build build/host --parallel
+      - run: ctest --test-dir build/host --output-on-failure
+      - run: mkdir -p build/examples && ./build/host/etch_render build/examples/ETCH-first-sound.wav && ./build/host/etch_render build/examples/ETCH-filtered.wav filter
+      - run: npm test
+      - run: python3 tests/test_fwsc.py
+      - run: python3 tests/test_v138_restore_gate.py
+      - run: node tests/test_installer_v138_local.cjs
+      - run: python3 tests/test_target_build.py
+      - run: python3 tests/audio_quality.py
+      - run: gcc -std=c11 -w -fsyntax-only -DETCH_NATIVE_STORAGE=1 -DETCH_NATIVE_OTA=1 firmware/fm1-native/bringup.c
