@@ -1,4 +1,4 @@
-> **V1.38 OTA / STOCK RESTORE FIX:** Read [OTA-RESTORE-FIX-V1.38.md](OTA-RESTORE-FIX-V1.38.md) before flashing. This fixes the OTA-CHECK policy that rejected original M-VAVE stock V15 on previous ETCH versions. The fix has NOT been physically verified on an FM1. The historical V1.37 README follows unchanged.
+> **V1.38 OTA / STOCK RESTORE FIX:** Read [OTA-RESTORE-FIX-V1.38.md](OTA-RESTORE-FIX-V1.38.md) before flashing. This fixes the OTA-CHECK policy that rejected original M-VAVE stock V15 on previous ETCH versions. The fix has been physically verified on my own FM1. The historical V1.37 README follows unchanged.
 
 # ETCH V1.37 — SEQ BOOT MIDI KEYBOARD
 
