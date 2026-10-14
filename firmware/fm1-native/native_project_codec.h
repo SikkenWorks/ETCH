@@ -11,7 +11,22 @@
 #include "native_fx.h"
 #include "native_motion.h"
 #include "native_evolution.h"
+#include "native_organic.h"
+#include "native_living.h"
+#include "native_mod_matrix.h"
 #define ETCH_PROJECT_MAX_BYTES ((ETCH_P04_EXPANDED ? ETCH_STORE_EXT_BANK_BYTES : ETCH_STORE_SPARE_ENABLED ? ETCH_STORE_SPARE_BANK_BYTES : ETCH_STORE_BANK_BYTES)-256u)
+/* PJT26: independently saved, non-audio-IRQ state for each named preset. */
+struct etch_preset_dsp {
+ struct etch_organic_settings organic;
+ struct etch_living_settings living;
+ struct etch_mod_matrix matrix;
+ struct etch_evolution_settings evolution;
+ uint8_t spectral_wave,spectral_part;
+ uint8_t blend_a,blend_b,blend_pct,blend_on;
+ uint8_t spectral_gain,spectral_tilt; /* PJT27: independent control positions, centre = 50 */
+};
+struct etch_preset_dsp_bank {struct etch_preset_dsp slot[ETCH_PATCH_SLOTS];};
+_Static_assert(sizeof(struct etch_preset_dsp)==32u,"PJT27 record size must stay exact; PJT26 prefix is 30 bytes");
 struct etch_project_settings {
  uint16_t seq_length;
  uint8_t seq_rate,seq_gate,seq_swing,tempo,clock_follow;
@@ -30,9 +45,22 @@ struct etch_project_settings {
  struct etch_arp_program arp_programs[ETCH_PATCH_SLOTS]; /* V7+ custom ARP, sparse encoding */
  struct etch_motion_clip motion; /* PJT18: per-project motion loop */
  struct etch_evolution_settings evolution; /* PJT19: per-project Wave Evolution */
+ struct etch_organic_settings organic; /* PJT22: four project-scoped Organic controls */
+ struct etch_living_settings living; /* PJT23: four project-scoped Living controls */
+ struct etch_mod_matrix matrix; /* PJT24: four project-scoped modulation routes */
+
  uint8_t mono_mode; /* 0=POLY, 1=MONO; saved per project, V12+ */
  uint8_t source_version; /* read-only runtime metadata; not encoded */
 };
+/* PJT25 per-preset RIFF extras are allocated separately from the full DSP
+ * project snapshot: the FM1 audio pool has no space for more project bytes. */
+struct etch_riff2_bank {
+ uint16_t riff_variants[ETCH_PATCH_SLOTS];
+ uint8_t riff_mutations[ETCH_PATCH_SLOTS],riff_densities[ETCH_PATCH_SLOTS];
+};
+void etch_project_bind_preset_dsp(struct etch_project_settings *project,struct etch_preset_dsp_bank *bank);
+void etch_project_copy_preset_dsp(struct etch_project_settings *destination,const struct etch_project_settings *source);
+void etch_project_bind_riff2(struct etch_project_settings *project,struct etch_riff2_bank *bank);
 /* Conservative worst-case PJT10 serialization upper bound for the
  * CURRENT feature model.  Patterns are bounded by the separate 16 KiB
  * pattern archive, so this DOES NOT mean 32 completely filled 256-step

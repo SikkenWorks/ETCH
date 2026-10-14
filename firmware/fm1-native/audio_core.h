@@ -9,11 +9,14 @@
 #include "native_voice_budget.h"
 #include "native_motion.h"
 #include "native_evolution.h"
+#include "native_organic.h"
+#include "native_living.h"
+#include "native_mod_matrix.h"
 #define ETCH_NATIVE_VOICES 8
 #define ETCH_NATIVE_FRAMES 128
 #define ETCH_MONO_STACK 48u
 #define ETCH_TRANSITION_SAMPLES 192u
-struct etch_native_voice {uint32_t p,q,inc,eg;int32_t low,band;int32_t pre_lp[2];uint8_t stage;int32_t env,last,tail;uint16_t fade,attack_fade;uint16_t note;uint32_t gate_left,birth;uint8_t active,held,down,velocity;};
+struct etch_native_voice {uint32_t p,q,inc,eg;int32_t low,band;int32_t pre_lp[2];int32_t env,last,tail;uint16_t fade,attack_fade;uint16_t note;uint8_t stage;uint32_t gate_left,birth;uint8_t active,held,down,velocity;};
 /* Recent-note priority stack; stores original identities, not quantized note numbers. */
 struct etch_mono_held {uint16_t id;uint8_t pitch,velocity,down;uint32_t gate_left;};
 struct etch_native_audio {
@@ -44,10 +47,13 @@ struct etch_native_controls {uint16_t morph,depth,gain;int8_t octave;const struc
  struct etch_fx_settings fx_settings;
  uint8_t env_enabled,filter_type,mod_target,mod_mode,mod_ratio,mono_mode;
  const struct etch_arp_program *arp_program;
- uint32_t riff_seed;uint8_t preview_wave; /* 0=normal, 1=A, 2=B, 3=C */
+ uint32_t riff_seed;uint16_t riff_variant;uint8_t riff_mutation,riff_density;uint8_t preview_wave; /* 0=normal, 1=A, 2=B, 3=C */
  uint8_t arp_mode,arp_rate,arp_octaves,arp_gate,seq_run,seq_rate,seq_gate,tempo,seq_swing,clock_follow;
  const struct etch_motion_clip *motion;uint8_t motion_play;
  struct etch_evolution_settings evolution;
+ struct etch_organic_settings organic;
+ struct etch_living_settings living;
+ struct etch_mod_matrix matrix;
  uint16_t seq_length;
  struct etch_harmony_settings harmony;
  const struct etch_native_pattern *pattern;
@@ -64,3 +70,6 @@ int16_t etch_native_bank_preview(const struct etch_native_bank *bank,uint16_t mo
 /* MIDI identifiers are separate from panel keys; all 16 channels accepted. */
 void etch_native_midi(struct etch_native_audio *s,uint8_t status,uint8_t d1,uint8_t d2);
 void etch_native_midi_panic(struct etch_native_audio *s);
+
+/* Read-only offline diagnostics for filter smoothing; no changes to patch/storage. */
+void etch_native_filter_ramp_state(int32_t *cutoff,int32_t *resonance);

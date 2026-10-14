@@ -44,7 +44,9 @@ struct etch_native_fx {
  int16_t delay[ETCH_DELAY_SIZE],chorus[ETCH_CHORUS_SIZE],reverb[ETCH_REVERB_SIZE];
  uint32_t delay_pos,chorus_pos,reverb_pos,chorus_phase;
  struct etch_fx_settings applied;
- uint32_t delay_samples,rate_step,tap1,tap2,tap3;
+ /* Bounded values: delay < 16384, chorus rate <= 10, tank taps < 4096.
+  * Compact control state preserves the already-full fixed audio POOL. */
+ uint16_t delay_samples,rate_step,tap1,tap2,tap3;
  uint8_t applied_valid;
  uint32_t ring_phase,ring_increment;
  int32_t ring_mix_smooth,eq_gain_smooth[3];
@@ -74,6 +76,10 @@ struct etch_native_fx {
   * Never memset tens of KiB in the realtime ISR. No preset/settings changes. */
  uint32_t dry_flush_cursor;
  uint8_t dry_was_wet,dry_flush_active;
+ /* SPACE 2.0: 128 B shared diffusion line in .noinit and only 8 B of
+  * control state. On-flash etch_fx_settings/PJT21 layout stays identical. */
+ int32_t space_damp_state;
+ uint16_t chorus_span,space_damp_alpha;
  int32_t reverb_mix_smooth;
 };
 static inline void etch_fx_defaults(struct etch_fx_settings *s){

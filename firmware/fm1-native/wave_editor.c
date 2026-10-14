@@ -184,3 +184,90 @@ void etch_editor_genetics(struct etch_wave_editor *e,uint8_t mix,uint8_t mutate,
  for(uint32_t i=0;i<128u;i++)e->points[2][i]=child[i];
  e->wave=2u;e->dirty=1u;++e->revision;
 }
+
+/* V1.24: actual harmonic-domain editing, not a graphic-only spectral EQ.
+ * Analyse one 128-point periodic wave against the same 512-point sine basis
+ * used by the production wavetable compiler. Preserve phase, modify only
+ * the chosen partial's complex coefficient, then bake into editable points.
+ * Time-critical audio always reads precompiled antialiased mipmap tables.
+ */
+static void spectral_coeff(const int16_t *points,uint32_t h,int32_t *si,int32_t *co){
+ int64_t s=0,c=0;
+ for(uint32_t i=0;i<128u;i++){
+  uint32_t p=(h*i*4u)&511u;
+  s+=(int64_t)points[i]*etch_tables[0][0][p];
+  c+=(int64_t)points[i]*etch_tables[0][0][(p+128u)&511u];
+ }
+ *si=(int32_t)(s/(64LL*29000LL));*co=(int32_t)(c/(64LL*29000LL));
+}
+static void spectral_commit(struct etch_wave_editor *e,const int32_t *newpoints){
+ int32_t max=1;uint8_t any=0;
+ for(uint32_t i=0;i<128u;i++){
+  int32_t a=newpoints[i]<0?-newpoints[i]:newpoints[i];
+  if(a>max)max=a;
+ }
+ int16_t out[128];
+ for(uint32_t i=0;i<128u;i++){
+  int32_t value=max>30000?(int32_t)((int64_t)newpoints[i]*30000/max):newpoints[i];
+  out[i]=(int16_t)bounded(value,-30000,30000);
+  if(out[i]!=e->points[e->wave][i])any=1u;
+ }
+ if(!any)return;
+ etch_editor_checkpoint(e);
+ for(uint32_t i=0;i<128u;i++)e->points[e->wave][i]=out[i];
+ e->dirty=1u;++e->revision;
+}
+void etch_editor_spectral_partial(struct etch_wave_editor *e,uint8_t harmonic,int32_t turns){
+ if(!e||!turns||harmonic<1u||harmonic>32u)return;
+ int32_t si=0,co=0;turns=bounded(turns,-20,20);
+ spectral_coeff(e->points[e->wave],harmonic,&si,&co);
+ /* +/-20% of existing partial per detent; a missing partial is deliberately
+  * created at a reliably audible, bounded starting level. */
+ int32_t delta_s=(int32_t)((int64_t)si*turns*20/100);
+ int32_t delta_c=(int32_t)((int64_t)co*turns*20/100);
+ if(!delta_s&&!delta_c){delta_s=turns*1200;}
+ int32_t points[128];
+ for(uint32_t i=0;i<128u;i++){
+  uint32_t p=((uint32_t)harmonic*i*4u)&511u;
+  int32_t delta=(int32_t)(((int64_t)delta_s*etch_tables[0][0][p]+(int64_t)delta_c*etch_tables[0][0][(p+128u)&511u])/29000);
+  points[i]=(int32_t)e->points[e->wave][i]+delta;
+ }
+ spectral_commit(e,points);
+}
+void etch_editor_spectral_tilt(struct etch_wave_editor *e,int32_t turns){
+ if(!e||!turns)return;
+ turns=bounded(turns,-16,16);
+ int32_t s[65]={0},c[65]={0};
+ for(uint32_t h=2u;h<=64u;h++)spectral_coeff(e->points[e->wave],h,&s[h],&c[h]);
+ int32_t points[128];
+ for(uint32_t i=0;i<128u;i++){
+  int64_t delta=0;
+  for(uint32_t h=2u;h<=64u;h++){
+   /* 10%/detent at h=64, tapering smoothly to zero at fundamental. */
+   int32_t ds=(int32_t)((int64_t)s[h]*turns*10*(int32_t)(h-1u)/(100*63));
+   int32_t dc=(int32_t)((int64_t)c[h]*turns*10*(int32_t)(h-1u)/(100*63));
+   uint32_t p=(h*i*4u)&511u;
+   delta+=(int64_t)ds*etch_tables[0][0][p]+(int64_t)dc*etch_tables[0][0][(p+128u)&511u];
+  }
+  points[i]=(int32_t)e->points[e->wave][i]+(int32_t)(delta/29000);
+ }
+ spectral_commit(e,points);
+}
+uint16_t etch_editor_spectral_level(const struct etch_wave_editor *e,uint8_t harmonic){
+ if(!e||harmonic<1u||harmonic>32u)return 0;
+ int32_t s=0,c=0;spectral_coeff(e->points[e->wave],harmonic,&s,&c);
+ uint32_t approx=(uint32_t)((s<0?-s:s)+(c<0?-c:c));
+ return (uint16_t)(approx>=29000u?100u:approx*100u/29000u);
+}
+uint16_t etch_editor_spectral_brightness(const struct etch_wave_editor *e){
+ if(!e)return 0;
+ uint32_t weighted=0,total=0;
+ for(uint32_t h=1u;h<=32u;h++){
+  int32_t s=0,c=0;spectral_coeff(e->points[e->wave],h,&s,&c);
+  uint32_t amplitude=(uint32_t)((s<0?-s:s)+(c<0?-c:c));
+  weighted+=amplitude*(h-1u);total+=amplitude;
+ }
+ if(!total)return 0;
+ uint32_t value=(weighted/31u)*100u/total;
+ return (uint16_t)(value>100u?100u:value);
+}

@@ -10,6 +10,9 @@
 static int16_t reverse_line[3584] __attribute__((section(".noinit")));
 static int16_t vibrato_line[512] __attribute__((section(".noinit")));
 static int16_t tape_line[512] __attribute__((section(".noinit")));
+/* V1.22 SPACE 2.0: one 64-sample diffusion line shared by both channels.
+ * Global rather than per-voice: fixed 128 B SRAM, zero heap allocation. */
+static int16_t space_diffuser[64] __attribute__((section(".noinit")));
 static int16_t clip16(int32_t v){return (int16_t)(v<-32768?-32768:v>32767?32767:v);}
 static uint16_t qclamp(uint16_t x){return x>32767?32767:x;}
 /* RC candidate F03: wet-output soft knee before the hardware DAC/USB stage.
@@ -31,11 +34,19 @@ void etch_fx_reset(struct etch_native_fx *s){
  for(uint32_t i=0;i<3584;i++)reverse_line[i]=0;
  for(uint32_t i=0;i<512;i++)vibrato_line[i]=0;
  for(uint32_t i=0;i<512;i++)tape_line[i]=0;
+ for(uint32_t i=0;i<64;i++)space_diffuser[i]=0;
  s->eq_gain_smooth[0]=s->eq_gain_smooth[1]=s->eq_gain_smooth[2]=16384;
  s->comp_gain=32767;s->comp_target=32767;
 }
 /* Ring Mod and channel EQ run once after the voice sum, never per voice.
  * No heap, no trigonometry, no flash access inside the audio ISR. */
+/* Fractional mono tap shared by the two chorus output phases. This avoids
+ * 1-sample read-address jumps on slow chorus modulation (Q8 position). */
+static int32_t etch_fx_chorus_read(const struct etch_native_fx *s,uint32_t offset_q8){
+ uint32_t idx=(s->chorus_pos-(offset_q8>>8))&(ETCH_CHORUS_SIZE-1u);
+ int32_t a=s->chorus[idx],b=s->chorus[(idx-1u)&(ETCH_CHORUS_SIZE-1u)];
+ return a+(((b-a)*(int32_t)(offset_q8&255u))/256);
+}
 static int32_t etch_fx_slew(int32_t current,int32_t target){
  int32_t delta=target-current;
  if(!delta)return current;
@@ -303,6 +314,7 @@ void etch_fx_process_stereo_ex(struct etch_native_fx *s,int16_t in,uint16_t chor
     s->delay[i]=0;
     if(i<ETCH_REVERB_SIZE)s->reverb[i]=0;
     if(i<ETCH_CHORUS_SIZE)s->chorus[i]=0;
+    if(i<64u)space_diffuser[i]=0;
     if(i<3584u)reverse_line[i]=0;
     if(i<1024u)s->flanger_line[i]=0;
     if(i<512u){vibrato_line[i]=0;tape_line[i]=0;}
@@ -315,6 +327,7 @@ void etch_fx_process_stereo_ex(struct etch_native_fx *s,int16_t in,uint16_t chor
      s->wah_env=s->wah_lp=s->wah_hp=0;
      s->tape_tone_state=s->reverse_tone_state=0;
      s->folder_tone_state=s->folder_baseline=0;
+     s->space_damp_state=0;
      s->reverse_accum=0;s->reverse_ready=0;
     }
    }
@@ -348,6 +361,9 @@ void etch_fx_process_stereo_ex(struct etch_native_fx *s,int16_t in,uint16_t chor
   s->tape_flutter_step=292153u+(uint32_t)qclamp(cfg->tape_flutter)*876457u/32767u;
   s->eq_hpf_alpha=(uint16_t)(((uint32_t)qclamp(cfg->eq_hpf)*1700u)/32767u);
   s->rate_step=1u+(uint32_t)qclamp(cfg->chorus_rate)*9u/32768u;
+  /* Precompute span at UI rate, not with an expensive 64-bit audio multiply. */
+  s->chorus_span=(uint16_t)((uint32_t)qclamp(cfg->chorus_depth)*924u/32767u);
+  s->space_damp_alpha=(uint16_t)(7000u+(uint32_t)(32767u-qclamp(cfg->reverb_decay))*8000u/32767u);
   s->delay_samples=384u+(uint32_t)qclamp(cfg->delay_time)*15488u/32767u;
   uint32_t rsize=8192u+(uint32_t)qclamp(cfg->reverb_size)*24575u/32767u;
   s->tap1=1559u*rsize/32767u;s->tap2=2707u*rsize/32767u;s->tap3=4019u*rsize/32767u;
@@ -355,20 +371,23 @@ void etch_fx_process_stereo_ex(struct etch_native_fx *s,int16_t in,uint16_t chor
   if(!s->tap2)s->tap2=1;
   if(!s->tap3)s->tap3=1;
  }
- uint16_t depth=qclamp(cfg->chorus_depth),feedback=qclamp(cfg->delay_feedback),decay=qclamp(cfg->reverb_decay);
+ uint16_t feedback=qclamp(cfg->delay_feedback),decay=qclamp(cfg->reverb_decay);
  in=etch_fx_ring_eq(s,in,cfg);
  in=fx_v102_process(s,in,cfg);
  uint32_t phase=s->chorus_phase;
  s->chorus_phase=(phase+s->rate_step)&65535u;
  uint32_t tri=phase<32768u?phase:65535u-phase;
- uint32_t offset=264u+(((uint64_t)tri*depth*924u)>>30);
- uint32_t idx=(s->chorus_pos-offset)&(ETCH_CHORUS_SIZE-1u);
- uint32_t idx2=(idx-17u)&(ETCH_CHORUS_SIZE-1u);
- int32_t wetc=((int32_t)s->chorus[idx]*3+(int32_t)s->chorus[idx2])/4;
+ /* V1.22: opposite L/R modulation, plus interpolated sub-sample reads.
+  * The same 2048-sample ring is retained; no second stereo chorus buffer.
+  * 264 samples is 6ms; depth adds up to ~21ms. */
+ uint32_t shift_l=((uint32_t)tri*s->chorus_span)>>7;
+ uint32_t shift_r=((uint32_t)(32767u-tri)*s->chorus_span)>>7;
+ int32_t wetc=etch_fx_chorus_read(s,264u*256u+shift_l);
+ int32_t wetc_r=etch_fx_chorus_read(s,281u*256u+shift_r);
  s->chorus[s->chorus_pos]=in;
  s->chorus_pos=(s->chorus_pos+1u)&(ETCH_CHORUS_SIZE-1u);
  int32_t chorus_delta=((wetc-in)*(int32_t)chorus)/65536;
- int32_t chorus_right=((int32_t)s->chorus[idx2]-in)*(int32_t)chorus/65536;
+ int32_t chorus_right=((wetc_r-in)*(int32_t)chorus)/65536;
  /* Echo spans about 9..360ms @ 44.1kHz. Never read the write head. */
  uint32_t didx=(s->delay_pos-s->delay_samples)&(ETCH_DELAY_SIZE-1u);
  int32_t wetd=s->delay[didx];
@@ -378,7 +397,7 @@ void etch_fx_process_stereo_ex(struct etch_native_fx *s,int16_t in,uint16_t chor
  s->delay_pos=(s->delay_pos+1u)&(ETCH_DELAY_SIZE-1u);
  int32_t delay_delta=(wetd*(int32_t)delay)/65536;
  int32_t delay_right=(wetd_right*(int32_t)delay)/65536;
- /* Three scale-dependent taps. Largest tap stays inside 4096 entries. */
+ /* Three size-dependent taps share the original 4096-sample tank. */
  int32_t r1=s->reverb[(s->reverb_pos-s->tap1)&(ETCH_REVERB_SIZE-1u)];
  int32_t r2=s->reverb[(s->reverb_pos-s->tap2)&(ETCH_REVERB_SIZE-1u)];
  int32_t r3=s->reverb[(s->reverb_pos-s->tap3)&(ETCH_REVERB_SIZE-1u)];
@@ -386,14 +405,23 @@ void etch_fx_process_stereo_ex(struct etch_native_fx *s,int16_t in,uint16_t chor
  int32_t early_b=s->reverb[(s->reverb_pos-467u)&(ETCH_REVERB_SIZE-1u)];
  int32_t diffusion=(r1+r2+r3)/3;
  int32_t input_r=cfg->routing==1?in:clip16(fxin+delay_delta);
- s->reverb[s->reverb_pos]=clip16(input_r+(int32_t)(((int64_t)diffusion*decay*27)>>20));
+ /* One short Schroeder all-pass diffuser before the existing late tank.
+  * An input trim keeps feedback saturation controlled; reverb MIX endpoints
+  * and the serial/parallel signal path remain unchanged. */
+ int32_t diff_in=(input_r*2)/3;
+ int32_t diff_prev=space_diffuser[(s->reverb_pos-43u)&63u];
+ int32_t diffused=diff_prev-(diff_in/2);
+ space_diffuser[s->reverb_pos&63u]=clip16(diff_in+(diff_prev/2));
+ /* Feedback damping reduces bright, metallic accumulation at large DECAY.
+  * The coefficient changes only when user control settings change. */
+ s->space_damp_state+=(int32_t)(((int64_t)(diffusion-s->space_damp_state)*s->space_damp_alpha)/32768);
+ s->reverb[s->reverb_pos]=clip16(diffused+(int32_t)(((int64_t)s->space_damp_state*decay*27)>>20));
  s->reverb_pos=(s->reverb_pos+1u)&(ETCH_REVERB_SIZE-1u);
  /* V1.14: REVERB MIX is a true constant-gain dry/wet blend. V1.13
   * always ADDED a half-level diffuse return to a full dry signal, even at
   * 100% MIX. That made 0% and 100% seem almost identical on the FM1.
   * Output at 0 is bit-identical dry; output at 32767 is only the reverb
   * tank return. Do not change saved Q15 settings or flash formats. */
- int32_t diffusion_right=(r1+2*r2+r3)/4;
  int32_t dry_left=cfg->routing==1?(int32_t)in+chorus_delta+delay_delta:input_r;
  int32_t dry_right=(int32_t)in+chorus_right+delay_right;
  /* V1.15 SPACE: the old late-only tank could almost cancel periodic

@@ -53,9 +53,7 @@ static volatile uint8_t native_tripped,native_panic,native_suspended,native_edit
 static volatile uint8_t native_output_enabled;
 /* USB attach/suspend can change analog ground/power bias. No claim of
  * eliminating the hardware edge; defer it until bus state is stable. */
-static uint8_t native_usb_state_seen;
-static uint8_t native_usb_state_valid;
-static uint32_t native_usb_state_since;
+static struct etch_output_usb_gate native_usb_gate;
 static volatile uint8_t native_output_analog_ready;
 static volatile uint8_t native_boot_audio_released;
 static volatile uint16_t native_output_fade;
@@ -69,19 +67,23 @@ static struct etch_output_gate native_output_gate;
 /* Main-loop-owned: never synchronized through the realtime callback. */
 static struct etch_output_screen_gate native_screen_gate;
 static void native_output_poll(void){
+ /* GLO-held-at-boot diagnostic runs the SAME normal FM1 audio init with
+  * PC6 permanently low. The zeroed DMA remains silent, unlike REC SAFE
+  * which skips audio_init entirely. No output enable occurs in this mode. */
+ if(native_analog_gate_test)return;
  if(native_suspended||native_tripped||native_output_enabled)return;
  uint32_t now=fm1_ticks();
  uint8_t usb_state=0u;
 #if ETCH_NATIVE_USB
  usb_state=(uint8_t)((usb.config?1u:0u)|(usb.suspended?2u:0u));
 #endif
- if(!native_usb_state_valid||native_usb_state_seen!=usb_state){
-  native_usb_state_valid=1u;native_usb_state_seen=usb_state;native_usb_state_since=now;
- }
- /* Only delay the analog enable, never the watchdog/USB service or DAC. */
- if(native_output_gate.phase==ETCH_OUTPUT_CLOCK_SILENCE &&
-    (uint32_t)(now-native_usb_state_since)<6000000u &&
-    (uint32_t)(now-native_output_gate.phase_ticks)<72000000u)return;
+ /* PC USB enumeration can repeatedly reconfigure/suspend the link.
+  * V1.26 had a 250 ms delay with a 3 s fall-through: PC6 could be
+  * enabled immediately after a USB change. Hold DIGITAL ZERO and wait
+  * for an uninterrupted stable window instead. This gate is NOT a VBUS
+  * voltage or an analogue offset detector. */
+ uint8_t usb_stable=etch_output_usb_ready(&native_usb_gate,now,usb_state);
+ if(native_output_gate.phase==ETCH_OUTPUT_CLOCK_SILENCE && !usb_stable)return;
  uint8_t action=etch_output_gate_advance(&native_output_gate,fm1_ticks(),native_halves);
  if(action==ETCH_OUTPUT_ENABLE_ANALOG){
   /* The DMA ISR still outputs zeros; no audio reaches the DAC yet. */
@@ -96,15 +98,23 @@ static void native_output_poll(void){
 static struct etch_native_bank native_banks[3] __attribute__((section(".pool")));
 static struct etch_wave_editor native_editor __attribute__((section(".pool")));
 static uint8_t native_draw;
+/* SPECTRAL rebuilds are not realtime. Keep the edited points pending until
+ * no voices remain; a bank swap transiently doubles oscillator work. */
+static uint8_t native_spectral_bank_pending;
+static uint8_t native_blend_audio_busy(void);
 /* Main-loop-only compile. Only pointer publication disables interrupts. */
 static void native_compile_edit(void){
- if(!native_editor.dirty)return;
+ if(!native_editor.dirty){native_spectral_bank_pending=0u;return;}
+ /* A pending SPECTRAL edit must not publish a new bank in POLY. It stays
+  * queued until MONO is selected again and notes have been released. This
+  * does not roll back spectral edits already saved as part of a waveform. */
+ if(native_spectral_bank_pending && (!native_mono_mode || native_blend_audio_busy()))return;
  const struct etch_native_bank *current,*old,*published;
  fm1_irq_off();current=native_audio.bank;old=native_audio.old_bank;published=native_controls.bank;fm1_irq_enable_all();
  for(uint32_t i=0;i<3;i++)if(&native_banks[i]!=current&&&native_banks[i]!=old&&&native_banks[i]!=published){
   etch_editor_compile(&native_editor,&native_banks[i]);
   fm1_irq_off();native_controls.bank=&native_banks[i];fm1_irq_enable_all();
-  native_editor.dirty=0;break;
+  native_editor.dirty=0;native_spectral_bank_pending=0u;break;
  }
 }
 #if ETCH_NATIVE_USB
@@ -121,7 +131,7 @@ extern void isr_alnk0(void);
 static void native_stop(void){native_suspended=1;native_output_enabled=0u;fm1_audio_output_enable(0u);fm1_audio_stop();native_tripped=1;}
 static void native_budget_late(void){
  native_healthy_blocks=0;
- if(native_audio.voice_limit>4u){
+ if(native_audio.voice_limit>2u){
   native_audio.voice_limit=etch_voice_budget_reduce(native_audio.voice_limit);
   ++native_voice_shed_count;
   native_missed_streak=0;
@@ -194,8 +204,8 @@ etch_native_reset(&native_audio);native_audio.keys=keys&0x7ffffffu;}
       fm1_ticks(),ETCH_NATIVE_FRAMES*544u)){
    fm1_audio_ack_half();
    ++native_dma_blocked;++native_late;
-   /* A single late half should not permanently disable sound. Never touch
-    * an expired buffer; acknowledge and retry on the next hardware half. */
+   /* Drop extra voice load (8 > 6 > 4 > 3 > 2) before the watchdog
+    * considers stopping DMA; never write to an expired half. */
    native_budget_late();
    native_in_audio=0u;return;
   }
@@ -294,7 +304,7 @@ static void native_start(void){
  mi_r=mi_w;RING_PUBLISH();midi_in_overflow=0;
 #endif
  etch_native_reset(&native_audio);
- native_scope_ready=0;native_scope_cursor=0;native_scope_has_signal=0;native_scope_held_note=0;native_scope_window_peak=0;native_scope_silent_windows=0;native_usb_state_valid=0;
+ native_scope_ready=0;native_scope_cursor=0;native_scope_has_signal=0;native_scope_held_note=0;native_scope_window_peak=0;native_scope_silent_windows=0;etch_output_usb_reset(&native_usb_gate);
  for(uint32_t i=0;i<ETCH_SCOPE_CAPTURE;i++){native_scope[0][i]=0;native_scope[1][i]=0;}
  etch_panel_midi_reset(&native_panel_out);
  for(uint32_t i=0;i<ETCH_NATIVE_FRAMES*4;i++)native_dma[i]=0;

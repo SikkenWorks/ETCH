@@ -5,11 +5,11 @@
 #pragma once
 #include <stdint.h>
 static inline uint8_t etch_voice_budget_reduce(uint8_t voices){
- return voices>6u?6u:4u;
+ return voices>6u?6u:voices>4u?4u:voices>3u?3u:2u;
 }
 static inline uint8_t etch_voice_budget_restore(uint8_t voices){
- return voices<6u?6u:8u;
+ return voices<3u?3u:voices<4u?4u:voices<6u?6u:8u;
 }
 static inline uint8_t etch_voice_budget_valid(uint8_t voices){
- return (uint8_t)(voices==4u||voices==6u||voices==8u);
+ return (uint8_t)(voices==2u||voices==3u||voices==4u||voices==6u||voices==8u);
 }

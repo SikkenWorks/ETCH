@@ -39,6 +39,7 @@ static struct etch_wave_library scratch __attribute__((section(".pool")));
 static uint8_t packed[ETCH_PROJECT_MAX_BYTES] __attribute__((section(".pool")));
 static struct etch_native_pattern scratch_pattern __attribute__((section(".pool")));
 static struct etch_project_settings scratch_settings;
+static struct etch_preset_dsp_bank scratch_dsp;
 uint32_t etch_store_crc(const void *src,uint32_t bytes){
  const uint8_t *p=src;uint32_t c=~0u;
  while(bytes--){c^=*p++;for(uint32_t i=0;i<8;i++)c=(c>>1)^((0u-(c&1u))&0xedb88320u);}
@@ -81,6 +82,7 @@ static int head(const struct etch_store_io *io,uint32_t bank,struct header *h){
 }
 static int body(const struct etch_store_io *io,uint32_t bank,const struct header *h,
  struct etch_wave_library *out,struct etch_native_pattern *pattern,struct etch_project_settings *settings){
+ if(!settings || settings==&scratch_settings)etch_project_bind_preset_dsp(&scratch_settings,&scratch_dsp);
  if(h->version==3||h->version==4||h->version==5||h->version==6||h->version==7||h->version==8||h->version==9||h->version==10||h->version==11||h->version==12){
   if(h->version==11||h->version==12){
    /* CRC the entire multi-project bank in bounded 256-byte reads. Individual
@@ -475,6 +477,7 @@ int etch_store_load_project_slot(const struct etch_store_io *io,uint8_t slot,
  int catalog=etch_store_projects(io,&occupied,names);
  if(catalog!=ETCH_STORE_OK)return catalog;
  if(!(occupied & (1u<<slot)))return ETCH_STORE_EMPTY;
+ etch_project_bind_preset_dsp(&scratch_settings,&scratch_dsp);
  requested_slot=slot;
  int result=etch_store_load_project(io,&scratch,&scratch_pattern,&scratch_settings);
  requested_slot=255;
@@ -484,6 +487,7 @@ int etch_store_load_project_slot(const struct etch_store_io *io,uint8_t slot,
  uint8_t *outputs[3]={(uint8_t*)lib,(uint8_t*)pattern,(uint8_t*)cfg};
  const uint32_t sizes[3]={sizeof(scratch),sizeof(scratch_pattern),sizeof(scratch_settings)};
  for(uint32_t k=0;k<3;k++)for(uint32_t j=0;j<sizes[k];j++)outputs[k][j]=inputs[k][j];
+ etch_project_copy_preset_dsp(cfg,&scratch_settings);
  /* Load the authoritative global waves even when switching projects. */
  struct header h;int active=current(io,&h,&scratch,&scratch_pattern,&scratch_settings);
  if(active>=0 && (h.version==11u||h.version==12u)){

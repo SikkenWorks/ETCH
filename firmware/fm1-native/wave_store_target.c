@@ -51,7 +51,7 @@ static void native_library_load(void){
  native_project_cfg.wave_fx[native_editor.wave]=native_project_cfg.slot_fx[native_slot];
 }
 static void native_project_capture(void){
- native_project_cfg.source_version=21;
+ native_project_cfg.source_version=27;
  native_project_cfg.mono_mode=native_mono_mode;
  native_project_cfg.seq_length=native_seq_length;native_project_cfg.seq_rate=native_seq_rate;
  native_project_cfg.seq_gate=native_seq_gate;native_project_cfg.seq_swing=native_seq_swing;
@@ -109,7 +109,7 @@ static void native_library_initialize(uint8_t muted){
  for(uint32_t w=0;w<3;w++)for(uint32_t i=0;i<128;i++)native_library.active[w][i]=native_editor.points[w][i];
  /* CLEAR must not carry corrupted/foreign serialized slot and patch FX forward. */
  {uint8_t *b=(uint8_t*)&native_project_cfg;for(uint32_t i=0;i<sizeof(native_project_cfg);i++)b[i]=0;}
- for(uint32_t i=0;i<ETCH_PATCH_SLOTS;i++)native_riff_seeds[i]=0;
+ for(uint32_t i=0;i<ETCH_PATCH_SLOTS;i++){native_riff_seeds[i]=0;native_riff2.riff_variants[i]=0;native_riff2.riff_mutations[i]=0;native_riff2.riff_densities[i]=50;}
  native_project_capture();
  native_store_status=etch_store_initialize_project(&native_store_io,&native_library,&native_pattern,&native_project_cfg,ETCH_STORE_ERASE_CONFIRM);
  native_save_confirm=0;

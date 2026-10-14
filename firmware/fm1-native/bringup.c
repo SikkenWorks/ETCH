@@ -25,6 +25,8 @@
 #include "native_led_policy.h"
 #include "native_fx_controls.h"
 #include "native_encoder_steps.h"
+#include "native_advanced_controls_v130.h"
+#include "native_spectral_controls_v131.h"
 #include "native_live_controls_v117.h"
 #include "lcd.c"
 /* Preserve Felucca's original lcd.c byte-for-byte (audit and OTA safety).
@@ -143,15 +145,21 @@ static volatile uint32_t native_nested_ticks, native_nested_count;
 #define ETCH_NATIVE_OTA 0
 #endif
 #define FELUCCA_OTA ETCH_NATIVE_OTA
-#define FELUCCA_ID "FM-1_1020"
-#define ETCH_UI_VERSION "V120"
+#define FELUCCA_ID "FM-1_1037"
+#define ETCH_UI_VERSION "V137"
 #define FELUCCA_OTA_DRYRUN 0
 #define RING_PUBLISH() __asm__ volatile("" ::: "memory")
 #include "usb.c"
 #include "boot_guard.h"
 #include "native_recovery_policy.h"
+#include "native_keyboard_boot.h"
 #include "native_capacity.h"
 static uint8_t native_safe,native_boot_muted;
+static uint8_t native_keyboard_mode; /* SEQ held at boot: USB-MIDI controller, no DAC/PC6 */
+static int8_t native_keyboard_octave;
+static uint8_t native_keyboard_usb_ready;
+static uint8_t native_keyboard_boot_healthy;
+static uint8_t native_analog_gate_test; /* GLO-at-boot: silent full-codec diagnostic */
 static enum etch_recovery_reason native_recovery_reason;
 struct boot_guard etch_boot __attribute__((section(".noinit")));
 void fm1_timer5_irq(void){
@@ -167,6 +175,9 @@ void fm1_timer5_irq(void){
  if(job==ETCH_IRQ_USB_POLL)usb_poll(); /* non-nested only */
  if(nested){++native_nested_count;native_nested_ticks+=fm1_ticks()-start;}
 }
+/* Mode is shared by main-loop waveform publication and the renderer. Keep
+ * the declaration ahead of audio_target.c because it is included here. */
+static uint8_t native_mono_mode;
 #include "audio_target.c"
 _Static_assert(HALF_FRAMES == ETCH_NATIVE_FRAMES, "USB ring must match DMA half frames");
 #include "native_factory.h"
@@ -252,6 +263,10 @@ static uint16_t native_seq_step;
 static uint8_t native_seq_rate=2,native_arp_mode,native_arp_rate=2,native_arp_octaves=1,native_arp_gate_index=2,native_seq_gate=75;
 static uint8_t native_seq_swing,native_note_sel,native_lock_sel,native_clock_follow;
 static uint8_t native_arp_edit_step;
+/* V1.28 live patch-blend is a deliberate, unsaved performance edit.
+ * Saved source/target wave snapshots are never overwritten unless SAVE. */
+static uint8_t native_blend_a,native_blend_b,native_blend_pct,native_blend_on;
+
 /* Preview slots are kept separate from active edited waves until double-REC. */
 static uint8_t native_morph_a,native_morph_b;
 static uint8_t native_browser_slot,native_browser_target,native_morph_focus;
@@ -261,7 +276,7 @@ static uint8_t native_wave_load_error,native_system_tab;
  * load/new once; explicit SEL+SAVE double-chord still guards deletes. */
 static uint8_t native_project_browser=0,native_project_armed=0,native_project_action=0;
 static uint8_t native_project_present=0,native_project_char_index=0;
-static char native_project_names[4][13];
+static char native_project_names[4][13] __attribute__((section(".noinit")));
 static char native_save_name[13]; /* staged, never modifies an occupied slot until confirmed */
 static uint16_t last_painted_playhead=0xffffu;
 /* Set after flash has reported ETCH_STORE_OK, not before saving.
@@ -276,6 +291,7 @@ static uint8_t native_save_preset_mode,native_preset_save_slot;
 static uint32_t native_home_tap_at;
 static struct etch_home_gesture native_home_gesture;
 static uint8_t native_presets_cursor;
+static uint32_t native_bpm_overlay_until;
 
 static struct etch_diag_panel native_panel_diag;
 static uint8_t native_panel_capture;
@@ -289,7 +305,8 @@ static uint8_t native_guide_performance; /* GLO preview never edits SEQ notes */
  * inactive bank during a patch switch; old voices and FX states are preserved. */
 static struct etch_patch_swap native_patch_swap __attribute__((section(".pool")));
 #define native_pattern (*etch_patch_active(&native_patch_swap))
-static uint8_t native_tempo=120,native_seqnotes[64];
+static uint8_t native_tempo=120;
+static uint8_t native_seqnotes[64] __attribute__((section(".noinit")));
 /* Live record is session-only. Pattern note data itself persists through the
  * existing protected project/patch serializer. */
 static uint8_t native_motion_recording,native_motion_playing;
@@ -304,8 +321,14 @@ static uint8_t native_seq_entry_pitch[27];
 
 /* Large project archive lives in the dedicated non-realtime pool. */
 static struct etch_project_settings native_project_cfg __attribute__((section(".pool")));
-static uint16_t native_riff_seeds[ETCH_PATCH_SLOTS]; /* .bss; PJT21 per-preset riffs */
-static uint8_t native_mono_mode;
+static uint8_t native_matrix_slot __attribute__((section(".pool")));
+static uint16_t native_riff_seeds[ETCH_PATCH_SLOTS] __attribute__((section(".noinit"))); /* explicitly reset before decoding projects */
+static struct etch_riff2_bank native_riff2 __attribute__((section(".noinit"))); /* bounded PJT25 extra storage */
+/* Independent, user-facing edit positions. Audio remains in the baked waveform.
+ * Each knob updates only its own register; values persist per preset in PJT27. */
+static uint8_t native_spectral_gain=50u,native_spectral_tilt=50u;
+static uint8_t native_blend_pending=0u;
+static struct etch_preset_dsp_bank native_preset_dsp; /* PJT26: per preset DSP, UI edit state; outside audio pool */
 static struct etch_octave_chord native_octave_chord;
 static uint8_t native_harmonic=2; /* K3 in DRAW, 2..16 */
 static uint8_t native_gen_mutate=20u;
@@ -443,6 +466,21 @@ static void native_restore_project_bpm(void){
 }
 static void native_project_restore(void){
  if(native_store_status!=ETCH_STORE_OK)return;
+ if(native_project_cfg.source_version<26u){
+  for(uint8_t i=0;i<ETCH_PATCH_SLOTS;i++){
+   native_preset_dsp.slot[i]=(struct etch_preset_dsp){0};
+   native_preset_dsp.slot[i].organic=native_project_cfg.organic;
+   native_preset_dsp.slot[i].living=native_project_cfg.living;
+   native_preset_dsp.slot[i].matrix=native_project_cfg.matrix;
+   native_preset_dsp.slot[i].evolution=native_project_cfg.evolution;
+   native_preset_dsp.slot[i].spectral_part=2u;
+   native_preset_dsp.slot[i].spectral_gain=50u;
+   native_preset_dsp.slot[i].spectral_tilt=50u;
+   native_preset_dsp.slot[i].blend_a=i;
+   native_preset_dsp.slot[i].blend_b=i;
+  }
+ }
+
  native_seq_length=native_project_cfg.seq_length;
  native_seq_rate=native_project_cfg.seq_rate;
  native_seq_gate=native_project_cfg.seq_gate;
@@ -531,6 +569,22 @@ static void native_seq_led_refresh(void){
  fm1_irq_enable_all();
 }
 static uint32_t envelope_step(uint32_t ms){if(!ms)return 0x7fff0000u;uint32_t samples=ms*3000u/68u;return samples?0x7fff0000u/samples:0x7fff0000u;}
+/* K4 on ARP mode 7: choose a musically different *stored* motif, not a
+ * display-only counter. Does not touch the audio engine or change screens. */
+static void native_new_riff(uint8_t slot,int32_t detents){
+ if(!detents)return;
+ uint32_t count=detents<0?(uint32_t)(-detents):(uint32_t)detents;
+ if(count>8u)count=8u; /* Never stall UI/USB service on encoder bursts. */
+ uint8_t base=60u;
+ uint32_t keys=fm1_in.notes;
+ for(uint8_t k=0;k<27u;k++)if(keys&(1u<<k)){
+  int32_t note=53+(int32_t)k+12*native_controls.octave;
+  base=(uint8_t)(note<0?0:note>127?127:note);break;
+ }
+ while(count--){native_riff_seeds[slot]=etch_riff_generate_distinct(
+    native_riff_seeds[slot],base,&native_harmony,native_arp_octaves);}
+}
+
 static void native_parameter_publish(void){
  native_controls.env_enabled=1;native_controls.attack_step=envelope_step(native_env_ms[0]);native_controls.decay_step=envelope_step(native_env_ms[1]);native_controls.release_step=envelope_step(native_env_ms[2]);native_controls.sustain_level=native_sustain;
  native_controls.filter_type=native_filter_type;native_controls.cutoff=native_cutoff;native_controls.resonance=native_resonance;native_controls.drive=native_drive;
@@ -543,14 +597,29 @@ static void native_parameter_publish(void){
  native_controls.arp_gate=(uint8_t)(25u+25u*native_arp_gate_index);
  native_controls.arp_program=&native_project_cfg.arp_programs[native_patch_slot];
  native_controls.riff_seed=native_riff_seeds[native_patch_slot];
+ native_controls.riff_variant=native_riff2.riff_variants[native_patch_slot];
+ native_controls.riff_mutation=native_riff2.riff_mutations[native_patch_slot];
+ native_controls.riff_density=native_riff2.riff_densities[native_patch_slot];
  native_controls.preview_wave=native_draw?(uint8_t)(native_editor.wave+1u):
-   native_page==ETCH_UI_PREFX_A?1u:native_page==ETCH_UI_PREFX_B?2u:0u;
+   native_page==ETCH_UI_PREFX_A?1u:native_page==ETCH_UI_PREFX_B?2u:
+   native_page==ETCH_UI_SPECTRAL?(uint8_t)(native_editor.wave+1u):0u;
  native_controls.seq_run=native_seq_run;native_controls.seq_length=native_seq_length;native_controls.seq_rate=native_seq_rate;native_controls.seq_gate=native_seq_gate;native_controls.tempo=native_tempo;
  native_controls.pattern=&native_pattern;native_controls.seq_swing=native_seq_swing;
  native_controls.harmony=native_harmony;native_controls.clock_follow=native_clock_follow;
  native_controls.mono_mode=native_mono_mode;
  native_controls.motion=&native_project_cfg.motion;native_controls.motion_play=native_motion_playing;
  native_controls.evolution=native_project_cfg.evolution;
+ native_controls.organic=native_project_cfg.organic;
+ /* Transport DSP bypass: hiding the LFO editors alone is insufficient.
+  * Preserve every preset setting in native_project_cfg for MONO recall. */
+ if(!native_mono_mode){
+  native_controls.evolution.depth=0u;
+  native_controls.organic.drift=0u;
+  native_controls.organic.variance=0u;
+  native_controls.organic.phase=0u;
+ }
+ native_controls.living=native_project_cfg.living;
+ native_controls.matrix=native_project_cfg.matrix;
  for(uint32_t i=0;i<64;i++)native_controls.seq_notes[i]=native_seqnotes[i];
 }
 static char *native_selected_name(void){return native_save_name;}
@@ -609,6 +678,9 @@ static void native_new_project(void){
   native_project_cfg.pattern_swing[i]=0;
   native_project_cfg.arp_programs[i].length=0;
   native_riff_seeds[i]=0; /* Brand-new projects never reuse another project's generated riffs. */
+  native_riff2.riff_variants[i]=0;
+  native_riff2.riff_mutations[i]=0;
+  native_riff2.riff_densities[i]=50;
  }
  native_project_cfg.patterns.used=0;
  for(uint32_t i=0;i<ETCH_PATCH_SLOTS;i++)native_project_cfg.patterns.lengths[i]=0;
@@ -616,7 +688,9 @@ static void native_new_project(void){
  native_project_cfg.preset_valid=0; /* never carry snapshots from another project */
  etch_motion_clear(&native_project_cfg.motion);native_motion_recording=0;native_motion_playing=0;
  native_project_cfg.evolution=(struct etch_evolution_settings){0,30,0,0};
- native_patch_slot=0;native_library.reserved=0;
+ native_project_cfg.living=(struct etch_living_settings){0,40,0,0};
+ native_project_cfg.matrix=(struct etch_mod_matrix){0};
+ native_patch_slot=0;native_library.reserved=0;native_blend_on=0;native_blend_pct=0;
  native_controls.morph=8192;native_controls.depth=8192;
  native_mod_mode=0;native_mod_ratio=3;
  native_page=ETCH_UI_PLAY;native_draw=0;
@@ -639,9 +713,97 @@ static void native_patch_capture(struct etch_native_patch *p){
  p->attack_ms=native_env_ms[0];p->decay_ms=native_env_ms[1];p->release_ms=native_env_ms[2];p->sustain=native_sustain;
  p->cutoff=native_cutoff;p->resonance=native_resonance;p->drive=native_drive;p->chorus=native_chorus;p->delay=native_delay;p->reverb=native_reverb;
 }
+/* Control-thread blending from complete, saved wave snapshots.
+ * Never allocate in the audio IRQ, never change the underlying patch library.
+ * Realtime audio sees the existing safe crossfade into rebuilt wavetables.
+ * Sound (not the source/target/mix UI state) can be saved as a new preset. */
+static int32_t native_blend_i32(int32_t a,int32_t b,uint8_t pct){
+ return a+(int32_t)(((int64_t)(b-a)*pct)/100);
+}
+static uint16_t native_blend_u16(uint16_t a,uint16_t b,uint8_t pct){
+ int32_t n=native_blend_i32(a,b,pct);return (uint16_t)(n<0?0:n>65535?65535:n);
+}
+static uint8_t native_blend_valid(uint8_t slot){
+ return slot<ETCH_PATCH_SLOTS && native_library.patches[slot].valid &&
+  (native_project_cfg.preset_valid&(1u<<slot))!=0;
+}
+static uint8_t native_blend_turn(uint8_t current,int32_t turns){
+ if(!turns)return current;
+ int32_t steps=turns>0?turns:-turns;if(steps>32)steps=32;
+ int32_t direction=turns>0?1:-1;
+ while(steps--){uint8_t candidate=current;
+  for(uint8_t i=0;i<ETCH_PATCH_SLOTS;i++){
+   candidate=(uint8_t)(((int32_t)candidate+32+direction)&31u);
+   if(native_blend_valid(candidate)){current=candidate;break;}
+  }
+ }
+ return current;
+}
+/* High-polyphony bank changes double the oscillator work during the 256-sample
+ * crossfade. With all eight voices held, this can hit the DMA deadline and
+ * permanently trip AUDIO STOP. Defer a requested blend until voices release. */
+static uint8_t native_blend_audio_busy(void){
+ if(fm1_in.notes)return 1u;
+ for(uint32_t i=0;i<ETCH_NATIVE_VOICES;i++)if(native_audio.voice[i].active)return 1u;
+ return 0u;
+}
+static void native_patch_blend_apply(int32_t *m,int32_t *d){
+ if(!native_blend_valid(native_blend_a)||!native_blend_valid(native_blend_b))return;
+ const struct etch_native_patch *a=&native_library.patches[native_blend_a],*b=&native_library.patches[native_blend_b];
+ uint8_t pct=native_blend_on?native_blend_pct:0u;
+ for(uint32_t w=0;w<3;w++)for(uint32_t i=0;i<128u;i++){
+  int32_t sample=native_blend_i32(native_project_cfg.preset_wave[native_blend_a][w][i],
+            native_project_cfg.preset_wave[native_blend_b][w][i],pct);
+  native_editor.points[w][i]=(int16_t)sample;
+ }
+ uint8_t fx_slot=pct<50u?native_blend_a:native_blend_b;
+ for(uint32_t w=0;w<3;w++)if(native_project_cfg.patch_fx_valid&(1u<<fx_slot))
+  native_editor.fx[w]=native_project_cfg.patch_fx[fx_slot][w];
+ native_fx_settings=native_project_cfg.preset_fx[fx_slot];
+ *m=native_blend_u16(a->morph,b->morph,pct);
+ *d=native_blend_u16(a->depth,b->depth,pct);
+ native_env_ms[0]=native_blend_u16(a->attack_ms,b->attack_ms,pct);
+ native_env_ms[1]=native_blend_u16(a->decay_ms,b->decay_ms,pct);
+ native_env_ms[2]=native_blend_u16(a->release_ms,b->release_ms,pct);
+ native_sustain=native_blend_u16(a->sustain,b->sustain,pct);
+ native_cutoff=native_blend_u16(a->cutoff,b->cutoff,pct);
+ native_resonance=native_blend_u16(a->resonance,b->resonance,pct);
+ native_drive=native_blend_u16(a->drive,b->drive,pct);
+ native_chorus=native_blend_u16(a->chorus,b->chorus,pct);
+ native_delay=native_blend_u16(a->delay,b->delay,pct);
+ native_reverb=native_blend_u16(a->reverb,b->reverb,pct);
+ native_editor.dirty=1u;++native_editor.revision;
+}
+static void native_preset_dsp_capture(uint8_t slot){
+ if(slot>=ETCH_PATCH_SLOTS)return;
+ struct etch_preset_dsp *v=&native_preset_dsp.slot[slot];
+ v->organic=native_project_cfg.organic;v->living=native_project_cfg.living;
+ v->matrix=native_project_cfg.matrix;v->evolution=native_project_cfg.evolution;
+ v->spectral_wave=native_editor.wave;v->spectral_part=native_harmonic;
+ v->spectral_gain=native_spectral_gain;v->spectral_tilt=native_spectral_tilt;
+ v->blend_a=native_blend_a;v->blend_b=native_blend_b;
+ v->blend_pct=native_blend_pct;v->blend_on=native_blend_on;
+}
+static void native_preset_dsp_restore(uint8_t slot){
+ if(slot>=ETCH_PATCH_SLOTS)return;
+ const struct etch_preset_dsp *v=&native_preset_dsp.slot[slot];
+ native_project_cfg.organic=v->organic;native_project_cfg.living=v->living;
+ native_project_cfg.matrix=v->matrix;native_project_cfg.evolution=v->evolution;
+ native_editor.wave=v->spectral_wave<=2u?v->spectral_wave:0u;
+ native_harmonic=v->spectral_part>=1u&&v->spectral_part<=32u?v->spectral_part:2u;
+ native_spectral_gain=v->spectral_gain<=100u?v->spectral_gain:50u;
+ native_spectral_tilt=v->spectral_tilt<=100u?v->spectral_tilt:50u;
+ native_blend_a=v->blend_a<ETCH_PATCH_SLOTS?v->blend_a:slot;
+ native_blend_b=v->blend_b<ETCH_PATCH_SLOTS?v->blend_b:slot;
+ native_blend_pct=v->blend_pct<=100u?v->blend_pct:0u;
+ /* Keep the saved ACTIVE parameter; the saved waveform already holds the preset sound.
+  * Do not destructively reapply a blend merely by loading this preset. */
+ native_blend_on=(uint8_t)!!v->blend_on;
+}
 static void native_preset_snapshot(uint8_t slot){
  if(slot>=ETCH_PATCH_SLOTS)return;
  native_project_cfg.preset_valid|=1u<<slot;
+ native_preset_dsp_capture(slot);
  native_project_cfg.preset_fx[slot]=native_fx_settings;
  for(uint32_t w=0;w<3;w++)for(uint32_t i=0;i<128;i++)
   native_project_cfg.preset_wave[slot][w][i]=native_editor.points[w][i];
@@ -657,6 +819,7 @@ static uint8_t native_cache_pattern(uint8_t slot){
  return 1;
 }
 static void native_patch_load(uint8_t pattern_prepared){
+ native_blend_on=0u;native_blend_pct=0u;
  struct etch_native_patch *p=&native_library.patches[native_patch_slot];if(!p->valid)return;
  if(native_project_cfg.source_version>=4){
   /* Boot loads the active buffer. Live switches use the already validated
@@ -689,6 +852,8 @@ static void native_patch_load(uint8_t pattern_prepared){
    * User-saved PJT17 snapshots above retain their explicit settings. */
   etch_preset_legacy_c_fx_off(&native_editor.fx[2],&native_fx_settings);
  }
+ native_preset_dsp_restore(native_patch_slot);
+ native_blend_pending=0u;
  native_editor.dirty=1;++native_editor.revision;
  native_mod_mode=p->mod_mode>2?0:p->mod_mode;native_mod_ratio=p->mod_ratio<12?p->mod_ratio:0;
  fm1_irq_off();native_controls.mod_target=p->mod_target&1u;fm1_irq_enable_all();native_filter_type=p->filter_type<4?p->filter_type:0;
@@ -744,7 +909,7 @@ static void native_patch_change(uint8_t next){
   if(etch_patch_prepare(&native_patch_swap,&native_project_cfg.patterns,next)<0){native_seq_warning=1;return;}
  }else etch_pattern_clear(etch_patch_staging(&native_patch_swap));
  /* Keep transport running and avoid an unintended NOTE-OFF/Start cycle. */
- native_patch_slot=next;native_patch_confirm=0;
+ native_patch_slot=next;native_patch_confirm=0;native_blend_on=0u;native_blend_pct=0u;
  /* IRQ masks the publication itself; the old buffer remains intact. */
  fm1_irq_off();etch_patch_commit(&native_patch_swap);fm1_irq_enable_all();
  native_patch_load(1);
@@ -950,6 +1115,29 @@ static void parameters(void){
  else if(native_page==27){names[0]="PROJECT";names[1]="POS";names[2]="PRESENT";names[3]="ARM";
   values[0]=native_project_browser+1;values[1]=native_project_char_index+1;
   values[2]=native_project_browser<4u?(native_project_present>>native_project_browser)&1u:0;values[3]=native_project_armed;}
+ else if(native_page==ETCH_UI_RIFF_LAB){names[0]="DENSITY";names[1]="MUTATE";names[2]="VARIANT";names[3]="NEW RIFF";
+  values[0]=native_riff2.riff_densities[native_patch_slot];
+  values[1]=native_riff2.riff_mutations[native_patch_slot];
+  values[2]=native_riff2.riff_variants[native_patch_slot]%1000u;
+  values[3]=native_riff_seeds[native_patch_slot]%1000u;}
+ else if(native_page==ETCH_UI_PATCH_BLEND){names[0]="PATCH A";names[1]="PATCH B";names[2]="BLEND";names[3]="ACTIVE";
+  values[0]=native_blend_a+1u;values[1]=native_blend_b+1u;values[2]=native_blend_pct;values[3]=native_blend_on;}
+ else if(native_page==ETCH_UI_SPECTRAL){names[0]="WAVE";names[1]="PART";names[2]="GAIN";names[3]="TILT";
+  values[0]=native_editor.wave+1u;values[1]=native_harmonic;
+  values[2]=native_spectral_gain;
+  values[3]=native_spectral_tilt;}
+ else if(native_page==ETCH_UI_MATRIX){
+  /* K1 route, K2 source, K3 target, K4 amount. */
+  const struct etch_mod_route *r=&native_project_cfg.matrix.route[native_matrix_slot];
+  names[0]="ROUTE";names[1]="SOURCE";names[2]="DEST";names[3]="AMOUNT";
+  values[0]=native_matrix_slot+1u;values[1]=r->source;values[2]=r->target+1u;values[3]=r->amount;
+ }
+ else if(native_page==ETCH_UI_LIVING){names[0]="DEPTH";names[1]="RATE";names[2]="COLOR";names[3]="VARY";
+  values[0]=native_project_cfg.living.depth;values[1]=native_project_cfg.living.rate;
+  values[2]=native_project_cfg.living.color;values[3]=native_project_cfg.living.vary;}
+ else if(native_page==ETCH_UI_ORGANIC){names[0]="DRIFT";names[1]="RATE";names[2]="PHASE";names[3]="VARY";
+  values[0]=native_project_cfg.organic.drift;values[1]=native_project_cfg.organic.rate;
+  values[2]=native_project_cfg.organic.phase;values[3]=native_project_cfg.organic.variance;}
  else if(native_page==ETCH_UI_EVOLUTION){names[0]="DEPTH";names[1]="RATE";names[2]="SHAPE";names[3]="SYNC";
   values[0]=native_project_cfg.evolution.depth;values[1]=native_project_cfg.evolution.rate;
   values[2]=native_project_cfg.evolution.mode;values[3]=native_project_cfg.evolution.sync;}
@@ -977,7 +1165,10 @@ static void parameters(void){
  for(uint32_t i=0;i<4;i++){
   /* Wave Library only uses K1/K2: do not show inactive K3/K4 values. */
   if(native_page==ETCH_UI_LIBRARY && i>=2u)continue;
-  label(names[i],4+i*60,198,0x7bef);
+  /* 8 glyphs x 8px cannot fit at x=184 (only 56px remain).
+   * Reserve the rightmost 72px for the full NEW RIFF caption. */
+  uint32_t knob_x=(native_page==ETCH_UI_ARP && native_arp_mode==7u && i==3u)?168u:4u+i*60u;
+  label(names[i],knob_x,198,0x7bef);
   if(i==0 && (native_page==ETCH_UI_GUIDE || native_page==ETCH_UI_HARM || native_page==ETCH_UI_FIFTHS))
    label(etch_note_name(native_harmony.root),4+i*60,214,0xffff);
   else if(i==1 && (native_page==ETCH_UI_GUIDE || native_page==ETCH_UI_HARM || native_page==ETCH_UI_FIFTHS))
@@ -986,7 +1177,7 @@ static void parameters(void){
    label(etch_lock_name(native_harmony.keylock),4+i*60,214,0xffff);
   else if(native_page==ETCH_UI_ARP && i==2 && native_arp_octaves>=5u)
    label(native_arp_octaves==6u?"-2":"-1",4+i*60,214,0xffff);
-  else number(values[i],4+i*60,214);
+  else number(values[i],knob_x,214);
   if(native_page==4||native_page==16||native_page==17||etch_ui_is_fx_editor(native_page)){
    /* Direct numeric feedback AND a short horizontal value meter on FX pages. */
    uint32_t percent=values[i]>100u?100u:values[i];
@@ -1003,7 +1194,7 @@ static uint8_t first_frame=1;
  * Keep the graph in the RAM DMA canvas; no full-screen clear on note changes. */
 static uint8_t web_last_page=255u,web_last_draw=255u,web_last_fault=255u;
 static uint32_t web_last_controls=0xffffffffu;
-static int16_t web_scope_frame[1024]; /* zero-initialized scope staging */
+/* Read the already double-buffered, published capture directly; no third waveform copy. */
 static uint8_t web_scope_sweep;
 static uint8_t web_last_signal=255u;
 /* PLAY display-only note release state. Never changes the audio path. */
@@ -1013,6 +1204,7 @@ static uint16_t web_scope_zoom_q8=768u;
 static uint16_t web_scope_phase_start=0u;
 static int32_t web_scope_center_smooth=0;
 static uint8_t web_scope_center_ready=0u;
+static void number(uint32_t v,uint32_t x,uint32_t y);
 static void web_ui_primary(void){
  uint8_t draw=native_draw && native_page==ETCH_UI_PLAY;
  uint8_t page=native_page;
@@ -1040,7 +1232,9 @@ static void web_ui_primary(void){
  /* Copy the last complete audio frame without pausing the audio DMA IRQ.
   * Published capture stays untouched until the next full 512-sample frame. */
  uint8_t captured=native_scope_ready;
- for(uint32_t i=0;i<1024u;i++)web_scope_frame[i]=native_scope[captured][i];
+ /* Trigger against the complete published capture, copy just the displayed 512 samples. */
+ uint16_t window_start=etch_ui_scope_trigger_near(native_scope[captured],1024u,512u,web_scope_phase_start);
+ /* Do not allocate a third 2 KB oscilloscope staging buffer in scarce FM1 RAM. */
  /* Releasing every note must finish on the exact centre line even when
   * long reverb/delay feedback keeps the PCM peak above the silence gate.
   * A newly opened page with no held note starts from a flat line. */
@@ -1049,9 +1243,9 @@ static void web_ui_primary(void){
                          web_scope_release.releasing=0u;}
  uint16_t release_alpha=etch_scope_release_step(&web_scope_release,held_note,etch_ms);
  uint8_t visible_signal=etch_scope_show_audio(native_scope_has_signal);
- uint16_t window_start=etch_ui_scope_trigger_near(web_scope_frame,1024u,512u,web_scope_phase_start);
+ /* The window_start was chosen before the snapshot copy. */
  if(native_scope_has_signal)web_scope_phase_start=window_start;
- const int16_t *audible=web_scope_frame+window_start;
+ const int16_t *audible=native_scope[captured]+window_start;
  uint32_t live_peak=0u;
  int32_t live_offset=0;
  etch_ui_scope_stats(audible,512u,&live_offset,&live_peak);
@@ -1108,6 +1302,12 @@ static void web_ui_primary(void){
   uint32_t cy=etch_ui_wave_display_y(native_editor.points[native_editor.wave][native_editor.cursor],g,mid,extent,top+1,bottom-1);
   lcd_fill(cx>14u?cx-1u:cx,cy>top+1?cy-1:cy,3,3,LIME);
  }
+ if(native_bpm_overlay_until && (int32_t)(native_bpm_overlay_until-etch_ms)>0){
+  lcd_fill(71u,79u,98u,48u,0x0000);
+  lcd_fill(71u,79u,98u,2u,LIME);
+  label("BPM",84u,85u,LIME);
+  number(native_tempo,87u,104u);
+ }
  if(etch_save_toast_visible(etch_ms,native_saved_until)){
   /* High contrast confirmation drawn inside the same DMA graph frame.
    * Does not allocate, block the audio callback or touch sound state. */
@@ -1138,7 +1338,23 @@ static void web_ui_primary(void){
    native_fx_settings.wah_sens,native_fx_settings.wah_attack,native_fx_settings.wah_reso,native_fx_settings.wah_mix,
   native_arp_mode,native_arp_rate,native_arp_octaves,native_arp_gate_index,
   ETCH_V117_EXTRA_FOOTER_VALUES(native_fx_settings,native_project_cfg.evolution,native_pre_insert_slot),
-  native_tempo,native_library.selection[2],native_mod_mode,native_free_millihz,native_controls.mod_target,native_page
+  native_tempo,native_library.selection[2],native_mod_mode,
+  (uint16_t)native_free_millihz,(uint16_t)(native_free_millihz>>16),native_controls.mod_target,native_page,
+  /* V1.29: every new encoder-driven advanced parameter must invalidate the
+   * oscilloscope footer. Earlier builds updated the MODEL but displayed stale
+   * numbers until K1 or a page transition incidentally changed this hash. */
+  native_project_cfg.organic.drift,native_project_cfg.organic.rate,
+  native_project_cfg.organic.phase,native_project_cfg.organic.variance,
+  native_project_cfg.living.depth,native_project_cfg.living.rate,
+  native_project_cfg.living.color,native_project_cfg.living.vary,
+  native_matrix_slot,
+  native_project_cfg.matrix.route[native_matrix_slot].source,
+  native_project_cfg.matrix.route[native_matrix_slot].target,
+  native_project_cfg.matrix.route[native_matrix_slot].amount,
+  native_harmonic,native_spectral_gain,native_spectral_tilt,(uint16_t)native_editor.revision,(uint16_t)(native_editor.revision>>16),
+  native_blend_a,native_blend_b,native_blend_pct,native_blend_on,native_blend_pending,
+  native_riff2.riff_densities[native_patch_slot],native_riff2.riff_mutations[native_patch_slot],
+  native_riff2.riff_variants[native_patch_slot],native_riff_seeds[native_patch_slot]
  };
  uint32_t hash=etch_ui_values_fingerprint(visible_values,
           (uint8_t)(sizeof(visible_values)/sizeof(visible_values[0])));
@@ -1149,6 +1365,7 @@ static void web_ui_primary(void){
   lcd_fill(0,155,240,85,BG);
   if(native_tripped)label("AUDIO STOP",14,161,0xf800);
   else if(native_boot_muted)label("SAFE MODE",14,161,AMBER);
+  else if(native_analog_gate_test)label("PC6 MUTED",14,161,AMBER);
   if(draw){
    label(native_editor.wave==0?"WAVE A":native_editor.wave==1?"WAVE B":"WAVE C",14,174,CYAN);
    label("SLOT",129,174,0x7bef);number(native_slot+1,174,174);
@@ -1165,11 +1382,37 @@ static void web_ui_primary(void){
    label("K3 MORPH",14,213,WHITE);number(native_controls.morph*100u/32767u,114,213);
    label("ALG ETCH",14,229,MAGENTA);number(native_controls.depth*100u/32767u,106,229);
    label("K4 C RATE",143,213,MAGENTA);number(native_mod_ratio+1u,218,213);
+  }else if(page==ETCH_UI_RIFF_LAB){
+   label("DENS",14,177,CYAN);number(native_riff2.riff_densities[native_patch_slot],60,177);
+   label("MUTATE",115,177,MAGENTA);number(native_riff2.riff_mutations[native_patch_slot],172,177);
+   label("K3 VARIATION",14,199,LIME);
+   label("K4 NEW RIFF",14,220,LIME);
+  }else if(page==ETCH_UI_SPECTRAL){
+   if(native_spectral_bank_pending)label("WAIT NOTE OFF",14,177,AMBER);
+   parameters();
+  }else if(page==ETCH_UI_PATCH_BLEND){
+   label("A",14,177,CYAN);number(native_blend_a+1u,36,177);
+   label("B",100,177,AMBER);number(native_blend_b+1u,123,177);
+   label("MIX",14,196,WHITE);number(native_blend_pct,53,196);
+   label(native_blend_on?"ON":"OFF",128,196,native_blend_on?LIME:AMBER);
+   if(native_blend_pending)label("WAIT FOR NOTE RELEASE",14,213,AMBER);
+   else if(!native_blend_valid(native_blend_a)||!native_blend_valid(native_blend_b))
+    label("SAVE PRESETS FIRST",14,213,AMBER);
+   label("K1 A K2 B K3 MIX K4 ON",14,226,LIME);
+  }else if(page==ETCH_UI_MATRIX){
+   static const char *const src[]={"OFF","VELOCITY","ENVELOPE","WAVE C","LIVING"};
+   static const char *const dst[]={"MORPH","C DEPTH","FILTER","SPACE"};
+   const struct etch_mod_route *r=&native_project_cfg.matrix.route[native_matrix_slot];
+   label("ROUTE",14,177,LIME);number(native_matrix_slot+1u,73,177);
+   label("SRC",111,177,WHITE);label(src[r->source<=4u?r->source:0u],146,177,MAGENTA);
+   label("DEST",14,196,WHITE);label(dst[r->target<=3u?r->target:0u],73,196,CYAN);
+   label("AMOUNT",14,214,WHITE);number(r->amount,94,214);
+   /* Four control labels already appear in the parameter footer. */
   }else if(page==ETCH_UI_MOD){
    label("WAVE C",14,177,MAGENTA);number(native_library.selection[2]+1u,87,177);
    label("K1 WAVE K2 DEPTH",14,196,LIME);
    label("K3 RATE",14,213,WHITE);number(native_mod_mode==1?native_free_millihz/1000u:native_mod_ratio+1u,92,213);
-   label("K4 TARGET",136,213,MAGENTA);number(native_controls.mod_target,219,213);
+   label(native_controls.mod_target?"K4 MORPH":"K4 PHASE",136,213,MAGENTA);
    label("SELECT MOD MODE",14,229,0x7bef);
   }else if(page==ETCH_UI_PLAY){
    label("A",14,172,CYAN);number(native_morph_a+1,29,172);
@@ -1189,7 +1432,8 @@ static uint8_t web_primary_page(void){
   native_page==ETCH_UI_FILTER||native_page==ETCH_UI_FX||native_page==ETCH_UI_ARP||
   native_page==ETCH_UI_MORPH||etch_ui_is_fx_editor(native_page)||
   native_page==ETCH_UI_PREFX_A||native_page==ETCH_UI_PREFX_B||native_page==ETCH_UI_C_FX||
-  native_page==ETCH_UI_EVOLUTION;
+  native_page==ETCH_UI_EVOLUTION||native_page==ETCH_UI_ORGANIC||native_page==ETCH_UI_SPECTRAL||native_page==ETCH_UI_LIVING||native_page==ETCH_UI_MATRIX||
+  native_page==ETCH_UI_RIFF_LAB||native_page==ETCH_UI_PATCH_BLEND;
 }
 
 /* 0.81: SEQ mirrors sim/screen.mjs rather than the old single-page
@@ -1348,7 +1592,40 @@ static void native_presets_render(void){
  etch_panel_commit();
  first_frame=0u;
 }
+static void etch_keyboard_screen(void){
+ /* Keyboard boot mode is independent of the synth renderer and its audio gate.
+  * No patch edit, memory writes, DMA audio or speaker enable. */
+ uint32_t held=fm1_in.notes&0x07ffffffu;
+ uint8_t n=0u;
+ for(uint8_t i=0;i<27u;i++)if(held&(1u<<i))++n;
+ /* Leave static graphics alone while playing: full-screen SPI writes on
+  * every keyboard press can increase USB-MIDI latency. Only dynamic
+  * 200x12 rectangles are refreshed while the player holds notes. */
+ if(first_frame){
+  lcd_fill(0u,0u,240u,240u,0x0000);
+  label("ETCH",12u,17u,0x07ff);
+  label(ETCH_UI_VERSION,168u,17u,0xffe0);
+  lcd_fill(12u,47u,216u,1u,0x2945);
+  label("MIDI KEYBOARD",12u,60u,0xffff);
+  label("27 KEYS / CH 1",12u,86u,0x7bef);
+  label("USB MIDI OUT",12u,111u,0x07ff);
+  label("OCTAVE",12u,161u,0x7bef);
+  label("HELD",12u,183u,0x7bef);
+  label("OCT- / OCT+ SHIFT",12u,213u,0x07ff);
+ }
+ lcd_fill(12u,134u,216u,11u,0x0000);
+ label((usb.config&&!usb.suspended)?"CONNECTED":"CONNECT USB",12u,134u,
+       (usb.config&&!usb.suspended)?0x07e0:0xffe0);
+ lcd_fill(92u,161u,32u,11u,0x0000);
+ char oct[]={native_keyboard_octave<0?'-':'+',
+             (char)('0'+(native_keyboard_octave<0?-native_keyboard_octave:native_keyboard_octave)),0};
+ label(oct,92u,161u,0xffff);
+ lcd_fill(70u,183u,28u,11u,0x0000);
+ number(n,70u,183u);
+ first_frame=0u;
+}
 static void screen_render(void){
+ if(native_keyboard_mode){etch_keyboard_screen();return;}
  /* Until the analog output has settled, leave the splash on the LCD.
   * Never accidentally hide Safe Mode, audio-fault or OTA diagnostics. */
  if(!native_screen_gate.ready && !native_safe && !native_tripped && !native_updating)return;
@@ -1862,6 +2139,12 @@ static void screen_render(void){
  }else{
  parameters();
  }
+ if(native_bpm_overlay_until && (int32_t)(native_bpm_overlay_until-etch_ms)>0){
+  lcd_fill(71u,79u,98u,48u,0x0000);
+  lcd_fill(71u,79u,98u,2u,0x07e0);
+  label("BPM",84u,85u,0x07e0);
+  number(native_tempo,87u,104u);
+ }
  if(etch_save_toast_visible(etch_ms,native_saved_until)){
   lcd_fill(69u,82u,102u,37u,0);
   lcd_fill(69u,82u,102u,2u,0x07e0);
@@ -1878,6 +2161,7 @@ static void screen_render(void){
  else if(native_page==7&&native_patch_confirm)label("SAVE AGAIN",120,68,0xFFE0);
  if(native_page==ETCH_UI_PLAY&&!native_draw)label(native_mono_mode?"MONO":"POLY",192,68,0x07e0);
  lcd_fill(12,76,216,4,native_tripped?0xF800:native_boot_muted?0xFFE0:0x07E0);
+ if(native_analog_gate_test)label("PC6 MUTED",135,68,0xFFE0);
  if(native_tripped)label("AUDIO STOP",135,68,0xF800);
  else if(native_screen_gate.timed_out)label("AUDIO WAIT",135,68,0xFFE0);
  etch_panel_commit();
@@ -1930,7 +2214,17 @@ void fm1_cstart(void){
  /* REC held at boot enters true read-only, silent application Safe Mode. */
  native_recovery_reason=etch_recovery_on_boot(safe,fm1_in.buttons);
  safe=native_recovery_reason!=ETCH_RECOVERY_NORMAL;native_safe=safe;
+ /* SEQ is physical button 11. REC Safe Mode and OCT- ROM recovery
+  * always take priority over controller boot. Keep this mode transient. */
+ native_keyboard_mode=etch_keyboard_boot_requested(safe,fm1_in.buttons);
+ native_keyboard_octave=0;native_keyboard_usb_ready=0;native_keyboard_boot_healthy=0;
+ etch_panel_midi_reset(&native_panel_out);
  uint8_t muted=safe;native_boot_muted=muted;
+ /* V1.29 diagnostic: boot while holding GLO (button 7) to initialize the
+  * full codec/I2S/DMA path but KEEP the PC6 analog gate LOW. Unlike REC
+  * Safe Mode this explicitly tests whether the pop needs the PC6 edge.
+  * No update, flash erase or persistent settings are involved. */
+ native_analog_gate_test=(uint8_t)(!safe && !!(fm1_in.buttons&(1u<<7)));
  if(!safe)etch_boot_splash();
  usb_start();
  etch_editor_init(&native_editor);
@@ -1938,7 +2232,20 @@ void fm1_cstart(void){
  etch_factory_seed(&native_library);
  etch_pattern_clear(&native_pattern);
  for(uint32_t i=0;i<64;i++)native_seqnotes[i]=255;
+ for(uint8_t i=0;i<4u;i++)for(uint8_t j=0;j<13u;j++)native_project_names[i][j]=0;
+ for(uint8_t i=0;i<ETCH_PATCH_SLOTS;i++){
+  native_riff_seeds[i]=0;native_riff2.riff_variants[i]=0;
+  native_riff2.riff_mutations[i]=0;native_riff2.riff_densities[i]=50;
+ }
  etch_project_bind_riffs(&native_project_cfg,native_riff_seeds);
+ etch_project_bind_riff2(&native_project_cfg,&native_riff2);
+ for(uint8_t i=0;i<ETCH_PATCH_SLOTS;i++){
+  native_preset_dsp.slot[i]=(struct etch_preset_dsp){0};
+  native_preset_dsp.slot[i].spectral_gain=50u;native_preset_dsp.slot[i].spectral_tilt=50u;
+  native_preset_dsp.slot[i].spectral_part=2u;
+  native_preset_dsp.slot[i].blend_a=i;native_preset_dsp.slot[i].blend_b=i;
+ }
+ etch_project_bind_preset_dsp(&native_project_cfg,&native_preset_dsp);
  if(!safe){native_library_boot();
   if(native_store_status==ETCH_STORE_FOREIGN)native_flash_probe=etch_flash_probe_read(native_store_io.read);
   /* Foreign Felucca data is read-only: never auto-erase or boot to SAFE.
@@ -1967,18 +2274,18 @@ void fm1_cstart(void){
  native_browser_slot=native_library.selection[0];native_browser_target=0;native_morph_focus=0;
  fm1_adc_init();(void)fm1_adc_read(FM1_ADC_MASTER);
  native_controls.gain=16384;native_controls.morph=8192;native_controls.depth=8192;native_mod_ratio=0;
- if(!safe&&native_store_status==ETCH_STORE_OK&&native_library.reserved>=1&&native_library.reserved<=ETCH_PATCH_SLOTS){native_patch_slot=native_library.reserved-1;native_patch_load(0);if(native_project_cfg.source_version==3)native_project_restore();native_restore_project_bpm();}
+ if(!safe&&native_store_status==ETCH_STORE_OK&&native_library.reserved>=1&&native_library.reserved<=ETCH_PATCH_SLOTS){native_patch_slot=native_library.reserved-1;native_project_restore();native_patch_load(0);if(native_project_cfg.source_version==3)native_project_restore();native_restore_project_bpm();}
  native_editor.dirty=1;native_compile_edit();
  native_parameter_publish();
  int32_t pot=fm1_adc_read(FM1_ADC_MASTER);
  if(pot>=0)native_controls.gain=(uint16_t)(pot*32767/1023);
- if(!muted&&etch_recovery_may_run_audio(native_recovery_reason)){fm1_irq_off();native_start();fm1_irq_enable_all();}
+ if(!muted&&!native_keyboard_mode&&etch_recovery_may_run_audio(native_recovery_reason)){fm1_irq_off();native_start();fm1_irq_enable_all();}
  uint32_t last=0,held=0,previous_buttons=fm1_in.buttons,last_seq_notes=fm1_in.notes,last_ui_paint_ms=0;
  uint32_t native_audio_rearm_held=0, native_auto_fault_at=0,last_gain_sample_ms=0;
  uint8_t native_auto_restarts=0, native_last_tripped=0;
  uint8_t disconnected=1;
  for(;;){
-  if(!native_updating && !safe){
+  if(!native_updating && !safe && !native_keyboard_mode){
    native_output_poll();
    /* The UI transition is an independent stage, not the same event as
     * PC6 enable or the first nonzero sample. Quiet LCD/SPI bus while
@@ -1990,6 +2297,61 @@ void fm1_cstart(void){
   }
   fm1_wdt_feed();
   usb_retry(etch_ms);
+  if(native_keyboard_mode){
+   /* USB-MIDI is served by TIMER5 even with the audio ALNK0 engine stopped.
+    * A single writer (main thread) publishes USB events while interrupts
+    * are masked; TIMER5's USB poll is the consumer. */
+   if(usb.uboot_req){etch_boot.pending=0;fm1_audio_output_enable(0u);usb_detach();fm1_irq_off();fm1_enter_uboot();}
+#if ETCH_NATIVE_OTA
+   ota_service();
+   if(usb.ota_req){
+    usb.ota_req=0u;native_updating=1u;
+    fm1_irq_off();etch_panel_midi_reset(&native_panel_out);mo_r=mo_w;fm1_irq_enable_all();
+    int outcome=ota_session();native_updating=0u;
+    if(outcome==-17){
+     native_keyboard_mode=0u;native_safe=safe=muted=native_boot_muted=1u;
+     native_recovery_reason=ETCH_RECOVERY_OTA_CLEANUP;
+     etch_boot.failed=2u;etch_boot.pending=1u;native_stop();
+    }
+    first_frame=1u;
+   }
+#endif
+   if(native_keyboard_mode){
+    uint8_t online=(uint8_t)(usb.config&&!usb.suspended);
+    uint32_t buttons=fm1_in.buttons;
+    if(online!=native_keyboard_usb_ready){
+     fm1_irq_off();
+     etch_panel_midi_reset(&native_panel_out);
+     /* Never replay undelivered events from a previous USB connection. */
+     mo_r=mo_w;
+     fm1_irq_enable_all();
+     native_keyboard_usb_ready=online;
+     first_frame=1u;
+    }
+    uint8_t keys_changed=(uint8_t)(fm1_in.notes!=last_seq_notes);
+    if((uint32_t)(etch_ms-last)>=8u){
+     last=etch_ms;
+     uint32_t press=buttons&~previous_buttons;
+     previous_buttons=buttons;
+     int8_t octave=etch_keyboard_octave_step(native_keyboard_octave,press);
+     if(octave!=native_keyboard_octave){native_keyboard_octave=octave;first_frame=1u;}
+     fm1_irq_off();
+     etch_panel_midi_update(&native_panel_out,fm1_in.notes,native_keyboard_octave,
+                            online,native_panel_usb_emit,0);
+     fm1_irq_enable_all();
+     if(first_frame || keys_changed || (uint32_t)(etch_ms-last_ui_paint_ms)>=2000u){
+      screen();last_ui_paint_ms=etch_ms;
+     }
+     last_seq_notes=fm1_in.notes;
+    }
+    /* Keyboard mode deliberately has no DMA callbacks. This successful,
+     * intentionally audio-free boot must still clear the boot-loop marker. */
+    if(!native_keyboard_boot_healthy && etch_ms>=30000u){
+     etch_boot_stable(&etch_boot,0);native_keyboard_boot_healthy=1u;
+    }
+   }
+   continue;
+  }
   /* MASTER is a performance control, not an LCD refresh event.
    * Its ADC gets polled five times as often as the legacy UI tick;
    * gain smoothing still happens in the DSP once per sample. */
@@ -2103,6 +2465,14 @@ void fm1_cstart(void){
    uint8_t page_before=native_page,draw_before=native_draw;
    /* V1.20: PRESETS rotary is ignored outside the named PRESETS browser.
     * SAVE editors already use K1 (dm) to choose a destination slot. */
+   /* Reuse the freed PRESETS encoder as global BPM, except in preset
+    * browser, save-name workflows and diagnostic capture. */
+   if(preset && native_page!=ETCH_UI_PRESETS &&
+      native_page!=ETCH_UI_NAME && native_page!=ETCH_UI_PROJECT_SAVE && !native_updating){
+    uint8_t bpm=(uint8_t)etch_v130_bpm(native_tempo,preset);
+    if(bpm!=native_tempo){native_tempo=bpm;native_project_cfg.tempo=bpm;
+     native_bpm_overlay_until=etch_ms+1500u;first_frame=1u;}
+   }
    if(preset && !native_draw && native_page==ETCH_UI_PRESETS){
     uint32_t valid=0;
     for(uint8_t k=0;k<ETCH_PATCH_SLOTS;k++)if(native_library.patches[k].valid)valid|=1u<<k;
@@ -2263,8 +2633,7 @@ void fm1_cstart(void){
      select=0;
     }
     if(pressed&(1u<<4))native_page=1;
-    if(pressed&(1u<<5))native_page=native_page==ETCH_UI_MOD?ETCH_UI_C_FX:
-     native_page==ETCH_UI_C_FX?ETCH_UI_EVOLUTION:ETCH_UI_MOD;
+    if(pressed&(1u<<5))native_page=etch_ui_lfo_next(native_page,native_mono_mode);
     /* Preserve SEL's existing ETCH shortcut outside the PROJECTS browser.
      * The physical GLO key is button 7, not SEL (matrix button 3). */
     if((pressed&(1u<<3)) && native_page!=ETCH_UI_PROJECTS){
@@ -2550,10 +2919,10 @@ void fm1_cstart(void){
      native_arp_rate=(uint8_t)ui_bound((int32_t)native_arp_rate+dd,0,3);
      native_arp_octaves=etch_arp_octave_turn(native_arp_octaves,up);
      if(native_arp_mode==7u && down){
-      int32_t n=down>0?down:-down;if(n>64)n=64;
-      fm1_irq_off();
-      while(n--)native_riff_seeds[native_patch_slot]=(uint16_t)etch_riff_regenerate(native_riff_seeds[native_patch_slot]);
-      fm1_irq_enable_all();
+      /* Riff generator only runs on the UI thread; publish the new seed
+       * atomically below with the other controls. Never mask audio IRQ for
+       * a multi-iteration harmonic search. */
+      native_new_riff(native_patch_slot,down);
      }else if(native_arp_mode!=7u)native_tempo=(uint8_t)ui_bound((int32_t)native_tempo+down,30,240);}
     else if(native_page==22){
      /* Custom ARP order lives with the selected patch; each step references
@@ -2733,6 +3102,51 @@ void fm1_cstart(void){
      native_seq_swing=(uint8_t)ui_bound((int32_t)native_seq_swing+up,0,75);
      native_tempo=(uint8_t)ui_bound((int32_t)native_tempo+down,30,240);
     }
+    else if(native_page==ETCH_UI_RIFF_LAB){
+     uint8_t ps=native_patch_slot;
+     native_riff2.riff_densities[ps]=(uint8_t)ui_bound((int32_t)native_riff2.riff_densities[ps]+dm,0,100);
+     native_riff2.riff_mutations[ps]=(uint8_t)ui_bound((int32_t)native_riff2.riff_mutations[ps]+dd,0,100);
+     if(up){int32_t n=up>0?up:-up;if(n>32)n=32;
+      while(n--)native_riff2.riff_variants[ps]=(uint16_t)etch_riff_regenerate(native_riff2.riff_variants[ps]);
+     }
+     if(down)native_new_riff(ps,down);
+    }
+    else if(native_page==ETCH_UI_PATCH_BLEND && native_mono_mode){
+     if(!native_blend_valid(native_blend_a))native_blend_a=native_patch_slot;
+     if(!native_blend_valid(native_blend_b))native_blend_b=native_patch_slot;
+     /* Only complete stored presets are eligible. Invalid slots skipped. */
+     native_blend_a=native_blend_turn(native_blend_a,dm);
+     native_blend_b=native_blend_turn(native_blend_b,dd);
+     native_blend_pct=(uint8_t)ui_bound((int32_t)native_blend_pct+up,0,100);
+     if(down)native_blend_on=down>0?1u:0u;
+     /* Selecting sources is navigation, not an implicit overwrite of the
+      * current sound. Apply only if preview is explicitly ON; a new source
+      * still updates the live preview while ON. */
+     if(!native_blend_on)native_blend_pending=0u;
+     else if(native_blend_valid(native_blend_a)&&native_blend_valid(native_blend_b)&&
+        (dm||dd||up||down)){
+       if(native_blend_audio_busy())native_blend_pending=1u;
+       else {native_blend_pending=0u;native_patch_blend_apply(&m,&d);}
+     }
+    }
+    else if(native_page==ETCH_UI_SPECTRAL && native_mono_mode){
+     /* All spectral edits are baked into the editable 128 point waveform on
+      * the main UI thread. Audio consumes compiled band-limited banks. */
+     if(dm)etch_editor_select(&native_editor,dm);
+     native_harmonic=(uint8_t)ui_bound((int32_t)native_harmonic+dd,1,32);
+     if(up||down)native_spectral_bank_pending=1u;
+     etch_spectral_controls_turn(&native_editor,native_harmonic,
+       &native_spectral_gain,&native_spectral_tilt,up,down);
+    }
+    else if(native_page==ETCH_UI_MATRIX){
+     etch_v130_matrix(&native_project_cfg.matrix,&native_matrix_slot,dm,dd,up,down);
+    }
+    else if(native_page==ETCH_UI_LIVING && native_mono_mode){
+     etch_v130_living(&native_project_cfg.living,dm,dd,up,down);
+    }
+    else if(native_page==ETCH_UI_ORGANIC){
+     etch_v130_organic(&native_project_cfg.organic,dm,dd,up,down);
+    }
     else if(native_page==ETCH_UI_EVOLUTION){
      struct etch_evolution_settings *e=&native_project_cfg.evolution;
      /* Four independent physical encoders, with a separately testable
@@ -2761,6 +3175,11 @@ void fm1_cstart(void){
      /* SAVE is handled once, above, and opens WAVE SAVE from DRAW. */}
    }
    last_seq_notes=fm1_in.notes;
+   if(native_mono_mode && native_blend_pending && native_blend_on && !native_blend_audio_busy() &&
+      native_blend_valid(native_blend_a) && native_blend_valid(native_blend_b)){
+     native_blend_pending=0u;
+     native_patch_blend_apply(&m,&d);
+   }
    native_compile_edit();
    int32_t octave=native_controls.octave;
    enum etch_octave_action oct_action=etch_octave_scan(&native_octave_chord,buttons);
@@ -2770,6 +3189,14 @@ void fm1_cstart(void){
     native_mono_mode^=1u;
     /* Audio core retires surplus voices with 128-sample tails. Avoid a
      * hard RESET here: it would click during held-note mode switches. */
+    first_frame=1;
+   }
+   /* Switching MONO -> POLY while on a mono-only page must never leave a
+    * hidden editor accessible. Do not alter stored spectral/living/blend
+    * values, and never apply pending blend work in POLY. */
+   if(!native_mono_mode && !etch_ui_lfo_visible(native_page,native_mono_mode)){
+    native_page=ETCH_UI_MATRIX;
+    /* Keep a queued spectral compile protected until all notes finish. */
     first_frame=1;
    }
    if(octave<-4)octave=-4;if(octave>3)octave=3;
@@ -2799,7 +3226,7 @@ void fm1_cstart(void){
    /* Keep 100 ms input/USB service; skip redundant full-region LCD redraws. */
    uint16_t visible_playhead=etch_seq_actual_step(native_seq_run,native_audio.perf_last_seq,native_audio.perf_played,native_audio.perf_current_step,native_seq_length,native_seq_step);
    uint8_t playhead_changed=(uint8_t)(native_seq_run && (etch_seq_is_web_page(native_page)||native_page==ETCH_UI_GRID) && visible_playhead!=last_painted_playhead);
-   if(first_frame||pressed||buttons!=previous_buttons_snapshot||oct_action!=ETCH_OCT_NONE||notes_changed||(preset && !native_draw && native_page==ETCH_UI_PRESETS)||select||alg||dm||dd||up||down||(!native_draw&&web_primary_page()&&etch_scope_redraw_on_silence(native_scope_has_signal,web_last_signal))||((!native_draw&&web_primary_page()&&etch_scope_anim_needed(&web_scope_release,native_scope_held_note,native_scope_has_signal,web_last_signal))&&etch_ms-last_ui_paint_ms>=etch_ui_live_frame_interval(native_audio.voice_limit,(uint8_t)(native_missed_streak+(native_ui_pressure>=9u?1u:0u)+(native_ui_pressure>=20u?2u:0u)),native_tripped))||((playhead_changed||native_seq_run||fm1_in.notes)&&etch_ms-last_ui_paint_ms>=((native_audio.voice_limit<8u||native_missed_streak)?750u:(etch_seq_is_web_page(native_page)?40u:(native_page==ETCH_UI_GRID?60u:250u))))||(native_page==25&&native_system_tab>=4&&etch_ms-last_ui_paint_ms>=500u)||native_tripped!=native_last_tripped||page_before!=native_page||draw_before!=native_draw||native_save_notice_pending||(native_saved_until && (int32_t)(etch_ms-native_saved_until)>=0)){
+   if(first_frame||pressed||buttons!=previous_buttons_snapshot||oct_action!=ETCH_OCT_NONE||notes_changed||(preset && !native_draw && native_page==ETCH_UI_PRESETS)||select||alg||dm||dd||up||down||(!native_draw&&web_primary_page()&&etch_scope_redraw_on_silence(native_scope_has_signal,web_last_signal))||((!native_draw&&web_primary_page()&&etch_scope_anim_needed(&web_scope_release,native_scope_held_note,native_scope_has_signal,web_last_signal))&&etch_ms-last_ui_paint_ms>=etch_ui_live_frame_interval(native_audio.voice_limit,(uint8_t)(native_missed_streak+(native_ui_pressure>=9u?1u:0u)+(native_ui_pressure>=20u?2u:0u)),native_tripped))||((playhead_changed||native_seq_run||fm1_in.notes)&&etch_ms-last_ui_paint_ms>=((native_audio.voice_limit<8u||native_missed_streak)?750u:(etch_seq_is_web_page(native_page)?40u:(native_page==ETCH_UI_GRID?60u:250u))))||(native_page==25&&native_system_tab>=4&&etch_ms-last_ui_paint_ms>=500u)||(native_bpm_overlay_until && (int32_t)(etch_ms-native_bpm_overlay_until)>=0 && (uint32_t)(etch_ms-native_bpm_overlay_until)<200u)||native_tripped!=native_last_tripped||page_before!=native_page||draw_before!=native_draw||native_save_notice_pending||(native_saved_until && (int32_t)(etch_ms-native_saved_until)>=0)){
     screen();last_ui_paint_ms=etch_ms;last_painted_playhead=visible_playhead;
    }
    native_last_tripped=native_tripped;

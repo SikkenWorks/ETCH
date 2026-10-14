@@ -36,3 +36,10 @@ void etch_editor_add_partial(struct etch_wave_editor *e,uint8_t harmonic,int32_t
  * 16-step Undo works; no flash write until user explicitly saves.
  * mix/mutate: 0..100, seed: user-supplied deterministic variation. */
 void etch_editor_genetics(struct etch_wave_editor *e,uint8_t mix,uint8_t mutate,uint8_t seed);
+
+/* V1.24 SPECTRAL ETCH. These operations modify actual stored waveform points,
+ * checkpoint existing Undo, and are never called from the audio ISR. */
+void etch_editor_spectral_partial(struct etch_wave_editor *e,uint8_t harmonic,int32_t turns);
+void etch_editor_spectral_tilt(struct etch_wave_editor *e,int32_t turns);
+uint16_t etch_editor_spectral_level(const struct etch_wave_editor *e,uint8_t harmonic);
+uint16_t etch_editor_spectral_brightness(const struct etch_wave_editor *e);

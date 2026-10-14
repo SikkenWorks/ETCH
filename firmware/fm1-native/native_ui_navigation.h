@@ -21,9 +21,38 @@ enum etch_ui_page {
  ETCH_UI_FX_FOLDER=40, ETCH_UI_FX_TAPE=41,
  ETCH_UI_FX_REVERSE=42, ETCH_UI_FX_VIBRATO=43, ETCH_UI_FX_ROTARY=44, ETCH_UI_FX_WAH=45,
  ETCH_UI_PREFX_A=46,ETCH_UI_PREFX_B=47,ETCH_UI_C_FX=48,
- ETCH_UI_MOTION=49, ETCH_UI_EVOLUTION=50, ETCH_UI_PRESETS=51, ETCH_UI_PAGE_COUNT=52
+ ETCH_UI_MOTION=49, ETCH_UI_EVOLUTION=50, ETCH_UI_PRESETS=51, ETCH_UI_ORGANIC=52, ETCH_UI_SPECTRAL=53, ETCH_UI_LIVING=54, ETCH_UI_MATRIX=55, ETCH_UI_RIFF_LAB=56, ETCH_UI_PATCH_BLEND=57, ETCH_UI_PAGE_COUNT=58
 };
 
+/* V1.35: exactly MOD, C FX and MATRIX are visible in POLY.
+ * EVOLUTION, ORGANIC, SPECTRAL, LIVING, PATCH BLEND are MONO-only.
+ * Stored preset settings are never deleted when switching voice mode. */
+static inline uint8_t etch_ui_mono_only(uint8_t page){
+ return (uint8_t)(page==ETCH_UI_EVOLUTION || page==ETCH_UI_ORGANIC ||
+                  page==ETCH_UI_SPECTRAL || page==ETCH_UI_LIVING ||
+                  page==ETCH_UI_PATCH_BLEND);
+}
+static inline uint8_t etch_ui_lfo_visible(uint8_t page,uint8_t mono){
+ return (uint8_t)(mono || !etch_ui_mono_only(page));
+}
+static inline uint8_t etch_ui_lfo_next(uint8_t page,uint8_t mono){
+ if(!mono){
+  if(page==ETCH_UI_MOD)return ETCH_UI_C_FX;
+  if(page==ETCH_UI_C_FX)return ETCH_UI_MATRIX;
+  return ETCH_UI_MOD;
+ }
+ switch(page){
+  case ETCH_UI_MOD: return ETCH_UI_C_FX;
+  case ETCH_UI_C_FX: return ETCH_UI_EVOLUTION;
+  case ETCH_UI_EVOLUTION: return ETCH_UI_ORGANIC;
+  case ETCH_UI_ORGANIC: return ETCH_UI_SPECTRAL;
+  case ETCH_UI_SPECTRAL: return ETCH_UI_LIVING;
+  case ETCH_UI_LIVING: return ETCH_UI_MATRIX;
+  case ETCH_UI_MATRIX: return ETCH_UI_PATCH_BLEND;
+  case ETCH_UI_PATCH_BLEND: return ETCH_UI_MOD;
+  default: return ETCH_UI_MOD;
+ }
+}
 /* Four home-carousel pages in precisely the desktop simulator's order. */
 static inline uint8_t etch_ui_is_home(uint8_t page){
  return page==ETCH_UI_PLAY||page==ETCH_UI_MORPH||page==ETCH_UI_FILTER||page==ETCH_UI_LIBRARY;
@@ -60,7 +89,7 @@ static inline uint8_t etch_ui_seq_inspector(uint8_t page,int32_t turns){
  return pages[next];
 }
 static inline uint8_t etch_ui_arp_next(uint8_t page){
- return page==ETCH_UI_ARP?ETCH_UI_ARP_EDIT:page==ETCH_UI_ARP_EDIT?ETCH_UI_CLOCK:ETCH_UI_ARP;
+ return page==ETCH_UI_ARP?ETCH_UI_ARP_EDIT:page==ETCH_UI_ARP_EDIT?ETCH_UI_CLOCK:page==ETCH_UI_CLOCK?ETCH_UI_RIFF_LAB:ETCH_UI_ARP;
 }
 static inline uint8_t etch_ui_fx_next(uint8_t page){
  return page==ETCH_UI_FX?ETCH_UI_FXA:page==ETCH_UI_FXA?ETCH_UI_FXB:ETCH_UI_FX;
@@ -92,7 +121,7 @@ static inline const char *etch_ui_title(uint8_t page){
   "DRIVE","CHORUS","DELAY","REVERB","PROJECT SAVE","RING MOD","CHANNEL EQ",
   "COMPRESSOR","TREMOLO","PHASER","FLANGER","DECIMATOR","WAVEFOLDER","TAPE INSTABILITY",
   "REVERSE DELAY","VIBRATO","ROTARY SPEAKER","AUTO-WAH",
-  "WAVE A FX","WAVE B FX","WAVE C FX MOD","MOTION","EVOLUTION","PRESETS"
+  "WAVE A FX","WAVE B FX","WAVE C FX MOD","MOTION","EVOLUTION","PRESETS","ORGANIC","SPECTRAL","LIVING","MOD MATRIX","RIFF LAB","PATCH BLEND"
  };
  return page<ETCH_UI_PAGE_COUNT?titles[page]:"ERROR";
 }

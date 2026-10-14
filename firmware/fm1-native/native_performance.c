@@ -51,6 +51,51 @@ uint8_t etch_riff_pick(uint32_t seed,uint8_t step,uint8_t base,const struct etch
  while(n>0&&!riff_allowed((uint8_t)n,h))--n;
  return (uint8_t)n;
 }
+/* Advance the audible motif rather than merely changing a number on screen.
+ * The first step and strong beats are deliberately anchored by the original
+ * generator, so check the entire phrase before accepting a new seed. Bounded
+ * candidate search keeps encoder service predictable. This is UI-only code. */
+uint16_t etch_riff_generate_distinct(uint16_t previous,uint8_t base,
+ const struct etch_harmony_settings *h,uint8_t octaves){
+ uint16_t candidate=previous,best=previous;uint8_t best_changed=0u;
+ for(uint8_t attempt=0u;attempt<12u;attempt++){
+  candidate=(uint16_t)etch_riff_regenerate(candidate);
+  if(candidate==previous)continue;
+  uint8_t changed=0u;
+  for(uint8_t step=0u;step<16u;step++){
+   if(etch_riff_pick(previous,step,base,h,octaves)!=
+      etch_riff_pick(candidate,step,base,h,octaves))++changed;
+  }
+  if(changed>best_changed){best=candidate;best_changed=changed;}
+  if(changed>=6u)return candidate;
+ }
+ return best!=previous?best:candidate;
+}
+
+/* RIFF 2.0: mutation preserves the existing motif and its downbeat.
+ * Density=50 and mutation=0 reproduce V1.27 output exactly. Stateless,
+ * deterministic, and safe to call on the realtime audio thread. */
+uint8_t etch_riff_pick_variation(uint32_t seed,uint16_t variation,uint8_t mutation,
+ uint8_t density,uint8_t step,uint8_t base,const struct etch_harmony_settings *h,uint8_t octaves){
+ uint8_t result=etch_riff_pick(seed,step,base,h,octaves);
+ if(mutation && variation && (step&15u)!=0u){
+  uint32_t x=(uint32_t)variation*2654435761u + ((uint32_t)(step&15u)+1u)*2246822519u;
+  x^=x>>15;x*=3266489917u;x^=x>>16;
+  if(x%100u<mutation){
+   uint8_t changed=etch_riff_pick((uint32_t)variation,step,base,h,octaves);
+   if(changed!=255u)result=changed;
+  }
+ }
+ /* Keep the strongest metrical anchor, and never turn a rest into
+  * out-of-scale notes. Density adjusts offbeats without altering clock. */
+ if(density!=50u && (step&3u)!=0u){
+  uint32_t x=seed^((uint32_t)variation<<16)^((uint32_t)(step&15u)*0x9e3779b9u);
+  x^=x>>16;x*=0x7feb352du;x^=x>>15;
+  if(x%100u>=density)return 255u;
+  if(result==255u)return etch_riff_pick(seed^0x6ad1u,step,base,h,octaves);
+ }
+ return result;
+}
 int etch_arp_program_valid(const struct etch_arp_program *p){
  if(!p||p->length>ETCH_ARP_PROGRAM_STEPS)return 0;
  for(uint32_t i=0;i<p->length;i++)if(p->steps[i]!=255&&p->steps[i]>31)return 0;

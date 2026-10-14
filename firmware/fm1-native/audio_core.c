@@ -3,12 +3,30 @@
 #include "native_tables.h"
 #include "native_bend.h"
 #include "native_poly_headroom.h"
+#include "native_mip_smoothing.h"
 /* Single FM1 synth instance; keep the evolution clock out of saturated POOL. */
-static uint32_t evolution_phase;
-static int32_t evolution_smooth;
+/* Organic per-voice control state in normal RAM: FM1 DSP POOL is full.
+ * One runtime audio engine exists on FM1. Reset clears this alongside audio. */
+/* V1.32: reuse the previously write-only 'birth' field as the LIVING
+ * smoothing state. No extra SRAM/POOL, no additional per-note DSP buffers. */
+struct organic_voice_state {uint32_t seed,time;int32_t living_lp,pitch,goal;uint8_t ready,phase_ready;};
+/* BSS has ~144 bytes spare; protected NOINIT has ~20 bytes spare.
+ * Split precisely seven and one voice to avoid touching POOL/DSP buffers. */
+static struct organic_voice_state organic_voice[ETCH_NATIVE_VOICES-1u];
+static struct organic_voice_state organic_voice_extra __attribute__((section(".noinit")));
+static struct organic_voice_state *organic_at(uint32_t i){
+ return i<ETCH_NATIVE_VOICES-1u ? &organic_voice[i] : &organic_voice_extra;
+}
+/* Exactly 16 bytes in guarded .noinit; always reinitialized before audio. */
+static uint16_t living_voice_age[ETCH_NATIVE_VOICES] __attribute__((section(".noinit")));
+static uint32_t evolution_phase __attribute__((section(".pool")));
+static int32_t evolution_smooth __attribute__((section(".pool")));
+/* Separate .bss states: FM1 audio POOL has no room to grow. */
+static int32_t filter_cutoff_smooth __attribute__((section(".noinit")));
+static int32_t filter_resonance_smooth __attribute__((section(".noinit")));
 /* One target audio engine. Kept in BSS to preserve Felucca POOL boundary. */
-static uint16_t preview_mix;
-static uint8_t preview_selected;
+static uint16_t preview_mix __attribute__((section(".pool")));
+static uint8_t preview_selected __attribute__((section(".pool")));
 static int32_t clamp15(int32_t v){return v<-32768?-32768:v>32767?32767:v;}
 static int32_t slew(int32_t a,int32_t b){int32_t d=b-a;return a+(d/64)+(d>0&&d<64?1:d<0&&d>-64?-1:0);}
 static int32_t readwave(const struct etch_native_bank *bank,uint32_t w,uint32_t p,uint32_t inc){
@@ -16,10 +34,73 @@ static int32_t readwave(const struct etch_native_bank *bank,uint32_t w,uint32_t 
  uint32_t level=0,i=p>>23;int32_t f=(p>>8)&32767u;
  while(level<5&&inc>limit[level])++level;
  const int16_t *t=bank?bank->table[w][level]:etch_tables[w][level];
- return t[i]+((int32_t)(t[(i+1)&511]-t[i])*f)/32768;
+ int32_t a=t[i]+((int32_t)(t[(i+1)&511]-t[i])*f)/32768;
+ /* Blend just below each harmonic-mip boundary instead of abruptly
+  * replacing the oscillator table on the next pitch-bend sample.
+  * Only the narrow boundary zone pays for a second table lookup.
+  * Retain the existing table bank and unmodified stored waveforms. */
+ if(level<5u){
+  uint32_t alpha=etch_mip_boundary_alpha(inc,limit[level]);
+  if(alpha){
+   const int16_t *next=bank?bank->table[w][level+1u]:etch_tables[w][level+1u];
+   int32_t b=next[i]+((int32_t)(next[(i+1)&511]-next[i])*f)/32768;
+   a+=(int32_t)(((int64_t)(b-a)*alpha)/32768);
+  }
+ }
+ return a;
+}
+/* V1.32: mip selection and boundary alpha depend on NOTE INCREMENT,
+ * not phase. Previously readwave recomputed a 64-bit quotient for every
+ * carrier/table lookup and every PCM sample near mip boundaries. Prepare
+ * these at the existing 32-sample control tick, then only interpolate in
+ * the audio inner loop. All six mip levels and boundary fades are preserved. */
+struct etch_mip_lookup {uint16_t alpha;uint8_t level;};
+static struct etch_mip_lookup mip_prepare(uint32_t inc){
+ static const uint32_t limit[5]={30198988u,60397977u,120795955u,241591910u,966367641u};
+ struct etch_mip_lookup l={0u,0u};
+ while(l.level<5u && inc>limit[l.level])l.level++;
+ if(l.level<5u)l.alpha=(uint16_t)etch_mip_boundary_alpha(inc,limit[l.level]);
+ return l;
+}
+static inline int32_t readwave_prepared(const struct etch_native_bank *bank,
+ uint32_t w,uint32_t phase,const struct etch_mip_lookup *mp){
+ uint32_t i=phase>>23;int32_t frac=(int32_t)((phase>>8)&32767u);
+ const int16_t *a=bank?bank->table[w][mp->level]:etch_tables[w][mp->level];
+ int32_t x=a[i]+((int32_t)(a[(i+1u)&511u]-a[i])*frac)/32768;
+ if(mp->alpha){
+  const int16_t *b=bank?bank->table[w][mp->level+1u]:etch_tables[w][mp->level+1u];
+  int32_t next=b[i]+((int32_t)(b[(i+1u)&511u]-b[i])*frac)/32768;
+  x+=(int32_t)(((int64_t)(next-x)*mp->alpha)/32768);
+ }
+ return x;
+}
+/* The V1.31 fundamental-only reference required TWO additional 512-point
+ * wavetable interpolations PER VOICE PER SAMPLE, even in dense chords.
+ * Replace these with one bounded, pitch-aware one-pole harmonic reference.
+ * A single multiply+shift follows the voice's *already computed* carrier;
+ * the state lives in an otherwise unused field of organic_voice_state.
+ * This also avoids doubling the extra work during old-bank crossfades. */
+static inline int16_t living_shape(int32_t full,int32_t *low_state,
+ uint32_t inc,uint16_t weight,uint8_t color,uint8_t enabled){
+ if(!enabled){*low_state=full;return (int16_t)full;}
+ uint32_t alpha=inc>>13; /* follow fundamental; lower notes are darker */
+ if(alpha<256u)alpha=256u;
+ if(alpha>24576u)alpha=24576u;
+ int32_t low=*low_state;
+ low+=(int32_t)(((int32_t)(full-low)*(int32_t)alpha)>>15);
+ *low_state=low;
+ if(!weight)return (int16_t)full;
+ int32_t tilt=(int32_t)color*2-100;
+ int32_t strength=((int32_t)weight*tilt)/100;
+ int32_t delta=((full-low)*strength)>>15;
+ return (int16_t)clamp15(full+delta);
 }
 void etch_native_reset(struct etch_native_audio *s){
- uint8_t *p=(uint8_t*)s;for(uint32_t i=0;i<sizeof(*s);++i)p[i]=0;evolution_phase=0u;evolution_smooth=0;preview_mix=0u;preview_selected=0u;s->voice_limit=8u;s->poly_div_q10=4096;for(uint32_t i=0;i<16;i++)s->bend[i]=65536;
+ uint8_t *p=(uint8_t*)s;for(uint32_t i=0;i<sizeof(*s);++i)p[i]=0;evolution_phase=0u;evolution_smooth=0;
+ for(uint32_t oi=0;oi<ETCH_NATIVE_VOICES;oi++){
+  living_voice_age[oi]=0u;
+  uint8_t *q=(uint8_t*)organic_at(oi);for(uint32_t b=0;b<sizeof(struct organic_voice_state);b++)q[b]=0;
+ }preview_mix=0u;preview_selected=0u;filter_cutoff_smooth=0;filter_resonance_smooth=0;s->voice_limit=8u;s->poly_div_q10=4096;for(uint32_t i=0;i<16;i++)s->bend[i]=65536;
  /* Critical audio regression fix: the previous reset only zeroed the FX
   * struct, but NEVER called the FX initializer. That left the EQ smoothed
   * gains at 0 (instead of unity), compressor gain at 0, and three .noinit
@@ -76,6 +157,10 @@ static uint32_t on(struct etch_native_audio *s,uint8_t pitch,uint16_t identity){
  for(uint32_t k=0;k<limit;k++)if(s->voice[k].active&&s->voice[k].held){phrase_start=0u;break;}
  if(phrase_start)evolution_phase=0u;
  v->gate_left=0;v->birth=++s->alloc_serial;v->p=v->q=v->eg=0;
+ living_voice_age[slot]=0u;
+ struct organic_voice_state *org=organic_at(slot);
+ org->seed=etch_organic_hash(v->birth ^ ((uint32_t)identity<<16) ^ (uint32_t)pitch);
+ org->time=0u;org->pitch=org->goal=0;org->ready=org->phase_ready=0;org->living_lp=0;
  v->low=v->band=0;for(uint32_t w=0;w<2u;w++)v->pre_lp[w]=0;v->stage=0;v->env=0;v->note=identity;
  v->inc=etch_note_inc[pitch];v->active=v->held=v->down=1;
  v->velocity=127;v->last=0;v->tail=tail;v->fade=tail?ETCH_TRANSITION_SAMPLES:0;v->attack_fade=ETCH_TRANSITION_SAMPLES;
@@ -281,16 +366,17 @@ static int32_t pre_insert(struct etch_native_voice *v,const struct etch_fx_setti
  return clamp15(x+(int32_t)(((int64_t)(wet-x)*mix)/32767));
 }
 static int32_t carrier(struct etch_native_voice *v,const struct etch_fx_settings *fx,
- const struct etch_native_bank *bank,uint32_t p,uint32_t q,uint32_t inc,uint32_t modinc,int32_t morph,int32_t depth,uint8_t target,uint16_t evolution_amount,uint8_t evolution_mode){
+ const struct etch_native_bank *bank,uint32_t p,uint32_t q,uint32_t inc,uint32_t modinc,int32_t morph,int32_t depth,uint8_t target,uint16_t evolution_amount,uint8_t evolution_mode,
+ const struct etch_mip_lookup *carrier_mip,const struct etch_mip_lookup *mod_mip){
  if(depth){
-  int32_t mod=readwave(bank,2,q,modinc);
+  int32_t mod=readwave_prepared(bank,2,q,mod_mip);
   if(target){morph=clamp15(morph+(int32_t)(((int64_t)mod*depth)/32768));if(morph<0)morph=0;}
   else p+=(uint32_t)((int64_t)mod*depth*2);
  }
- int32_t a=readwave(bank,0,p,inc),b=readwave(bank,1,p,inc);
+ int32_t a=readwave_prepared(bank,0,p,carrier_mip),b=readwave_prepared(bank,1,p,carrier_mip);
  if(fx && ((etch_pre_type(fx,0u,0u)&&etch_pre_mix(fx,0u,0u))||(etch_pre_type(fx,0u,1u)&&etch_pre_mix(fx,0u,1u))||
            (etch_pre_type(fx,1u,0u)&&etch_pre_mix(fx,1u,0u))||(etch_pre_type(fx,1u,1u)&&etch_pre_mix(fx,1u,1u)))){
-  int32_t c_sample=readwave(bank,2,q,modinc);
+  int32_t c_sample=readwave_prepared(bank,2,q,mod_mip);
   for(uint32_t i=0;i<2;i++){
    a=pre_insert(v,fx,0,i,a,p,c_sample);
    b=pre_insert(v,fx,1,i,b,p,c_sample);
@@ -301,14 +387,15 @@ static int32_t carrier(struct etch_native_voice *v,const struct etch_fx_settings
 }
 /* Audition is not a patch edit: direct waveform + only its own inserts. */
 static int32_t preview_carrier(struct etch_native_voice *v,const struct etch_native_controls *c,
- const struct etch_native_bank *bank,uint32_t p,uint32_t q,uint32_t inc,uint32_t modinc,uint8_t wave){
+ const struct etch_native_bank *bank,uint32_t p,uint32_t q,uint32_t inc,uint32_t modinc,uint8_t wave,const struct etch_mip_lookup *carrier_mip,
+ const struct etch_mip_lookup *mod_mip){
  uint8_t w=(uint8_t)(wave-1u);
- int32_t x=readwave(bank,w,p,inc);
+ int32_t x=readwave_prepared(bank,w,p,carrier_mip);
  if(w<2u){
   const struct etch_fx_settings *fx=&c->fx_settings;
   if((etch_pre_type(fx,w,0u)&&etch_pre_mix(fx,w,0u))||
      (etch_pre_type(fx,w,1u)&&etch_pre_mix(fx,w,1u))){
-   int32_t cv=readwave(bank,2,q,modinc);
+   int32_t cv=readwave_prepared(bank,2,q,mod_mip);
    x=pre_insert(v,fx,w,0u,x,p,cv);
    x=pre_insert(v,fx,w,1u,x,p,cv);
   }
@@ -343,7 +430,8 @@ static uint8_t arp_pick(struct etch_native_audio *s,const struct etch_native_con
  if(c->arp_mode==7u){
   int32_t base=53+(int32_t)held[0]+12*c->octave;
   if(base<0)base=0;if(base>127)base=127;
-  return etch_riff_pick(c->riff_seed,s->perf_index++,(uint8_t)base,&c->harmony,c->arp_octaves);
+  return etch_riff_pick_variation(c->riff_seed,c->riff_variant,c->riff_mutation,c->riff_density,
+    s->perf_index++,(uint8_t)base,&c->harmony,c->arp_octaves);
  }
  uint32_t octaves=c->arp_octaves;
  /* Negative range includes the original octave: -1 = [-1,0],
@@ -377,6 +465,16 @@ static uint8_t perf_tick(struct etch_native_audio *s,const struct etch_native_co
  uint8_t arp=(!seq&&c->arp_mode&&keys);
  uint8_t was_active=(uint8_t)(s->perf_last_seq||s->perf_last_arp);
 
+ /* ARP7 K4: restart the new riff on the very next audio block, not after
+  * the previous long gate/clock completes. random_seed is reused as the
+  * last-published riff seed ONLY in ARP7; in RANDOM ARP5 it remains its
+  * original LCG state. This adds no bytes to the full audio RAM pool. */
+ if(arp && c->arp_mode==7u && s->random_seed!=c->riff_seed){
+  s->random_seed=c->riff_seed;
+  s->perf_index=0u;
+  s->perf_clock=0u;
+  s->perf_gate=0u;
+ }
  if((seq!=s->perf_last_seq)||(arp!=s->perf_last_arp)){
   perf_off(s);s->perf_clock=0;s->perf_gate=0;s->perf_index=0;s->perf_step=0;
   s->perf_played=0u;s->perf_current_step=0u;pitch_changed=1u;
@@ -483,7 +581,12 @@ static void render_internal(struct etch_native_audio *s,const struct etch_native
   else {uint32_t slot=on(s,(uint8_t)n,(uint16_t)k);s->voice[slot].inc=etch_note_inc[tuned];}
  }
  perf_order(s,changed,keys);s->keys=keys;
- uint32_t increments[8],modincrements[8];
+ uint32_t increments[8],modincrements[8],organic_incs[8],organic_modincs[8];
+ struct etch_mip_lookup carrier_mip[8],mod_mip[8];
+ uint16_t living_from[8]={0},living_to[8]={0};
+ const uint8_t matrix_enabled=etch_matrix_active(&c->matrix);
+ uint8_t matrix_wave_enabled=0u;
+ if(matrix_enabled)for(uint32_t ri=0;ri<ETCH_MATRIX_ROUTES;ri++)if(c->matrix.route[ri].source==3u && c->matrix.route[ri].amount)matrix_wave_enabled=1u;
  native_rates(s,c,increments,modincrements);
  struct etch_native_controls locked=*c;
  uint8_t motion_play=(uint8_t)(c->motion_play&&c->motion&&c->motion->length&&c->motion->mask);
@@ -491,13 +594,63 @@ static void render_internal(struct etch_native_audio *s,const struct etch_native
  s->motion_was_playing=motion_play;
  uint16_t motion_values[4]={0};
  const struct etch_evolution_settings *e=&c->evolution;
- uint8_t evolving=(uint8_t)(etch_evolution_valid(e)&&e->depth!=0u);
+ uint8_t evolving=(uint8_t)(c->mono_mode && etch_evolution_valid(e)&&e->depth!=0u);
+ /* When switching MONO -> POLY, stop the old waveshaper immediately.
+  * Otherwise its 64-sample release ramp would still consume CPU and
+  * color several POLY buffers despite the LFO editor being hidden. */
+ if(!c->mono_mode)evolution_smooth=0;
  uint32_t evo_step=evolving?etch_evolution_step(e,(c->clock_follow&&s->clock_bpm)?s->clock_bpm:c->tempo):0u;
 
  for(uint32_t f=0;f<frames;f++){
   if(s->clock_samples<1000000u)++s->clock_samples;
   if(s->clock_samples>44100u&&s->clock_running){s->clock_running=0;}
-  if(perf_tick(s,&perf_control,keys))native_rates(s,c,increments,modincrements);
+  uint8_t rates_changed=perf_tick(s,&perf_control,keys);
+  if(rates_changed)native_rates(s,c,increments,modincrements);
+  /* Run the Organic LFO at 32-sample control rate, NOT with 8 costly
+   * 64-bit multiplies per audio sample. The bounded smoothed pitch target
+   * never jumps even as random points change. The zero state is exact. */
+  if((f&31u)==0u || rates_changed){
+   const struct etch_organic_settings *org=&c->organic;
+   uint8_t enabled=(uint8_t)(c->mono_mode && etch_organic_valid(org) && (org->drift||org->variance));
+   for(uint32_t oi=0;oi<ETCH_NATIVE_VOICES;oi++){
+    struct etch_native_voice *ov=&s->voice[oi];
+    struct organic_voice_state *os=organic_at(oi);
+    int32_t deviation=0;
+    if(enabled && ov->active){
+     if(!os->ready){os->seed=etch_organic_hash(os->seed);
+      os->time=0;os->pitch=os->goal=0;os->ready=1;}
+     if(!os->time){
+      os->goal=etch_organic_target(os->seed,org->drift);
+      os->seed=etch_organic_hash(os->seed+0x9e3779b9u);
+      os->time=etch_organic_interval(org->rate);
+     }
+     if(os->time>32u)os->time-=32u;else os->time=0;
+     os->pitch+=(os->goal-os->pitch)/16;
+     deviation=os->pitch+etch_organic_static(ov->birth*2654435761u,org->variance);
+    }
+    organic_incs[oi]=deviation?etch_organic_pitch_inc(increments[oi],deviation):increments[oi];
+    organic_modincs[oi]=deviation?etch_organic_pitch_inc(modincrements[oi],deviation):modincrements[oi];
+    carrier_mip[oi]=mip_prepare(organic_incs[oi]);
+    mod_mip[oi]=mip_prepare(organic_modincs[oi]);
+   }
+  }
+  /* Per-voice LIVING harmonic envelope: control rate = 32 samples.
+   * Weight interpolation across each control tick prevents stepping;
+   * note age persists across render blocks without growing the DSP pool. */
+  /* In POLY this feature is completely bypassed, including its control
+   * loop. Do not do eight weight updates or modulo operations for an
+   * effect that is explicitly mono-only. Preset data is left untouched. */
+  if(c->mono_mode && (f&31u)==0u){
+   for(uint32_t li=0;li<ETCH_NATIVE_VOICES;li++){
+    struct etch_native_voice *lv=&s->voice[li];
+    if(lv->active && etch_living_valid(&c->living) && c->living.depth){
+     uint16_t age=living_voice_age[li];
+     living_from[li]=etch_living_weight(age,lv->birth,lv->velocity,&c->living);
+     living_voice_age[li]=(uint16_t)(((uint32_t)age+1u)%(2u*etch_living_period(c->living.rate)));
+     living_to[li]=etch_living_weight(living_voice_age[li],lv->birth,lv->velocity,&c->living);
+    }else{living_from[li]=0;living_to[li]=0;}
+   }
+  }
   /* Restore dynamic locks without copying the large control struct 128x. */
   locked.morph=c->morph;locked.depth=c->depth;locked.cutoff=c->cutoff;
   locked.chorus=c->chorus;locked.delay=c->delay;locked.reverb=c->reverb;
@@ -520,7 +673,15 @@ static void render_internal(struct etch_native_audio *s,const struct etch_native
    if(s->seq_lock_mask&(1u<<ETCH_LOCK_DELAY))locked.delay=s->seq_locks[ETCH_LOCK_DELAY];
    if(s->seq_lock_mask&(1u<<ETCH_LOCK_REVERB))locked.reverb=s->seq_locks[ETCH_LOCK_REVERB];
   }
-  s->morph=slew(s->morph,locked.morph>32767?32767:locked.morph);s->depth=slew(s->depth,locked.depth>32767?32767:locked.depth);
+  s->morph=slew(s->morph,locked.morph>32767?32767:locked.morph);
+  s->depth=slew(s->depth,locked.depth>32767?32767:locked.depth);
+  /* Smooth filter controls at sample rate, including automation/locks.
+   * Target-independent Q15 state avoids stepped cutoff/resonance changes
+   * during held notes. Bypass and dry signal paths remain untouched. */
+  filter_cutoff_smooth=slew(filter_cutoff_smooth,locked.cutoff>32767?32767:locked.cutoff);
+  filter_resonance_smooth=slew(filter_resonance_smooth,locked.resonance>32767?32767:locked.resonance);
+  locked.cutoff=(uint16_t)filter_cutoff_smooth;
+  locked.resonance=(uint16_t)filter_resonance_smooth;
   uint32_t evo_phase=evolution_phase;
   if(evolving){
    if(e->sync==2u){uint32_t step=2048u+(uint32_t)e->rate*35000u/100u;
@@ -553,6 +714,7 @@ static void render_internal(struct etch_native_audio *s,const struct etch_native
    uint32_t next=preview_mix+256u;preview_mix=(uint16_t)(next>32767u?32767u:next);
   }
   int32_t sum=0,preview_sum=0;uint32_t voices_sounding=0u;
+  uint8_t matrix_global_done=0u;uint16_t matrix_reverb=locked.reverb;
   for(uint32_t i=0;i<limit;i++){
    struct etch_native_voice *v=&s->voice[i];if(!v->active)continue;
    if(c->env_enabled)envelope(v,&locked);
@@ -560,19 +722,55 @@ static void render_internal(struct etch_native_audio *s,const struct etch_native
    /* An envelope that reached zero needs no waveform/FX voice calculation. */
    if(!v->env&&!v->held&&!v->fade){v->active=0;continue;}
    if(v->env>256||v->fade)voices_sounding++;
+   /* Voice phase offset is applied exactly once at the first sample.
+    * Carrier and modulator stay phase-coherent within a voice. */
+   struct organic_voice_state *os=organic_at(i);
+   if(!os->phase_ready){
+    if(c->mono_mode && etch_organic_valid(&c->organic)&&c->organic.phase){
+     uint32_t shift=etch_organic_initial_phase(os->seed,c->organic.phase);
+     v->p=v->q=shift;
+    }
+    os->phase_ready=1;
+   }
    uint16_t voice_evo=evo_amount;
+   uint16_t voice_living=c->mono_mode?(uint16_t)((int32_t)living_from[i]+
+     (((int32_t)living_to[i]-(int32_t)living_from[i])*(int32_t)(f&31u))/32):0u;
+   uint16_t voice_morph=(uint16_t)(s->morph<0?0:s->morph>32767?32767:s->morph);
+   uint16_t voice_depth=(uint16_t)(s->depth<0?0:s->depth>32767?32767:s->depth);
+   uint16_t voice_cutoff=locked.cutoff;
+   /* Fast bypass for legacy projects; matrix route computation is per voice.
+    * Wave C is sampled at the actual modulator phase for that note. */
+   if(matrix_enabled){
+    int16_t matrix_wave=matrix_wave_enabled?(int16_t)readwave_prepared(s->bank,2,v->q,&mod_mip[i]):0;
+    voice_morph=etch_matrix_apply(&c->matrix,0u,voice_morph,v->velocity,(uint16_t)v->env,matrix_wave,voice_living);
+    voice_depth=etch_matrix_apply(&c->matrix,1u,voice_depth,v->velocity,(uint16_t)v->env,matrix_wave,voice_living);
+    voice_cutoff=etch_matrix_apply(&c->matrix,2u,voice_cutoff,v->velocity,(uint16_t)v->env,matrix_wave,voice_living);
+    if(!matrix_global_done){
+     matrix_reverb=etch_matrix_apply(&c->matrix,3u,locked.reverb,v->velocity,(uint16_t)v->env,matrix_wave,voice_living);
+     matrix_global_done=1u;
+    }
+   }
    int32_t sample=preview_mix==32767u?0:
-    carrier(v,&c->fx_settings,s->bank,v->p,v->q,increments[i],modincrements[i],s->morph,s->depth,c->mod_target,voice_evo,evolving?e->mode:0u);
-   int32_t solo=preview_mix?preview_carrier(v,c,s->bank,v->p,v->q,increments[i],modincrements[i],preview_selected):0;
+    carrier(v,&c->fx_settings,s->bank,v->p,v->q,organic_incs[i],organic_modincs[i],voice_morph,voice_depth,c->mod_target,voice_evo,evolving?e->mode:0u,&carrier_mip[i],&mod_mip[i]);
+   int32_t solo=preview_mix?preview_carrier(v,c,s->bank,v->p,v->q,organic_incs[i],organic_modincs[i],preview_selected,&carrier_mip[i],&mod_mip[i]):0;
    if(s->bank_fade && preview_mix && s->old_bank){
-    int32_t older=preview_carrier(v,c,s->old_bank,v->p,v->q,increments[i],modincrements[i],preview_selected);
+    int32_t older=preview_carrier(v,c,s->old_bank,v->p,v->q,organic_incs[i],organic_modincs[i],preview_selected,&carrier_mip[i],&mod_mip[i]);
     solo+=(int32_t)(((int64_t)(older-solo)*s->bank_fade)/256);
    }
    if(s->bank_fade && preview_mix<32767u){
-    int32_t old=carrier(v,0,s->old_bank,v->p,v->q,increments[i],modincrements[i],s->morph,s->depth,c->mod_target,voice_evo,evolving?e->mode:0u);
+    int32_t old=carrier(v,0,s->old_bank,v->p,v->q,organic_incs[i],organic_modincs[i],voice_morph,voice_depth,c->mod_target,voice_evo,evolving?e->mode:0u,&carrier_mip[i],&mod_mip[i]);
     sample+=(int32_t)(((int64_t)(old-sample)*s->bank_fade)/256);
    }
+   /* One LIVING pass per active voice. V1.31 applied the fundamental
+    * reconstruction in every carrier() invocation, including old-bank
+    * crossfades. At 8 voices that could overrun the ALNK DMA window. */
+   if(c->mono_mode && preview_mix!=32767u && c->living.depth){
+    sample=living_shape(sample,&os->living_lp,organic_incs[i],voice_living,
+                        c->living.color,1u);
+   }
+   if(matrix_enabled)locked.cutoff=voice_cutoff;
    sample=filter(v,&locked,sample);
+   if(matrix_enabled)locked.cutoff=filter_cutoff_smooth;
    sample=(sample*v->env)/32768;sample=(sample*v->velocity)/127;
    solo=(solo*v->env)/32768;solo=(solo*v->velocity)/127;
    if(v->attack_fade){
@@ -581,7 +779,7 @@ static void render_internal(struct etch_native_audio *s,const struct etch_native
     --v->attack_fade;
    }
    if(v->fade){sample+=(int32_t)(((int64_t)v->tail*v->fade)/ETCH_TRANSITION_SAMPLES);--v->fade;}
-   v->last=preview_mix?solo:sample;sum+=sample;preview_sum+=solo;v->p+=increments[i];v->q+=modincrements[i];
+   v->last=preview_mix?solo:sample;sum+=sample;preview_sum+=solo;v->p+=organic_incs[i];v->q+=organic_modincs[i];
    if(!v->env&&!v->held&&!v->fade)v->active=0;
   }
   for(uint32_t i=limit;i<ETCH_NATIVE_VOICES;i++)if(s->overload_tail[i]){
@@ -618,9 +816,17 @@ static void render_internal(struct etch_native_audio *s,const struct etch_native
       s->voice[i].held && s->voice[i].attack_fade &&
       s->voice[i].env<=256)++admitted;
   s->poly_div_q10=etch_poly_headroom_step(s->poly_div_q10,admitted);
-  int32_t mix=(int32_t)(((int64_t)sum*1024)/s->poly_div_q10);
+  /* 8 voices with max Q15 carriers and a 128-sample soft tail are below
+   * +/-524288. Avoid two emulated 64-bit VARIABLE divisions every 44.1kHz
+   * sample. The bound also protects against unexpected transients. */
+  int32_t bounded_sum=sum>524288?524288:sum< -524288?-524288:sum;
+  int32_t mix=(bounded_sum*1024)/s->poly_div_q10;
   mix=etch_poly_safe_sample(mix);
-  int32_t preview_dry=etch_poly_safe_sample((int32_t)(((int64_t)preview_sum*1024)/s->poly_div_q10));
+  int32_t preview_dry=0;
+  if(preview_mix){
+   int32_t bounded_preview=preview_sum>524288?524288:preview_sum< -524288?-524288:preview_sum;
+   preview_dry=etch_poly_safe_sample((bounded_preview*1024)/s->poly_div_q10);
+  }
   if(c->drive){uint32_t drive=c->drive>32767?32767:c->drive;int32_t hot=clamp15((int32_t)(((int64_t)mix*(32768u+drive*3u))/32768));int32_t square=(hot*hot)/32768;mix=hot-(int32_t)(((int64_t)hot*square)/98304);}
 
   /* Global C modulation is sampled from a currently held voice. It never
@@ -669,6 +875,7 @@ static void render_internal(struct etch_native_audio *s,const struct etch_native
    if(destination){int32_t n=(int32_t)*destination+s->c_fx_smooth;
     *destination=(uint16_t)(n<0?0:n>32767?32767:n);}
   }else if((f&31u)==0u)s->c_fx_smooth=0;
+  if(matrix_enabled && matrix_global_done)locked.reverb=matrix_reverb;
   int16_t l=0,r=0;
   etch_fx_process_stereo_ex(&s->fx,(int16_t)clamp15(mix),locked.chorus,locked.delay,locked.reverb,&locked.fx_settings,&l,&r);
   if(preview_mix){
@@ -712,3 +919,8 @@ int16_t etch_native_bank_preview(const struct etch_native_bank *bank,uint16_t mo
 }
 
 int16_t etch_native_preview(uint16_t morph,uint16_t depth,uint32_t phase){return etch_native_bank_preview(0,morph,depth,phase);}
+
+void etch_native_filter_ramp_state(int32_t *cutoff,int32_t *resonance){
+ if(cutoff)*cutoff=filter_cutoff_smooth;
+ if(resonance)*resonance=filter_resonance_smooth;
+}

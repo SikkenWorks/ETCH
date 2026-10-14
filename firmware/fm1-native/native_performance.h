@@ -35,6 +35,12 @@ struct etch_native_pattern {struct etch_seq_step steps[ETCH_SEQ_STEPS];};
 struct etch_harmony_settings {uint8_t root,mode,keylock,chord;};
 uint8_t etch_riff_pick(uint32_t seed,uint8_t step,uint8_t base,const struct etch_harmony_settings *h,uint8_t octaves);
 uint32_t etch_riff_regenerate(uint32_t previous);
+/* K4: choose a seed that noticeably changes the 16-step motif at the current key.
+ * Runs ONLY in the UI thread (never in the audio ISR). */
+uint16_t etch_riff_generate_distinct(uint16_t previous,uint8_t base,
+ const struct etch_harmony_settings *h,uint8_t octaves);
+uint8_t etch_riff_pick_variation(uint32_t seed,uint16_t variation,uint8_t mutation,
+ uint8_t density,uint8_t step,uint8_t base,const struct etch_harmony_settings *h,uint8_t octaves);
 /* Bits 7 + 0..5 of patch.flags persist ARP controls without expanding the
  * existing V6 patch record. Zero/old flags retain legacy defaults. */
 uint8_t etch_arp_pack_flags(uint8_t rate,uint8_t octaves,uint8_t gate_index);
