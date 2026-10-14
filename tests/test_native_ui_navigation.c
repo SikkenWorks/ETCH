@@ -23,7 +23,8 @@ int main(void){
  assert(etch_ui_seq_inspector(ETCH_UI_SEQ,3)==ETCH_UI_GRID);
  assert(etch_ui_seq_inspector(ETCH_UI_SEQ,-1)==ETCH_UI_CLOCK);
  assert(etch_ui_seq_inspector(ETCH_UI_CLOCK,1)==ETCH_UI_SEQ);
- page=ETCH_UI_ARP;for(int i=0;i<3;i++)page=etch_ui_arp_next(page);assert(page==ETCH_UI_ARP);
+ page=ETCH_UI_ARP;for(int i=0;i<4;i++)page=etch_ui_arp_next(page);assert(page==ETCH_UI_ARP);
+ assert(etch_ui_arp_next(ETCH_UI_CLOCK)==ETCH_UI_RIFF_LAB);
  page=ETCH_UI_FX;for(int i=0;i<3;i++)page=etch_ui_fx_next(page);assert(page==ETCH_UI_FX);
  const uint8_t fx[]={ETCH_UI_FX_DRIVE,ETCH_UI_FX_CHORUS,ETCH_UI_FX_DELAY,ETCH_UI_FX_REVERSE,ETCH_UI_FX_REVERB,ETCH_UI_FX_RING,ETCH_UI_FX_EQ,
  ETCH_UI_FX_COMP,ETCH_UI_FX_TREM,ETCH_UI_FX_VIBRATO,ETCH_UI_FX_PHASER,ETCH_UI_FX_FLANGER,ETCH_UI_FX_DECIM,ETCH_UI_FX_FOLDER,ETCH_UI_FX_TAPE,ETCH_UI_FX_ROTARY,ETCH_UI_FX_WAH};

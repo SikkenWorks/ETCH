@@ -28,6 +28,17 @@ int main(void){
  synth.voice_limit=etch_voice_budget_reduce(synth.voice_limit);
  etch_native_render_stereo(&synth,&c,0x07ffffffu,output,ETCH_NATIVE_FRAMES);
  for(unsigned k=4;k<8;k++)assert(!synth.voice[k].active);
+ synth.voice_limit=etch_voice_budget_reduce(synth.voice_limit);
+ assert(synth.voice_limit==3u);
+ etch_native_render_stereo(&synth,&c,0x07ffffffu,output,ETCH_NATIVE_FRAMES);
+ synth.voice_limit=etch_voice_budget_reduce(synth.voice_limit);
+ assert(synth.voice_limit==2u);
+ etch_native_render_stereo(&synth,&c,0x07ffffffu,output,ETCH_NATIVE_FRAMES);
+ for(unsigned k=2;k<8;k++)assert(!synth.voice[k].active);
+ synth.voice_limit=etch_voice_budget_restore(synth.voice_limit);
+ assert(synth.voice_limit==3u);
+ synth.voice_limit=etch_voice_budget_restore(synth.voice_limit);
+ assert(synth.voice_limit==4u);
  synth.voice_limit=etch_voice_budget_restore(synth.voice_limit);
  assert(synth.voice_limit==6u);
  synth.voice_limit=etch_voice_budget_restore(synth.voice_limit);
@@ -37,5 +48,5 @@ int main(void){
   unsigned active=0;for(unsigned j=0;j<8;j++)active+=synth.voice[j].active?1:0;
   assert(active<=synth.voice_limit);
  }
- puts("PASS 27 simultaneous keys, bounded 8->6->4 budget, soft tails, 8 restoration, 1000 stereo render blocks");
+ puts("PASS 27 simultaneous keys, adaptive 8->6->4->3->2 budget, soft tails, 8 restoration, 1000 stereo render blocks");
 }

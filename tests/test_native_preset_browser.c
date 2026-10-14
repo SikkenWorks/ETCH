@@ -51,7 +51,7 @@ int main(void){
  assert(strcmp(name,"LEAD        ")==0);
  assert(ETCH_PRESETS_ROW_Y+ETCH_PRESETS_ROWS*ETCH_PRESETS_ROW_H<=213u);
  assert(ETCH_UI_PRESETS==51);
- assert(ETCH_UI_PAGE_COUNT==52);
+ assert(ETCH_UI_PAGE_COUNT==53);
  assert(strcmp(etch_ui_title(ETCH_UI_PRESETS),"PRESETS")==0);
  puts("V1.20 PRESETS policy tests: PASS");
  return 0;

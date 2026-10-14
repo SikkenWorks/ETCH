@@ -22,6 +22,22 @@ int main(void){
   assert(i>=previous && i<8192u);previous=i;
  }
  assert(ETCH_OUTPUT_RAMP_SAMPLES==8192u);
+ /* Regression: USB enumeration/link bounce must not trigger PC6 simply
+  * because total boot time exceeds the old 3 s bypass. */
+ struct etch_output_usb_gate usb;
+ etch_output_usb_reset(&usb);
+ assert(!etch_output_usb_ready(&usb,0,0));
+ assert(!etch_output_usb_ready(&usb,ETCH_OUTPUT_USB_STABLE_TICKS-1u,0));
+ assert(etch_output_usb_ready(&usb,ETCH_OUTPUT_USB_STABLE_TICKS,0));
+ assert(!etch_output_usb_ready(&usb,80000000u,1));
+ assert(!etch_output_usb_ready(&usb,80000000u+ETCH_OUTPUT_USB_STABLE_TICKS-1u,1));
+ assert(!etch_output_usb_ready(&usb,80000000u+ETCH_OUTPUT_USB_STABLE_TICKS-1u,3));
+ assert(!etch_output_usb_ready(&usb,200000000u,1));
+ assert(etch_output_usb_ready(&usb,200000000u+ETCH_OUTPUT_USB_STABLE_TICKS,1));
+ /* uint32 timer wrap still measures elapsed time correctly. */
+ etch_output_usb_reset(&usb);
+ assert(!etch_output_usb_ready(&usb,UINT32_MAX-100u,2));
+ assert(etch_output_usb_ready(&usb,(uint32_t)(UINT32_MAX-100u+ETCH_OUTPUT_USB_STABLE_TICKS),2));
  /* Screen may not appear on the hard PC6 edge, nor at beginning or end
   * of PCM ramp. The analog stage must settle independently. */
  struct etch_output_screen_gate s;
@@ -54,6 +70,6 @@ int main(void){
  assert(!etch_output_screen_advance(&s,(uint32_t)(0xFFFFFF00u+ETCH_OUTPUT_SCREEN_TIMEOUT_TICKS-1u),0,0));
  assert(etch_output_screen_advance(&s,(uint32_t)(0xFFFFFF00u+ETCH_OUTPUT_SCREEN_TIMEOUT_TICKS),0,0));
  assert(s.timed_out);
- puts("PASS analog settle, first LCD paint before PCM fade, restart and timeout no-unmute");
+ puts("PASS USB-qualified PC6 analog settle, LCD gating, PCM fade, restart and timeout no-unmute");
  return 0;
 }
