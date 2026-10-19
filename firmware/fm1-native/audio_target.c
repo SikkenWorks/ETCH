@@ -44,6 +44,9 @@ static volatile uint16_t native_healthy_blocks;
 static volatile uint32_t native_voice_shed_count;
 static volatile uint32_t native_audio_peak,native_audio_clip_frames;
 static volatile uint8_t native_tripped,native_panic,native_suspended,native_edit_keys_blocked;
+/* Capture one external MIDI note into the Project GROUPS editor. The main
+ * thread validates/stores the range. Never write flash or project bytes in ISR. */
+static volatile uint8_t native_group_capture_active,native_group_midi_pending,native_group_midi_note;
 /* The PC6 analog enable is a binary control and may inherently make a
  * hardware bias pop. V1.03 isolates the first large LCD frame from audible
  * PCM: the analog section stabilizes first, the PLAY UI renders in digital
@@ -95,19 +98,46 @@ static void native_output_poll(void){
  }
 }
 
-static struct etch_native_bank native_banks[3] __attribute__((section(".pool")));
+/* Three bank buffers are owned by audio_core; referenced by the UI compiler. */
 static struct etch_wave_editor native_editor __attribute__((section(".pool")));
 static uint8_t native_draw;
 /* SPECTRAL rebuilds are not realtime. Keep the edited points pending until
  * no voices remain; a bank swap transiently doubles oscillator work. */
 static uint8_t native_spectral_bank_pending;
 static uint8_t native_blend_audio_busy(void);
-/* Main-loop-only compile. Only pointer publication disables interrupts. */
+/* Three already allocated mip banks are reused when GROUPS is enabled:
+ * bank 0 = currently edited main sound; bank 1/2 = group preset waves.
+ * No new 18-KiB tables and no compilation in the audio callback.
+ * The output is muted while changing the bank contents, preventing half-
+ * compiled tables from being audible (including any incoming MIDI notes). */
+static uint8_t native_groups_compiled;
+static uint8_t native_groups_enabled_now(void);
+static void native_compile_group_bank(uint8_t index);
 static void native_compile_edit(void){
+ uint8_t grouped=native_groups_enabled_now();
+ if(!native_editor.dirty && grouped==native_groups_compiled){
+  native_spectral_bank_pending=0u;return;
+ }
+ /* All three banks are needed while grouped. Wait for complete note tails.
+  * When leaving group mode, also wait for old Group-owned voices. */
+ if(grouped || native_groups_compiled){
+  if(native_blend_audio_busy())return;
+  fm1_irq_off();
+  native_controls.bank=0;native_audio.bank=0;native_audio.old_bank=0;native_audio.bank_fade=0;
+  fm1_irq_enable_all();
+  if(grouped){
+   etch_editor_compile(&native_editor,&native_banks[0]);fm1_wdt_feed();
+   native_compile_group_bank(0);fm1_wdt_feed();
+   native_compile_group_bank(1);fm1_wdt_feed();
+   fm1_irq_off();native_controls.bank=&native_banks[0];
+   native_audio.bank=&native_banks[0];native_audio.old_bank=0;native_audio.bank_fade=0;fm1_irq_enable_all();
+   native_groups_compiled=1u;native_editor.dirty=0u;native_spectral_bank_pending=0u;
+   return;
+  }
+  /* Back to the original three-bank crossfade allocator. */
+  native_groups_compiled=0u;native_editor.dirty=1u;
+ }
  if(!native_editor.dirty){native_spectral_bank_pending=0u;return;}
- /* A pending SPECTRAL edit must not publish a new bank in POLY. It stays
-  * queued until MONO is selected again and notes have been released. This
-  * does not roll back spectral edits already saved as part of a waveform. */
  if(native_spectral_bank_pending && (!native_mono_mode || native_blend_audio_busy()))return;
  const struct etch_native_bank *current,*old,*published;
  fm1_irq_off();current=native_audio.bank;old=native_audio.old_bank;published=native_controls.bank;fm1_irq_enable_all();
@@ -123,7 +153,15 @@ static void native_midi_drain(uint8_t play){
  if(midi_in_overflow){etch_native_midi_panic(&native_audio);mi_r=end;RING_PUBLISH();midi_in_overflow=0;return;}
  for(uint32_t count=0;mi_r!=end&&count<MQ;count++){
   uint32_t pkt=midi_in_q[mi_r%MQ];RING_PUBLISH();++mi_r;
-  if(play)etch_native_midi(&native_audio,(uint8_t)(pkt>>8),(uint8_t)(pkt>>16),(uint8_t)(pkt>>24));
+  if(play){
+   uint8_t status=(uint8_t)(pkt>>8),note=(uint8_t)(pkt>>16),velocity=(uint8_t)(pkt>>24);
+   if(native_group_capture_active && (status&0xf0u)==0x90u && velocity && note<128u){
+    if(!native_group_midi_pending){native_group_midi_note=note;native_group_midi_pending=1u;}
+    continue;
+   }
+   if(native_group_capture_active && ((status&0xf0u)==0x80u || (status&0xf0u)==0x90u))continue;
+   etch_native_midi(&native_audio,status,note,velocity);
+  }
  }
 }
 #endif
@@ -186,7 +224,7 @@ etch_native_reset(&native_audio);native_audio.keys=keys&0x7ffffffu;}
   /* Boot gate is silent in DIGITAL AND analog phases. Do not expend full
    * voice+FX DSP cycles before the DAC link is stable. A missed DMA deadline
    * while PC6 is switching can force a restart and a second hard pop. */
-  native_audio.mono_mode=(uint8_t)(c.mono_mode!=0);
+  native_audio.mono_mode=(uint8_t)(c.mono_mode!=0 && !etch_native_groups_playing());
   if(!native_output_enabled && !native_output_analog_ready){
    for(uint32_t i=0;i<ETCH_NATIVE_FRAMES*2;i++)native_stereo[i]=0;
   }else{

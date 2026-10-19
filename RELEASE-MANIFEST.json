@@ -1,24 +1,27 @@
 {
-  "name": "ETCH",
-  "version": "1.37",
-  "firmware_identity": "FM-1_1037",
-  "project_format": "PJT27",
-  "description": "SEQ-held USB-MIDI keyboard boot (audio-free controller mode)",
-  "hardware_tested_v136": false,
-  "hardware_install_v133_reported_by_user": true,
-  "independent_rom_recovery_proven": false,
-  "app_bytes": 185876,
-  "app_sha256": "7091a7509b30195ea5c34f7b8dc9dd4f33ade9634f8a4c7414102a5f0420c5ad",
-  "experimental_firmware_bytes": 610086,
-  "experimental_firmware_sha256": "0ca1d0f16bc6658cbf13b0010a5341b8d20d0a56904c0d0118a393081b0f47d9",
-  "standalone_fwsc_released": true,
-  "fwsc_filename": "ETCH-FM1-V1.37.fwsc",
-  "fwsc_sha256": "0ca1d0f16bc6658cbf13b0010a5341b8d20d0a56904c0d0118a393081b0f47d9",
-  "webinstaller_sha256": "a91cf55cfdaebfd0a7e0756a0593e3af1b87f72ccbf438095ed02950abeffa5c",
-  "warnings": [
-    "V1.37 controller mode awaits physical FM1 USB-MIDI validation",
-    "Independent ROM restore path remains unverified",
-    "Normal synth polyphony stability and startup pop without USB remain hardware-open"
-  ],
-  "hardware_tested_v137": false
+  "version": "1.48.5",
+  "firmware_identity": "FM-1_1485",
+  "firmware_variants": {
+    "etch": {
+      "file": "release/ETCH-FM1-V1.48.5-ETCH-HEAD.fwsc",
+      "sha256": "7c28ca6b187549435ec3e4b352bd3c56e283b14cd420f1184c65c44facd91670",
+      "head_sha256": "a65e0e1a2fad1db943c00b529b45553c524257146145db61b69628cefcf2b2c9",
+      "size": 610086
+    },
+    "stock": {
+      "file": "release/ETCH-FM1-V1.48.5-STOCK-HEAD.fwsc",
+      "sha256": "e7f1e5f58258aa95b29dcf60f2a13638696b33687b0fb83874b7aedcbb8e17c3",
+      "head_sha256": "d9f43191777656de01c7bed4f9e9ba2e34e94832c5d2ed02c3fc7ab7a6d9bd67",
+      "size": 610086
+    }
+  },
+  "application_sha256": "e4d85364ab01ce8423fc209368739e68ab135f3094149e47c948f4e32ad85208",
+  "application_bytes": 200596,
+  "ota_loader_unchanged": true,
+  "native_storage_enabled": true,
+  "native_ota_enabled": true,
+  "project_format": "PJT31",
+  "synthesis_behavior_changed": false,
+  "physically_tested": false,
+  "source": "V1.48.4 B1 HF2, new app compilation and new fwsc payload"
 }

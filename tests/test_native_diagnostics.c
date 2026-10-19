@@ -10,8 +10,8 @@ int main(void){
  assert(etch_diag_cpu_permille(544,5440)==100);
  assert(etch_diag_cpu_permille(9999,0)==0);
  assert(etch_diag_abspeak(-32768)==32768);
- for(int i=0;i<6;i++)assert(etch_ui_system_tab(i,1)==((i+1)%6));
- for(int i=0;i<6;i++)assert(etch_ui_system_tab(i,-1)==((i+5)%6));
+ for(int i=0;i<7;i++)assert(etch_ui_system_tab(i,1)==((i+1)%7));
+ for(int i=0;i<7;i++)assert(etch_ui_system_tab(i,-1)==((i+6)%7));
  d.turns[0]=UINT32_MAX;etch_diag_panel_record(&d,en,0x2u,0x4u);
  assert(d.turns[0]==UINT32_MAX&&etch_diag_count(d.key_seen)==3);
  assert(d.clockwise==((1u<<0)|(1u<<2)|(1u<<5)));
@@ -30,5 +30,5 @@ int main(void){
  assert(etch_diag_panel_missing_encoder_directions(&complete)==0);
  complete.anticlockwise &= (uint8_t)~(1u<<6);
  assert(!etch_diag_panel_complete(&complete));
- puts("PASS V0.53 read-only panel diagnostics, callback CPU budget math, six SYSTEM tabs");
+ puts("PASS V0.53 read-only panel diagnostics, callback CPU budget math, seven SYSTEM tabs");
 }

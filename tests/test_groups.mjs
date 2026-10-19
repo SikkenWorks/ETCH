@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import {emptyGroups,validateGroups,routeNote,noteLabel} from '../sim/groups.mjs';
+import {validateSavedProject} from '../sim/storage.mjs';
+import {defaults,primitive} from '../sim/dsp.mjs';
+import {makePerformance} from '../sim/performance.mjs';
+const groups=emptyGroups();
+assert.equal(routeNote(54,groups),0);
+groups[0]={enabled:true,patch:1,start:48,end:59};
+groups[1]={enabled:true,patch:2,start:60,end:72};
+assert.deepEqual(validateGroups(groups),groups);
+for(const [note,part] of [[0,0],[47,0],[48,1],[59,1],[60,2],[72,2],[73,0],[127,0]])assert.equal(routeNote(note,groups),part);
+for(const bad of [[{...groups[0],end:47},groups[1]],[groups[0],{...groups[1],start:59}], [groups[0],{...groups[1],end:128}],[groups[0],{...groups[1],patch:32}]])assert.throws(()=>validateGroups(bad));
+assert.equal(noteLabel(60),'C4');
+const waves=Array(64).fill(null);waves[0]={name:'SINE',points:primitive('SINE')};
+const item={name:'TEST',slots:[0,0,0],params:defaults,performance:makePerformance(),octave:48,groups};
+assert.deepEqual(validateSavedProject(item,waves).groups,groups);
+assert.equal(validateSavedProject({...item,groups:undefined},waves).groups,undefined);
+console.log('Groups routing, boundary, overlap, migration and project validation passed');

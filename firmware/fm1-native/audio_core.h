@@ -12,7 +12,10 @@
 #include "native_organic.h"
 #include "native_living.h"
 #include "native_mod_matrix.h"
+#include "native_group_router.h"
+#include "native_patch.h"
 #define ETCH_NATIVE_VOICES 8
+extern struct etch_native_bank native_banks[3]; /* shared preallocated mip banks */
 #define ETCH_NATIVE_FRAMES 128
 #define ETCH_MONO_STACK 48u
 #define ETCH_TRANSITION_SAMPLES 192u
@@ -54,11 +57,13 @@ struct etch_native_controls {uint16_t morph,depth,gain;int8_t octave;const struc
  struct etch_organic_settings organic;
  struct etch_living_settings living;
  struct etch_mod_matrix matrix;
+ uint8_t velocity_curve; /* V1.40: 0 linear (legacy), 1 soft, 2 hard; runtime-only initially */
  uint16_t seq_length;
  struct etch_harmony_settings harmony;
  const struct etch_native_pattern *pattern;
  uint8_t seq_notes[64];
 };
+void etch_native_groups_patch_bank(const struct etch_native_patch *bank);
 void etch_native_reset(struct etch_native_audio *s);
 void etch_native_render(struct etch_native_audio *s,const struct etch_native_controls *c,uint32_t keys,int16_t *out,uint32_t frames);
 void etch_native_render_stereo(struct etch_native_audio *s,const struct etch_native_controls *c,uint32_t keys,int16_t *interleaved,uint32_t frames);
@@ -70,6 +75,11 @@ int16_t etch_native_bank_preview(const struct etch_native_bank *bank,uint16_t mo
 /* MIDI identifiers are separate from panel keys; all 16 channels accepted. */
 void etch_native_midi(struct etch_native_audio *s,uint8_t status,uint8_t d1,uint8_t d2);
 void etch_native_midi_panic(struct etch_native_audio *s);
+/* One shared eight-voice pool. Groups carry two-bit ownership and select
+ * distinct saved A/B/C wavetable banks plus per-voice preset DSP settings. */
+void etch_native_groups_configure(const struct etch_key_groups *groups);
+uint8_t etch_native_groups_playing(void);
+uint8_t etch_native_voice_group(uint8_t slot);
 
 /* Read-only offline diagnostics for filter smoothing; no changes to patch/storage. */
 void etch_native_filter_ramp_state(int32_t *cutoff,int32_t *resonance);

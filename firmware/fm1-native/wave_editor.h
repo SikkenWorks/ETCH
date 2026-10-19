@@ -17,6 +17,10 @@ void etch_editor_move(struct etch_wave_editor *e,int32_t left,int32_t right,int3
 void etch_editor_select(struct etch_wave_editor *e,int32_t delta);
 void etch_editor_undo(struct etch_wave_editor *e);
 void etch_editor_compile(const struct etch_wave_editor *e,struct etch_native_bank *out);
+/* Group renderer: compile stored preset waves to an existing 18 KiB mip bank.
+ * Main-loop only. Never allocate a fourth runtime bank. */
+void etch_editor_compile_source(const int16_t points[3][128],
+ const struct etch_wave_fx_params fx[3],struct etch_native_bank *out);
 
 void etch_editor_checkpoint(struct etch_wave_editor *e);
 void etch_editor_redo(struct etch_wave_editor *e);
@@ -43,3 +47,6 @@ void etch_editor_spectral_partial(struct etch_wave_editor *e,uint8_t harmonic,in
 void etch_editor_spectral_tilt(struct etch_wave_editor *e,int32_t turns);
 uint16_t etch_editor_spectral_level(const struct etch_wave_editor *e,uint8_t harmonic);
 uint16_t etch_editor_spectral_brightness(const struct etch_wave_editor *e);
+
+/* V1.41 SCULPT: preview is read-only; apply checkpoints exactly once. */
+void etch_editor_sculpt(struct etch_wave_editor *e,uint8_t mode,uint16_t amount,uint8_t pivot);

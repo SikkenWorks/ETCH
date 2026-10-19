@@ -317,6 +317,35 @@ static int etch_ota_stock(uint32_t off,uint8_t *b){
  for(uint32_t i=0;i<0x93000u;i+=512){if(ota_read(off+i,b,512))return 0;etch_sha256_add(&h,b,512);ota_idle();}
  etch_sha256_end(&h,digest);return ota_memeq(digest,want,32);
 }
+/* V1.48: only two audited FM-1 protected-head variants are cross-compatible.
+ * An app-only Felucca loader does not rewrite flash[0..0x3fff].
+ * Stock/full-flash loader may rewrite it ONLY for the fully pinned original V15.
+ * Both known variants use the same chip key (0x980F) and 0x4000 app offset;
+ * checked against the user's original 2026-07-30 V15 and ETCH reference.
+ * We deliberately do NOT permit arbitrary headers, arbitrary OTA loaders or
+ * unknown packages; browser/host cannot override another firmware's CHECK.
+ */
+static const uint8_t etch_head_sha[32]={
+ 0xa6,0x5e,0x0e,0x1a,0x2f,0xad,0x1d,0xb9,0x43,0xc0,0x0b,0x52,0x9b,0x45,0x55,0x3c,
+ 0x52,0x42,0x57,0x14,0x61,0x45,0xdb,0x61,0xb6,0x96,0x28,0xce,0xfc,0xf2,0xb2,0xc9
+};
+static const uint8_t stock_head_sha[32]={
+ 0xd9,0xf4,0x31,0x91,0x77,0x76,0x56,0xde,0x01,0xc7,0xbe,0xd4,0xf9,0xe9,0xba,0x2e,
+ 0x34,0xe9,0x48,0x32,0xc5,0xd2,0xed,0x02,0xc3,0xfc,0x7a,0xb7,0xa6,0xd9,0xbd,0x67
+};
+static int etch_sha_known_head(uint32_t off,uint8_t *scratch,uint8_t from_host){
+ struct etch_sha256 h;uint8_t digest[32];
+ etch_sha256_init(&h);
+ for(uint32_t i=0;i<0x4000u;i+=512u){
+  if(from_host?ota_read(off+i,scratch,512u):ota_fread(off+i,scratch,512u))return 0;
+  etch_sha256_add(&h,scratch,512u);
+  ota_idle();
+ }
+ etch_sha256_end(&h,digest);
+ if(ota_memeq(digest,etch_head_sha,32))return 1;
+ if(ota_memeq(digest,stock_head_sha,32))return 2;
+ return 0;
+}
 static int ota_stage(void)                       /* steps 1..6; 0 = host said success */
 {
     static uint8_t hdr[0x400], b[512], mine[512];
@@ -353,9 +382,29 @@ static int ota_stage(void)                       /* steps 1..6; 0 = host said su
         if(len!=ETCH_OTA_BODY_LEN || !etch_ota_hash_pinned(ota_off+32,b,1,len,pinned_digest))return -16;
     }
     ota_show(2,0);
-    for(i=0;i<0x4000u;i+=512u){
-        if(ota_read(fl_off+i,b,512)||ota_fread(i,mine,512))return -4;
-        if(!ota_memeq(b,mine,512))return -5;
+    /* Before the first erase: compare protected heads. Stock V15 is permitted
+     * to replace the boot area only because its complete flash.bin, official
+     * OTA loader and checksums have already been pinned above. A compatible
+     * app-only package may carry either known boot head: the app-only OTA
+     * loader will not write it. If both heads are unknown/mismatched, STOP.
+     */
+    {
+        int exact=1;
+        for(i=0;i<0x4000u;i+=512u){
+            if(ota_read(fl_off+i,b,512)||ota_fread(i,mine,512))return -4;
+            if(!ota_memeq(b,mine,512))exact=0;
+        }
+        if(!exact){
+            int host_head=etch_sha_known_head(fl_off,b,1);
+            int device_head=etch_sha_known_head(0u,mine,0);
+            if(is_stock){
+                /* The full official V15 image and loader were validated above.
+                 * No unknown bootloader bytes can be introduced here. */
+                if(host_head!=2)return -5;
+            }else if(!host_head || !device_head){
+                return -5; /* unknown head, unsafe to assume compatibility */
+            }
+        }
     }
     if(!etch_ota_available(b))return -15;
     /* 4. stage the package's loader: erase, body, verify, head last */

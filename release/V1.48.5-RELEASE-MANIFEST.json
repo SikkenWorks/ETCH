@@ -1,0 +1,27 @@
+{
+  "version": "1.48.5",
+  "firmware_identity": "FM-1_1485",
+  "firmware_variants": {
+    "etch": {
+      "file": "release/ETCH-FM1-V1.48.5-ETCH-HEAD.fwsc",
+      "sha256": "7c28ca6b187549435ec3e4b352bd3c56e283b14cd420f1184c65c44facd91670",
+      "head_sha256": "a65e0e1a2fad1db943c00b529b45553c524257146145db61b69628cefcf2b2c9",
+      "size": 610086
+    },
+    "stock": {
+      "file": "release/ETCH-FM1-V1.48.5-STOCK-HEAD.fwsc",
+      "sha256": "e7f1e5f58258aa95b29dcf60f2a13638696b33687b0fb83874b7aedcbb8e17c3",
+      "head_sha256": "d9f43191777656de01c7bed4f9e9ba2e34e94832c5d2ed02c3fc7ab7a6d9bd67",
+      "size": 610086
+    }
+  },
+  "application_sha256": "e4d85364ab01ce8423fc209368739e68ab135f3094149e47c948f4e32ad85208",
+  "application_bytes": 200596,
+  "ota_loader_unchanged": true,
+  "native_storage_enabled": true,
+  "native_ota_enabled": true,
+  "project_format": "PJT31",
+  "synthesis_behavior_changed": false,
+  "physically_tested": false,
+  "source": "V1.48.4 B1 HF2, new app compilation and new fwsc payload"
+}

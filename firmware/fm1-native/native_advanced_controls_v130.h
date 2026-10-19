@@ -35,7 +35,7 @@ static inline void etch_v130_matrix(struct etch_mod_matrix *m,uint8_t *slot,int3
  *slot=etch_v130_route_slot(*slot,k1);
  struct etch_mod_route *r=&m->route[*slot];
  int64_t src=(int64_t)r->source+k2,dst=(int64_t)r->target+k3;
- r->source=(uint8_t)(src<0?0:src>4?4:src);
+ r->source=(uint8_t)(src<0?0:src>ETCH_MATRIX_MAX_SOURCE?ETCH_MATRIX_MAX_SOURCE:src);
  r->target=(uint8_t)(dst<0?0:dst>3?3:dst);
- r->amount=etch_v130_edit_pct(r->amount,k4);
+ r->amount=etch_matrix_encode_signed(etch_matrix_signed(r->amount)+k4);
 }

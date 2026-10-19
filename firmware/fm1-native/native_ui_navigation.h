@@ -21,7 +21,7 @@ enum etch_ui_page {
  ETCH_UI_FX_FOLDER=40, ETCH_UI_FX_TAPE=41,
  ETCH_UI_FX_REVERSE=42, ETCH_UI_FX_VIBRATO=43, ETCH_UI_FX_ROTARY=44, ETCH_UI_FX_WAH=45,
  ETCH_UI_PREFX_A=46,ETCH_UI_PREFX_B=47,ETCH_UI_C_FX=48,
- ETCH_UI_MOTION=49, ETCH_UI_EVOLUTION=50, ETCH_UI_PRESETS=51, ETCH_UI_ORGANIC=52, ETCH_UI_SPECTRAL=53, ETCH_UI_LIVING=54, ETCH_UI_MATRIX=55, ETCH_UI_RIFF_LAB=56, ETCH_UI_PATCH_BLEND=57, ETCH_UI_PAGE_COUNT=58
+ ETCH_UI_MOTION=49, ETCH_UI_EVOLUTION=50, ETCH_UI_PRESETS=51, ETCH_UI_ORGANIC=52, ETCH_UI_SPECTRAL=53, ETCH_UI_LIVING=54, ETCH_UI_MATRIX=55, ETCH_UI_RIFF_LAB=56, ETCH_UI_PATCH_BLEND=57, ETCH_UI_GROUPS=58, ETCH_UI_SCULPT=59, ETCH_UI_WAVE_SEQ=60, ETCH_UI_PERFORMANCE=61, ETCH_UI_PAGE_COUNT=62
 };
 
 /* V1.35: exactly MOD, C FX and MATRIX are visible in POLY.
@@ -70,22 +70,23 @@ static inline uint8_t etch_ui_home_turn(uint8_t page,int8_t dir){
 static inline uint8_t etch_ui_seq_next(uint8_t page){
  if(page==ETCH_UI_SEQ)return ETCH_UI_NOTES;
  if(page==ETCH_UI_NOTES)return ETCH_UI_HARM;
+ if(page==ETCH_UI_HARM)return ETCH_UI_WAVE_SEQ;
  return ETCH_UI_SEQ;
 }
 static inline uint8_t etch_ui_seq_context(uint8_t page){
  return page==ETCH_UI_SEQ||page==ETCH_UI_NOTES||page==ETCH_UI_HARM||
-        page==ETCH_UI_GRID||page==ETCH_UI_HOLD||page==ETCH_UI_LOCKS||
+        page==ETCH_UI_GRID||page==ETCH_UI_HOLD||page==ETCH_UI_LOCKS||page==ETCH_UI_WAVE_SEQ||
         page==ETCH_UI_BAKE||page==ETCH_UI_CLOCK;
 }
 /* ALGORITHM gives access to the advanced GRID/HOLD/LOCK/BAKE/TEMPO editors.
  * The three main SEQ pages remain the ordinary SEQ-button workflow. */
 static inline uint8_t etch_ui_seq_inspector(uint8_t page,int32_t turns){
  static const uint8_t pages[]={ETCH_UI_SEQ,ETCH_UI_NOTES,ETCH_UI_HARM,
-   ETCH_UI_GRID,ETCH_UI_HOLD,ETCH_UI_LOCKS,ETCH_UI_BAKE,ETCH_UI_CLOCK};
+   ETCH_UI_GRID,ETCH_UI_HOLD,ETCH_UI_LOCKS,ETCH_UI_BAKE,ETCH_UI_CLOCK,ETCH_UI_WAVE_SEQ};
  uint8_t idx=0;
- for(uint8_t i=0;i<8u;i++)if(pages[i]==page){idx=i;break;}
- int32_t next=((int32_t)idx+(turns%8))%8;
- if(next<0)next+=8;
+ for(uint8_t i=0;i<9u;i++)if(pages[i]==page){idx=i;break;}
+ int32_t next=((int32_t)idx+(turns%9))%9;
+ if(next<0)next+=9;
  return pages[next];
 }
 static inline uint8_t etch_ui_arp_next(uint8_t page){
@@ -121,7 +122,7 @@ static inline const char *etch_ui_title(uint8_t page){
   "DRIVE","CHORUS","DELAY","REVERB","PROJECT SAVE","RING MOD","CHANNEL EQ",
   "COMPRESSOR","TREMOLO","PHASER","FLANGER","DECIMATOR","WAVEFOLDER","TAPE INSTABILITY",
   "REVERSE DELAY","VIBRATO","ROTARY SPEAKER","AUTO-WAH",
-  "WAVE A FX","WAVE B FX","WAVE C FX MOD","MOTION","EVOLUTION","PRESETS","ORGANIC","SPECTRAL","LIVING","MOD MATRIX","RIFF LAB","PATCH BLEND"
+  "WAVE A FX","WAVE B FX","WAVE C FX MOD","MOTION","EVOLUTION","PRESETS","ORGANIC","SPECTRAL","LIVING","MOD MATRIX","RIFF LAB","PATCH BLEND","GROUPS","SCULPT","WAVE SEQ","PERFORMANCE"
  };
  return page<ETCH_UI_PAGE_COUNT?titles[page]:"ERROR";
 }
@@ -158,9 +159,9 @@ static inline uint8_t etch_ui_draw_target(uint8_t source_page,uint8_t morph_focu
  if(source_page==ETCH_UI_LIBRARY)return library_target<3?library_target:0;
  return previous<3?previous:0;
 }
-/* System is strictly read-only; recovery/OTA entry has its own guarded path. */
+/* System diagnostics are read-only; tab 7 provides runtime expressive controls. */
 static inline uint8_t etch_ui_system_tab(uint8_t old,int8_t direction){
- return (uint8_t)((old+6u+(direction>0?1u:direction<0?5u:0u))%6u);
+ return (uint8_t)((old+7u+(direction>0?1u:direction<0?6u:0u))%7u);
 }
 
 /* The circle advances in fifths C-G-D-A-E-B-F#-C#-G#-D#-A#-F.

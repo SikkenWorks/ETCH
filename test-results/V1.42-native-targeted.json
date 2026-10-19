@@ -1,0 +1,30 @@
+{
+  "passed": 4,
+  "total": 4,
+  "cases": [
+    {
+      "name": "matrix_v126",
+      "status": "PASS",
+      "seconds": 9.25,
+      "detail": "PASS V1.26 MOD MATRIX: per-voice audio, source/destination routing, saturation, PJT24/PJT23, zero bypass\n"
+    },
+    {
+      "name": "v130_controls",
+      "status": "PASS",
+      "seconds": 0.16,
+      "detail": "PASS V1.30 independent controls and BPM 30..240\n"
+    },
+    {
+      "name": "v130_preset_codec",
+      "status": "PASS",
+      "seconds": 6.61,
+      "detail": "PASS PJT26: independent preset DSP + edit state, 32 slots, PJT25 backward read\n"
+    },
+    {
+      "name": "v140_pjt28",
+      "status": "PASS",
+      "seconds": 6.1,
+      "detail": "PASS PJT28 velocity curves, PJT27/PJT26 fallback, malformed curve validation\n"
+    }
+  ]
+}

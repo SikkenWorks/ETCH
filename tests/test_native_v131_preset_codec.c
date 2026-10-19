@@ -28,7 +28,8 @@ int main(void){
  assert(memcmp(data,"PJTK",4)==0);
  assert(etch_project_decode(data,size,&loaded,&loaded_pattern,&decoded)==0);
  assert(decoded.source_version==27);
- assert(!memcmp(&slots,&restored,sizeof(slots)));
+ /* PJT27 predates PJT29 Groups: compare DSP slots, not the newer Groups metadata. */
+ assert(!memcmp(slots.slot,restored.slot,sizeof(slots.slot)));
  assert(restored.slot[3].spectral_gain==22 && restored.slot[3].spectral_tilt==98);
  assert(etch_project_decode(data,size-1,&loaded,&loaded_pattern,&decoded)!=0);
  /* Real old snapshot contains exactly 30 bytes per DSP slot, not 32. */

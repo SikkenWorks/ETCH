@@ -1,0 +1,32 @@
+{
+  "version": "1.48",
+  "firmware_identity": "FM-1_1048",
+  "firmware_file": "release/ETCH-FM1-V1.48-ETCH-HEAD.fwsc",
+  "fwsc_sha256": "06b434cb3536da333a74c0d818f71760239920039253a3c8b959b2552d9b61e1",
+  "firmware_bytes": 610086,
+  "application_bytes": 200596,
+  "application_sha256": "fd835b758b94edd270d0bae32ca713871f346bc454d68ca25314329b59492770",
+  "project_format": "PJT31",
+  "native_storage_enabled": true,
+  "ota_enabled": true,
+  "variants": {
+    "etch": {
+      "file": "release/ETCH-FM1-V1.48-ETCH-HEAD.fwsc",
+      "sha256": "06b434cb3536da333a74c0d818f71760239920039253a3c8b959b2552d9b61e1",
+      "head_sha256": "a65e0e1a2fad1db943c00b529b45553c524257146145db61b69628cefcf2b2c9",
+      "size": 610086
+    },
+    "stock": {
+      "file": "release/ETCH-FM1-V1.48-STOCK-HEAD.fwsc",
+      "sha256": "2a4b90f4e066927382b1675ed380f1c18ad5ea2e14f7aef8563869f28bb9ae80",
+      "head_sha256": "d9f43191777656de01c7bed4f9e9ba2e34e94832c5d2ed02c3fc7ab7a6d9bd67",
+      "size": 610086
+    }
+  },
+  "verified_original_stock_reference_sha256": "db1642b2b6fa5c2cccb11ffd13878068bb28601678d3644049f99dc40e7edb8a",
+  "trusted_app_only_ota_loader": true,
+  "v145_fx_source_preserved": true,
+  "physical_cross_firmware_install_tested": false,
+  "arbitrary_custom_installers_guaranteed": false,
+  "hardware_recovery_verified": false
+}

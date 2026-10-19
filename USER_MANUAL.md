@@ -1,3 +1,17 @@
+# ETCH V1.44 PERFORMANCE MODE
+
+HOME+ARP opens PERFORMANCE. Four macro knobs K1-K4 can be assigned in SELECT mode to MORPH, Wave C depth, CUTOFF, DRIVE, SPACE. ALGORITHM selects Scene A/B; REC captures and PLAY recalls; save your project to retain PJT31 snapshots.
+
+# ETCH V1.43 NEW NAVIGATION
+
+See [NAVIGATION-V1.43.md](NAVIGATION-V1.43.md) for all post-V1.38 screens, HOME+FX and HOME+SAVE, 20 HELP chapters, MONO defaults and sequencer controls.
+
+## V1.42 MOD MATRIX 2.0
+
+Open LFO and navigate to MOD MATRIX. K1 selects one of four routes. K2 chooses OFF / VELOCITY / ENVELOPE / WAVE C / LIVING / AFTERTOUCH / KEYTRACK. K3 chooses MORPH / C DEPTH / FILTER / SPACE. K4 sets signed depth -100..+100. Save the project to persist (PJT30). AFTERTOUCH needs a channel-pressure-capable MIDI keyboard. The existing GROUPS, Wave Sculpt and voice controls remain available.
+
+**V1.41 update:** For Advanced Wave Sculpting and all FM1 shortcuts, see `V1.41-RELEASE-NOTES.md`. Existing GROUPS screens and saved PJT29 projects remain supported.
+
 # ETCH V1.37 — SEQ BOOT MIDI KEYBOARD
 
 **New:** Hold the physical **SEQ** button (raw button 11) while powering on the M-VAVE FM1. ETCH boots into **MIDI KEYBOARD MODE**, a USB MIDI controller. The on-device synth audio/DAC DMA and PC6 analogue output remain disabled in this mode.
@@ -1233,3 +1247,12 @@ In **POLY**, repeatedly press **LFO** to cycle **MOD → WAVE C FX → MOD MATRI
 When the synth encounters consecutive audio-deadline misses, it automatically reduces the maximum simultaneous voices from 8 to 6, then 4, 3 or 2 to protect the audio stream. After sustained healthy playback the voice allowance rises again. This is a safety fallback, not a manual polyphony setting. An actual hardware measurement is needed to validate how many voices your particular FM1 can sustain with its current FX settings.
 
 All project/preset files stay PJT27-compatible; saving a patch in POLY does not erase hidden mono parameters. If the display reports `AUDIO STOP` again, report the note count, currently enabled FX, and any SYSTEM page `LATE`/`GUARD` counters. Repeated missed deadlines at even two voices can still trigger the protective stop. Startup pop without USB power remains under investigation.
+
+
+## Performance Mode (V1.44)
+On the FM1, press **HOME + ARP**. Use the four physical parameter knobs in live mode to alter the selected targets. Press **SELECT** to switch between live editing and destination assignment, and turn each knob to select a target. Turn **ALGORITHM** to select scene A or B; **REC** captures and **PLAY/STOP** recalls while in live mode. Save the PROJECT to keep both scenes and all macro assignments.
+
+
+## V1.48 Firmware installations
+
+For ETCH or official stock V15, use the V1.48 WebInstaller, which verifies one of two known protected boot-header variants. If installing from an unrelated custom FM1 firmware, check the detected firmware family and allow the device-side CHECK to approve or reject. Never force a loader into WRITE after CHECK fails. Returning from ETCH to genuine V15 requires the original V15 .fwsc and its matching official loader. All other synth controls and PJT31 project operations are unchanged.

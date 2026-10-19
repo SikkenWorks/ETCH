@@ -6,3 +6,14 @@
 .battery-sim{display:flex;align-items:center;gap:.55rem;margin-left:auto;font-size:.72rem;letter-spacing:.04em}.battery-sim label{display:flex;align-items:center;gap:.35rem}.battery-sim input[type=range]{width:86px}.battery-sim #batteryValue{min-width:76px;text-align:right;font-weight:700}
 
 .memory-line{display:flex;gap:.45rem;align-items:center;flex-wrap:wrap;margin:.35rem 0}.memory-line strong{min-width:5.5rem}.memory-line input{max-width:8rem}.memory-line select{max-width:11rem}
+
+/* ETCH V1.41: compact, legible Wave Sculpt panel. */
+.sculpt-panel{border:1px solid #555;margin:8px 0;padding:10px 12px;background:#151518;color:#dedede;font:12px/1.4 monospace}
+.sculpt-panel h3{font-size:13px;margin:0 0 5px;color:#fda0d0}
+.sculpt-panel p{margin:3px 0 8px;color:#aaa}
+.sculpt-controls{display:flex;align-items:end;gap:9px;flex-wrap:wrap}
+.sculpt-controls label{display:flex;flex-direction:column;gap:4px;min-width:80px;flex:1}
+.sculpt-controls input{width:100%;accent-color:#e69b63}
+.sculpt-controls select{width:100%;background:#18181b;color:#eee;border:1px solid #666}
+#sculptApply{font-weight:700;white-space:nowrap}
+#sculptPreview{display:block;width:100%;max-width:100%;height:92px;margin-top:10px;border:1px solid #333;background:#0d0d10;image-rendering:pixelated}

@@ -3,11 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ETCH V0.70 · SikkenWorks</title>
+<title>ETCH Web Simulator · V1.48</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header><div><h1>ETCH<span>70</span></h1><p>DRAW. MORPH. MODULATE.</p></div><div class="brand">SIKKENWORKS<br><small>DESKTOP LAB · V0.70</small></div></header>
+<header><div><h1>ETCH<span>148</span></h1><p>DRAW. MORPH. MODULATE.</p></div><div class="brand">SIKKENWORKS<br><small>HOST ENGINE · GROUPS MULTITIMBRAL</small></div></header>
+<p style="margin:8px 16px;padding:10px 14px;background:#242428;color:#eee;font:12px monospace">V1.48 OTA COMPATIBILITY · Firmware installation/recovery update only. Browser sound engine, 3-part GROUPS, four macros, scenes, Wave A/B Sequencing, SCULPT and existing functions are retained. The previous 369% CPU warning is NOT established as resolved.</p>
 <main>
 <section class="instrument">
   <div class="fm1-surface" aria-label="FM-1 control surface simulator">
@@ -29,7 +30,7 @@
         <div id="controls" class="live-controls" aria-label="Four live FM-1 knob assignments"></div>
         <div class="function-grid" aria-label="FM-1 function buttons">
           <button data-hw-page="FX">FX</button><button id="selButton">SEL</button><button data-hw-page="ENV">ENV</button><button data-hw-page="MOD WAVE">LFO</button><button data-hw-page="DRAW">EDIT</button><button data-hw-page="SYSTEM">GLO</button>
-          <button data-hw-page="PLAY">HOME</button><button id="hardwareSave">SAVE</button><button data-hw-page="ARP">ARP</button><button data-hw-page="SEQ">SEQ</button><button id="transport">PLAY/STOP</button><button id="record">REC</button>
+          <button data-hw-page="PLAY">HOME</button><button data-hw-page="PERFORMANCE">PERFORMANCE</button><button id="hardwareSave">SAVE</button><button data-hw-page="ARP">ARP</button><button data-hw-page="SEQ">SEQ</button><button id="transport">PLAY/STOP</button><button id="record">REC</button>
         </div>
       </aside>
     </div>
@@ -46,6 +47,17 @@
         <label>Step size<select id="stepSize"><option value="128">FINE</option><option value="512" selected>NORMAL</option><option value="2048">COARSE</option></select></label>
         <label>New canvas <select id="primitive"><option>SINE</option><option>TRIANGLE</option><option>SAW</option><option>SQUARE</option></select></label><button id="newWave">Use canvas</button>
         <label>Audition drawing as <select id="editTarget"><option>A</option><option>B</option><option>C</option></select></label>
+      </div>
+      <div class="sculpt-panel" id="sculptPanel">
+        <h3>SCULPT · V1.41</h3>
+        <p>Preview changes without editing the source. APPLY commits once, with Undo available.</p>
+        <div class="sculpt-controls">
+          <label>MODE<select id="sculptMode"><option value="0">FOLD</option><option value="1">BEND</option><option value="2">ASYM</option><option value="3">PHASE</option><option value="4">HARMONICS</option></select></label>
+          <label>AMOUNT<input id="sculptAmount" type="range" min="0" max="100" value="50" step="1"></label>
+          <label>PIVOT<input id="sculptPivot" type="range" min="0" max="100" value="50" step="1"></label>
+          <button id="sculptApply">APPLY SCULPT</button>
+        </div>
+        <canvas id="sculptPreview" width="256" height="92" aria-label="Cyan original and amber sculpt preview"></canvas>
       </div>
       <p class="hint">SEL opens/closes the DRAW tool menu. KNOB1 = LEFT / RIGHT, KNOB2 = DOWN / UP.</p>
     </div>
@@ -66,12 +78,18 @@
   <div><h2>Bank backup</h2><button id="export">EXPORT BANK</button><button id="import">IMPORT BANK</button><input type="file" id="file" accept=".etchbank,.json" hidden><p>64 waves · 32 patches · 16 projects · 32 patterns · V0.1–V0.18 import</p></div>
 
   <div class="memory"><h2>Hardware memory</h2><div class="memory-line"><strong>PROJECT</strong><input id="projectName" maxlength="12" value="PROJECT 01"><select id="projectSlot"></select><button id="saveProject">SAVE</button><button id="loadProject">LOAD</button></div><div class="memory-line"><strong>PATTERN</strong><input id="patternName" maxlength="12" value="PATTERN 01"><select id="patternSlot"></select><button id="savePattern">SAVE</button><button id="loadPattern">LOAD</button></div><p>SAVE button on hardware opens PATCH / PROJECT / PATTERN save-load memory. SEQ defaults to PATTERN.</p></div>
+  <div class="memory" id="groupPanel"><h2>GROUPS · KEYBOARD MULTITIMBRAL</h2><p>Main preset plays on all unassigned notes. Create up to two non-overlapping groups; each group owns its range, inclusive.</p><div id="groupRows"></div><p id="groupCaptureState">Choose a preset, press SET RANGE, then press START and END on the FM1 keybed or a connected MIDI keyboard. END must be higher.</p><button id="groupHelp">HELP · ETCH CONTROLS</button><div id="etchHelp" hidden><h3>ETCH HELP</h3><p>HOME: PLAY, HOME+SAVE: PROJECTS. HOME+FX: GROUPS. HOME+ARP: PERFORMANCE. EDIT: draw wave. SAVE: save selected object. LFO: modulation pages. ENV: envelopes. FX: effects. SEQ: grid and pattern. ARP: arpeggiator. GLO: system. Knobs K1–K4 edit the four displayed values.</p><p>Keyboard: A W S E D F T G Y H U J K · arrows in DRAW · Escape = PANIC · OCT+ / OCT− change keyboard octave. Group capture works with hardware keys or USB MIDI in this simulator. SAVE PROJECT stores group ranges and preset references. Turn groups OFF to use the main patch everywhere. MOD MATRIX 2.0: K1 route K2 source K3 target K4 signed depth; sources include channel aftertouch and keytracking. Save your project to preserve routes.</p></div></div>
+  <div class="memory" id="performancePanel"><h2>PERFORMANCE · V1.46</h2><p>Open PERFORMANCE above or use HOME+ARP on the FM1. Four assignable macros and two project-scoped snapshots. On the FM1: SELECT switches ASSIGN mode, ALGORITHM selects A/B, REC captures and PLAY recalls. SAVE PROJECT preserves the snapshots.</p><button id="openPerformance">OPEN PERFORMANCE</button></div>
+  <div class="memory" id="modMatrixPanel"><h2>MOD MATRIX 2.0</h2>
+<p>Four independently saved modulation routes. SOURCE controls DEST with signed AMOUNT (−100 to +100). Zero means bypass. AFTERTOUCH requires a MIDI keyboard supporting channel pressure.</p><div id="matrixRows"></div></div>
   <div class="transfer"><h2>ETCH transfer</h2><label>Object<select id="transferKind"><option value="wave">WAVE</option><option value="patch">PATCH</option></select></label><label>Slot<select id="transferSlot"></select></label><button id="exportSyx">EXPORT .SYX</button><button id="importSyx">IMPORT .SYX</button><button id="sendSyx" disabled>SEND MIDI</button><input type="file" id="syxFile" accept=".syx,application/octet-stream" hidden><p>Protocol v1 · wave payload v2 · patch payload v8 · MIDI manufacturer ID 0x7D · object transfer only, never firmware flashing.</p></div>
 </section>
 <div id="status" role="status">Ready. The desktop surface now follows the physical FM-1 controls.</div>
-<footer>Host simulator. FM-1 hardware backend and recovery validation are pending. No device writes or firmware flashing.</footer>
+<footer>Browser simulator V1.46, including Wave Sequencing, Wave Sculpting and GROUPS. A matching native FM1 test firmware is included. Physical installation and audio performance remain unverified. The simulator does not flash firmware.</footer>
 <dialog id="dialog" aria-labelledby="dialogTitle"><h2 id="dialogTitle">ETCH</h2><p id="dialogMessage"></p><div id="dialogActions"></div></dialog>
 </main>
 <script type="module" src="app.mjs"></script>
+<script>document.addEventListener("contextmenu",e=>e.preventDefault());document.addEventListener("selectstart",e=>{if(!e.target.closest("input,textarea"))e.preventDefault()});</script>
+<script>document.addEventListener('selectstart',e=>e.preventDefault());document.addEventListener('contextmenu',e=>e.preventDefault());</script>
 </body>
 </html>

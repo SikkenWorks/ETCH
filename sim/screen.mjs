@@ -64,12 +64,23 @@ export function drawScreen(g,{page,subpage={},dirty,cursor,points,bank,slots,par
   text(`POS ${String(waveSave.cursor+1).padStart(2,'0')}  CHAR ${waveSave.chars[waveSave.cursor]===' '?'<SPACE>':waveSave.chars[waveSave.cursor]}`,14,142,C.ink,12,'left','700');line(154);text('K1 SLOT  K2 POS',14,177,C.muted,11);text('K3 CHAR  K4 LEN',14,197,C.muted,11);text('SELECT POS',14,220,C.cyan,11);text('ALG CHAR  SAVE OK',226,238,C.accent,11,'right','700',150);return;
  }
 
- const title=page==='ENV'?(subpage.ENV?'ENV FILTER':'ENV AMP'):page==='MOD WAVE'?(subpage['MOD WAVE']?'MOD RATE':'MOD WAVE'):page==='MORPH'&&subpage.MORPH?'MORPH PHASE':page==='SEQ'?(subpage.SEQ===1?'SEQ STEP':subpage.SEQ===2?'SEQ HARMONY':'SEQUENCER'):page;
+ const title=page==='ENV'?(subpage.ENV?'ENV FILTER':'ENV AMP'):page==='MOD WAVE'?(subpage['MOD WAVE']?'MOD RATE':'MOD WAVE'):page==='MORPH'&&subpage.MORPH?'MORPH PHASE':page==='SEQ'?(subpage.SEQ===1?'SEQ STEP':subpage.SEQ===2?'SEQ HARMONY':subpage.SEQ===3?'WAVE SEQ':'SEQUENCER'):page;
  header(title);
 
  if(page==='SEQ'&&performance){
   const q=performance.seq,h=performance.harmony,step=q.steps[currentSeqStep]||{notes:[],locks:{}};
   const incomingHold=[];for(let start=0;start<currentSeqStep;start++)for(const n of effectiveStepNotes(q.steps[start],h))if(start+(n.length??1)>currentSeqStep)incomingHold.push(n);
+  if(subpage.SEQ===3){
+   const stepNum=String(currentSeqStep+1).padStart(2,'0'),locked=step.locks?.morph!==undefined;
+   const value=locked?step.locks.morph:0,where=!locked?'NO LOCK':value<=0?'WAVE A':value>=1?'WAVE B':'A/B MORPH';
+   text(`STEP ${stepNum} / ${q.length}`,14,54,C.accent,12,'left','700');
+   text('WAVE SOURCE',14,86,C.muted,10);text(where,14,109,C.cyan,14,'left','700');
+   text(`MORPH ${Math.round(value*100)}%`,14,141,C.amber,13);
+   g.fillStyle=C.panel;g.fillRect(14,153,212,8);g.fillStyle=C.cyan;g.fillRect(14,153,212*value,8);
+   text(locked?'LOCK ON':'LOCK OFF',14,187,locked?C.accent:C.muted,12);
+   text('A = 0%     B = 100%',14,208,C.muted,9);
+   text('K1 STEP K2 WAVE K3 MIX K4 LOCK',14,232,C.accent,9);return;
+  }
   if(subpage.SEQ===2){
    const pcs=scalePitchClasses(h),fifths=circleOfFifthsChords(h),scaleNames=pcs.map(pc=>NOTE_NAMES[pc]),chordLines=wrapTokens(fifths.map(x=>x.name),29);
    text(`${NOTE_NAMES[h.root]} ${h.mode}`,14,55,C.accent,13,'left','700');

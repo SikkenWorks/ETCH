@@ -1,0 +1,1 @@
+Exact historical V1.38 OTA implementation and 16 KiB protected header are included solely for native OTA CHECK regression. Sources: ETCH-V1.38-FULL-SOURCE-OTA-RESTORE-BEETLE-COMPAT.zip. GPL-3.0-only; see LICENSE. These fixtures are not firmware artifacts.

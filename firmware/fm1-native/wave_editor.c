@@ -3,6 +3,7 @@
  */
 #include "wave_editor.h"
 #include "native_tables.h"
+#include "native_sculpt.h"
 static int32_t bounded(int32_t n,int32_t lo,int32_t hi){return n<lo?lo:n>hi?hi:n;}
 void etch_editor_init(struct etch_wave_editor *e){
  for(uint32_t w=0;w<3;w++)for(uint32_t i=0;i<128;i++)e->points[w][i]=etch_tables[w][0][i*4];
@@ -40,13 +41,13 @@ void etch_editor_redo(struct etch_wave_editor *e){
  for(uint32_t w=0;w<3;w++)for(uint32_t i=0;i<128;i++)e->points[w][i]=e->redo[e->redo_count][w][i];
  e->has_undo=1;e->dirty=1;++e->revision;
 }
-void etch_editor_compile(const struct etch_wave_editor *e,struct etch_native_bank *out){
+void etch_editor_compile_source(const int16_t points[3][128], const struct etch_wave_fx_params fx[3],struct etch_native_bank *out){
  static const uint8_t harmonics[6]={64,32,16,8,2,1};
  int32_t cosine[65],sine[65],scratch[512];
  int16_t shaped[128];
  /* The sine reference has Q15 amplitude 29000; divide by that exact scale. */
  for(uint32_t w=0;w<3;w++){
-  etch_wave_fx_apply(e->points[w],&e->fx[w],shaped);
+  etch_wave_fx_apply(points[w],&fx[w],shaped);
   for(uint32_t h=1;h<=64;h++){
    int64_t c=0,s=0;
    for(uint32_t n=0;n<128;n++){
@@ -71,6 +72,10 @@ void etch_editor_compile(const struct etch_wave_editor *e,struct etch_native_ban
    for(uint32_t n=0;n<512;n++)out->table[w][l][n]=(int16_t)bounded((int32_t)((int64_t)scratch[n]*29000/peak),-29000,29000);
   }
  }
+}
+
+void etch_editor_compile(const struct etch_wave_editor *e,struct etch_native_bank *out){
+ etch_editor_compile_source(e->points,e->fx,out);
 }
 
 /* Tools act on editable points, checkpoint exactly once and rebuild outside IRQ. */
@@ -270,4 +275,16 @@ uint16_t etch_editor_spectral_brightness(const struct etch_wave_editor *e){
  if(!total)return 0;
  uint32_t value=(weighted/31u)*100u/total;
  return (uint16_t)(value>100u?100u:value);
+}
+
+/* Explicit commit. Unchanged or bypass previews create no history entry. */
+void etch_editor_sculpt(struct etch_wave_editor *e,uint8_t mode,uint16_t amount,uint8_t pivot){
+ if(!e)return;
+ int16_t shaped[128];int16_t *dst=e->points[e->wave];
+ etch_sculpt_preview(dst,shaped,mode,amount,pivot);
+ uint8_t different=0;for(uint32_t i=0;i<128;i++)if(shaped[i]!=dst[i]){different=1;break;}
+ if(!different)return;
+ etch_editor_checkpoint(e);
+ for(uint32_t i=0;i<128;i++)dst[i]=shaped[i];
+ e->dirty=1u;++e->revision;
 }

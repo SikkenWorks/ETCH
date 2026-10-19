@@ -1,0 +1,24 @@
+import assert from 'node:assert/strict';
+import {Synth} from '../sim/dsp.mjs';
+import {parseMidiMessage} from '../sim/midi.mjs';
+const synth=new Synth(44100);
+const pressure=parseMidiMessage(new Uint8Array([0xD2,127]));
+assert.equal(pressure.type,'aftertouch');assert.equal(pressure.channel,2);assert.equal(pressure.value,1);
+const wave=Array.from({length:6},()=>Float64Array.from({length:512},(_,i)=>Math.sin(2*Math.PI*i/512)));
+synth.setBank([wave,wave.map(t=>t.map(v=>-v)),wave]);
+synth.setParams({voice:'POLY',morph:.3,attack:.001,filter:'OFF',gain:.5,depth:0}); // V1.43 new projects default MONO; exercise explicitly polyphonic channel isolation.
+synth.noteOn(60,1,0,2);synth.noteOn(64,1,0,3);
+assert.equal(synth.voices[0].channel,2);assert.equal(synth.voices[1].channel,3);
+const baseline=new Float32Array(256);synth.process(baseline);
+assert.equal(synth.setChannelPressure(2,1),true);
+const next=new Float32Array(8192);synth.process(next);
+assert(synth.voices[0].pressure>.9,'channel 2 voice must follow pressure');
+assert.equal(synth.voices[1].pressure,0,'channel 3 voice must not follow channel 2');
+assert.equal(synth.setChannelPressure(16,1),false);
+assert.equal(synth.setChannelPressure(2,Number.NaN),false);
+synth.noteOn(67,1,0,-1);
+assert.equal(synth.voices[2].channel,-1);
+assert.equal(synth.voices[2].pressure,0);
+synth.panic();assert.equal(synth.channelPressure[2],0);
+assert(synth.voices.every(v=>!v.stage));
+console.log('V1.40 Phase 7 aftertouch channel isolation, pressure mapping, panic: PASS');

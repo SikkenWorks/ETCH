@@ -14,6 +14,8 @@
 #include "native_organic.h"
 #include "native_living.h"
 #include "native_mod_matrix.h"
+#include "native_group_router.h"
+#include "native_perf_scenes.h"
 #define ETCH_PROJECT_MAX_BYTES ((ETCH_P04_EXPANDED ? ETCH_STORE_EXT_BANK_BYTES : ETCH_STORE_SPARE_ENABLED ? ETCH_STORE_SPARE_BANK_BYTES : ETCH_STORE_BANK_BYTES)-256u)
 /* PJT26: independently saved, non-audio-IRQ state for each named preset. */
 struct etch_preset_dsp {
@@ -24,9 +26,14 @@ struct etch_preset_dsp {
  uint8_t spectral_wave,spectral_part;
  uint8_t blend_a,blend_b,blend_pct,blend_on;
  uint8_t spectral_gain,spectral_tilt; /* PJT27: independent control positions, centre = 50 */
+ uint8_t velocity_curve; /* PJT28: 0 LINEAR, 1 SOFT, 2 HARD; per preset */
 };
-struct etch_preset_dsp_bank {struct etch_preset_dsp slot[ETCH_PATCH_SLOTS];};
-_Static_assert(sizeof(struct etch_preset_dsp)==32u,"PJT27 record size must stay exact; PJT26 prefix is 30 bytes");
+struct etch_preset_dsp_bank {struct etch_preset_dsp slot[ETCH_PATCH_SLOTS];
+ /* PJT29: project-scoped Groups, stored outside the saturated audio POOL. */
+ struct etch_key_groups groups;
+ struct etch_perf_scenes performance; /* PJT31: two scenes and 4 assignable controls */
+};
+_Static_assert(sizeof(struct etch_preset_dsp)==33u,"PJT28 record size must stay exact; PJT27 prefix is 32 bytes");
 struct etch_project_settings {
  uint16_t seq_length;
  uint8_t seq_rate,seq_gate,seq_swing,tempo,clock_follow;

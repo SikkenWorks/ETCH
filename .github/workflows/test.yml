@@ -1,4 +1,4 @@
-name: ETCH source checks
+name: ETCH V1.48 dual-header OTA and audio safety checks
 on: [push, pull_request]
 jobs:
   host:
@@ -11,17 +11,51 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m pip install numpy
-      - run: python3 tools/audit_felucca_core.py
-      - run: python3 tests/test_v120_preset_policy.py
-      - run: gcc -std=c11 -O2 tests/test_native_preset_browser.c -o /tmp/etch_presets && /tmp/etch_presets
-      - run: cmake -S . -B build/host && cmake --build build/host --parallel
-      - run: ctest --test-dir build/host --output-on-failure
-      - run: mkdir -p build/examples && ./build/host/etch_render build/examples/ETCH-first-sound.wav && ./build/host/etch_render build/examples/ETCH-filtered.wav filter
-      - run: npm test
-      - run: python3 tests/test_fwsc.py
-      - run: python3 tests/test_v138_restore_gate.py
-      - run: node tests/test_installer_v138_local.cjs
-      - run: python3 tests/test_target_build.py
-      - run: python3 tests/audio_quality.py
-      - run: gcc -std=c11 -w -fsyntax-only -DETCH_NATIVE_STORAGE=1 -DETCH_NATIVE_OTA=1 firmware/fm1-native/bringup.c
+      - name: Verify ETCH upstream hardware baseline
+        run: python3 tools/audit_felucca_core.py
+      - name: Verify pixel-exact conditional LCD transfers
+        run: |
+          gcc -std=c11 -O2 -Wall -Wextra -Werror tests/test_v147_display_bands.c -o /tmp/etch-v147-display
+          /tmp/etch-v147-display
+      - name: Verify audio DMA deadline guards
+        run: |
+          gcc -std=c11 -O2 -Wall -Wextra -Werror tests/test_v147_audio_deadline.c -o /tmp/etch-v147-timing
+          /tmp/etch-v147-timing
+      - name: Verify dual-header packages and native OTA receiver
+        run: |
+          gcc -std=c11 -O2 -I firmware/fm1-native tests/test_native_v148_cross.c firmware/fm1-native/native_digest.c -o /tmp/etch-v148-ota
+          /tmp/etch-v148-ota release/ETCH-FM1-V1.48-ETCH-HEAD.fwsc release/ETCH-FM1-V1.48-STOCK-HEAD.fwsc
+          node tests/test_cross_firmware_v148.mjs
+      - name: Run web DSP/UI/firmware-package tests
+        run: npm test
+      - name: Replay exact V1.38 updater against both protected-header variants
+        run: npm run test:ota1482
+      - name: Test V1.48.3 safe OTA loader handoff
+        run: npm run test:ota1483
+      - name: Golden PCM vs V1.46.1 recovery, no sound changes
+        run: python3 tools/test_v1462_pcm.py
+      - name: Validate 400000 cached matrix operations
+        run: |
+          gcc -std=c11 -O1 -fsanitize=address,undefined tests/test_v1462_matrix_cache.c -o /tmp/etch-matrix-cache
+          ASAN_OPTIONS=detect_leaks=0 /tmp/etch-matrix-cache
+      - name: Run native modulation and compatibility tests
+        run: python3 tools/run_native_tests.py --only matrix_v126,v130_controls,v130_preset_codec,v131_preset_codec,v140_pjt28,ui_navigation
+      - name: Test PJT31 performance scenes and HOME shortcuts
+        run: |
+          gcc -std=c11 -O2 -I firmware/fm1-native tests/test_native_v144_performance.c firmware/fm1-native/native_project_codec.c firmware/fm1-native/native_pattern_bank.c firmware/fm1-native/native_performance.c firmware/fm1-native/native_fx.c -o /tmp/etch-v144-performance-test
+          /tmp/etch-v144-performance-test
+      - name: Verify lossless V1.45 PCM and bounded Q15 math
+        run: |
+          gcc -std=c11 -O2 -I firmware/fm1-native tests/test_v145_audio_parity.c firmware/fm1-native/audio_core.c firmware/fm1-native/native_performance.c firmware/fm1-native/native_fx.c -o /tmp/etch-v145-pcm
+          /tmp/etch-v145-pcm
+          gcc -std=c11 -O2 -I firmware/fm1-native tests/test_v145_math_equivalence.c firmware/fm1-native/native_performance.c firmware/fm1-native/native_fx.c -o /tmp/etch-v145-math
+          /tmp/etch-v145-math
+      - name: Verify host C++ engine and deterministic regression suite
+        run: cmake -S . -B build/host && cmake --build build/host --parallel && ctest --test-dir build/host --output-on-failure
+      - name: Compile V1.45 FM1 source for syntax
+        run: gcc -std=c11 -w -fsyntax-only -DETCH_NATIVE_STORAGE=1 -DETCH_NATIVE_OTA=1 firmware/fm1-native/bringup.c
+
+      - name: Verify FX wet/dry transition checksums
+        run: |
+          gcc -std=c11 -O2 -I firmware/fm1-native tests/test_v146_fx_transitions.c firmware/fm1-native/native_fx.c -o /tmp/etch-v146-fx
+          /tmp/etch-v146-fx

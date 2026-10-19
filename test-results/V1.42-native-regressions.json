@@ -1,0 +1,54 @@
+{
+  "passed": 8,
+  "total": 8,
+  "cases": [
+    {
+      "name": "matrix_v126",
+      "status": "PASS",
+      "seconds": 8.56,
+      "detail": "PASS V1.26 MOD MATRIX: per-voice audio, source/destination routing, saturation, PJT24/PJT23, zero bypass\n"
+    },
+    {
+      "name": "v130_controls",
+      "status": "PASS",
+      "seconds": 0.16,
+      "detail": "PASS V1.30 independent controls and BPM 30..240\n"
+    },
+    {
+      "name": "v130_preset_codec",
+      "status": "PASS",
+      "seconds": 5.87,
+      "detail": "PASS PJT26: independent preset DSP + edit state, 32 slots, PJT25 backward read\n"
+    },
+    {
+      "name": "v131_preset_codec",
+      "status": "PASS",
+      "seconds": 5.86,
+      "detail": "PASS PJT27/PJT26 independent spectral controls, persistence, validation, backward reading\n"
+    },
+    {
+      "name": "v132_mip_cache",
+      "status": "PASS",
+      "seconds": 5.42,
+      "detail": "PASS cached mip output is bit-identical for 24,000 level/threshold/phase lookups\n"
+    },
+    {
+      "name": "v132_poly_stress",
+      "status": "PASS",
+      "seconds": 5.64,
+      "detail": "mode=0 voices=1 ns_per_frame=395.15 checksum=42aaec8d peak=3953\nmode=0 voices=4 ns_per_frame=710.32 checksum=c0280041 peak=14657\nmode=0 voices=8 ns_per_frame=1221.13 checksum=5bdea80f peak=12843\nmode=1 voices=1 ns_per_frame=362.31 checksum=0a15115b peak=3807\nmode=1 voices=4 ns_per_frame=721.56 checksum=48a40c47 peak=14300\nmode=1 voices=8 ns_per_frame=1211.97 checksum=1ad3cfd5 peak=12779\nmode=2 voices=1 ns_per_frame=686.26 checksum=a590543b peak=2569\nmode=2 voices=4 ns_per_frame=1153.03 checksum=ec8da7fe peak=9179\nmode=2 voices=8 ns_per_frame=1774.31 checksum=beefdd74 peak=7246\nmode=3 voices=1 ns_per_frame=738.78 checksum=a00774c5 peak=2443\nmode=3 voices=4 ns_per_frame=1578.22 checksum=ddb8c7cb peak=8557\nmode=3 voices=8 ns_per_frame=2166.01 checksum=b1a03332 peak=7043\nPASS host 1/4/8-voice sustained polyphonic stress incl. LIVING, Organic, FX, and repeated crossfades\n"
+    },
+    {
+      "name": "v135_poly_guard",
+      "status": "PASS",
+      "seconds": 5.15,
+      "detail": "PASS V1.35: POLY identical at 8 voices with EVOLUTION/ORGANIC presets; MONO restores both\n"
+    },
+    {
+      "name": "v140_pjt28",
+      "status": "PASS",
+      "seconds": 5.73,
+      "detail": "PASS PJT28 velocity curves, PJT27/PJT26 fallback, malformed curve validation\n"
+    }
+  ]
+}

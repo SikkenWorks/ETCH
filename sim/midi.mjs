@@ -9,6 +9,7 @@ export function parseMidiMessage(data){
  const status=command&0xf0,channel=command&0x0f,a=data[1]??0,b=data[2]??0;
  if(status===0x90)return b===0?{type:'off',channel,note:a}:{type:'on',channel,note:a,velocity:b/127};
  if(status===0x80)return {type:'off',channel,note:a};
+ if(status===0xd0)return {type:'aftertouch',channel,value:a/127};
  if(status===0xe0){const raw=(b<<7)|a;return {type:'bend',channel,value:Math.max(-1,Math.min(1,(raw-8192)/(raw>=8192?8191:8192)))};}
  if(status===0xb0&&a===64)return {type:'sustain',channel,down:b>=64};
  if(status===0xb0&&(a===120||a===123))return {type:'panic',channel};

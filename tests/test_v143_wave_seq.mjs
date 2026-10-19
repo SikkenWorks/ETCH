@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {makePerformance,validatePerformance,PerformanceScheduler} from '../sim/performance.mjs';
+import {waveSeqPosition,waveSeqMode,waveSeqSet,waveSeqToggle} from '../sim/wave-seq.mjs';
+import {defaults} from '../sim/dsp.mjs';
+assert.equal(defaults.voice,'MONO');
+let p=makePerformance(),s=p.seq.steps[3];
+assert.equal(waveSeqMode(s),1);assert.equal(s.locks.morph,undefined);
+waveSeqSet(s,0);assert.equal(waveSeqMode(s),0);waveSeqSet(s,100);assert.equal(waveSeqMode(s),2);
+waveSeqSet(s,45);assert.equal(waveSeqPosition(s),45);
+p=validatePerformance(p);assert.equal(p.seq.steps[3].locks.morph,.45);
+waveSeqToggle(p.seq.steps[3],false);assert.equal(p.seq.steps[3].locks.morph,undefined);
+waveSeqToggle(p.seq.steps[3],true);assert.equal(p.seq.steps[3].locks.morph,.5);
+const k=new PerformanceScheduler(44100);k.setPerformance(p);const events=k.collect(2048,120);assert.equal(Array.isArray(events),true);
+assert.throws(()=>waveSeqSet(s,-1),/Invalid/);assert.throws(()=>waveSeqSet(s,101),/Invalid/);
+console.log('PASS V1.43 sequencer wave A/B morph lock, persistence, legacy compatibility, MONO defaults');

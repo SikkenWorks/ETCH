@@ -51,7 +51,7 @@ static void native_library_load(void){
  native_project_cfg.wave_fx[native_editor.wave]=native_project_cfg.slot_fx[native_slot];
 }
 static void native_project_capture(void){
- native_project_cfg.source_version=27;
+ native_project_cfg.source_version=30;
  native_project_cfg.mono_mode=native_mono_mode;
  native_project_cfg.seq_length=native_seq_length;native_project_cfg.seq_rate=native_seq_rate;
  native_project_cfg.seq_gate=native_seq_gate;native_project_cfg.seq_swing=native_seq_swing;

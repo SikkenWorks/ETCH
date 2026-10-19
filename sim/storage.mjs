@@ -1,3 +1,5 @@
+import {validateGroups} from './groups.mjs';
+import {validatePerformanceMacros} from './performance-mode.mjs';
 import {validateParams,N} from './dsp.mjs';
 import {defaultWaveFx,validateWaveFx} from './wave-fx.mjs';
 import {validatePerformance,makePerformance} from './performance.mjs';
@@ -14,7 +16,7 @@ export function validateSavedProject(item,waves){
  const name=validateName(item.name,'project');
  if(!Array.isArray(item.slots)||item.slots.length!==3||item.slots.some(s=>!Number.isInteger(s)||s<0||s>=64||!waves[s]))throw Error('Invalid project wave references');
  const octave=Number.isInteger(item.octave)&&[12,24,36,48,60,72,84,96].includes(item.octave)?item.octave:48;
- return {name,slots:[...item.slots],params:validateParams(item.params),performance:clonePerformance(item.performance),octave};
+ return {...{name,slots:[...item.slots],params:validateParams({...item.params,...(item.params?.voice===undefined?{voice:'POLY'}:{})}),performance:clonePerformance(item.performance),octave},...(item.groups!==undefined?{groups:validateGroups(item.groups)}:{}),...(item.performanceMacros!==undefined?{performanceMacros:validatePerformanceMacros(item.performanceMacros)}:{})};
 }
 export function validatePattern(item){
  if(!item||typeof item!=='object'||Array.isArray(item))throw Error('Invalid pattern');
@@ -25,7 +27,7 @@ export function validateProject(d){
  if(!d||!Array.from({length:11},(_,i)=>i+1).includes(d.version)||!Array.isArray(d.waves)||d.waves.length!==64)throw Error('Unsupported ETCH bank');
  const waves=d.waves.map(w=>w===null?null:validateWave(w));
  if(!Array.isArray(d.patches)||d.patches.length!==32)throw Error('Expected 32 patch slots');
- const patches=d.patches.map(p=>{if(p===null)return null;if(!p||typeof p.name!=='string'||!ASCII_NAME.test(p.name)||!Array.isArray(p.slots)||p.slots.length!==3||p.slots.some(s=>!Number.isInteger(s)||s<0||s>=64||!waves[s]))throw Error('Invalid patch references');return {name:p.name,slots:[...p.slots],params:validateParams(p.params),performance:validatePerformance(p.performance)};});
+ const patches=d.patches.map(p=>{if(p===null)return null;if(!p||typeof p.name!=='string'||!ASCII_NAME.test(p.name)||!Array.isArray(p.slots)||p.slots.length!==3||p.slots.some(s=>!Number.isInteger(s)||s<0||s>=64||!waves[s]))throw Error('Invalid patch references');return {name:p.name,slots:[...p.slots],params:validateParams({...p.params,...(p.params?.voice===undefined?{voice:'POLY'}:{})}),performance:validatePerformance(p.performance)};});
  let projects=Array(PROJECT_MEMORY_SLOTS).fill(null),patterns=Array(PATTERN_MEMORY_SLOTS).fill(null);
  if(d.version>=10){
   if(!Array.isArray(d.projects)||d.projects.length!==PROJECT_MEMORY_SLOTS)throw Error(`Expected ${PROJECT_MEMORY_SLOTS} project slots`);

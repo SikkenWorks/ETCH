@@ -50,8 +50,8 @@ int main(void){
  assert(etch_matrix_apply(&m,2,32000,127,32767,0,0)==32767); // saturated
  assert(etch_matrix_apply(&m,3,32767,127,0,0,32767)==32767);
  assert(hash(m)!=baseline);
- m.route[1].amount=101;assert(!etch_matrix_valid(&m));m.route[1].amount=100;
- m.route[2].source=5;assert(!etch_matrix_valid(&m));m.route[2].source=4;
+ m.route[1].amount=101;assert(etch_matrix_valid(&m)&&!etch_matrix_valid_legacy(&m));m.route[1].amount=100;
+ m.route[2].source=5;assert(etch_matrix_valid(&m)&&!etch_matrix_valid_legacy(&m));m.route[2].source=4;
  etch_project_legacy(&lib,&pattern,&settings);settings.source_version=24;
  settings.seq_length=16;settings.seq_gate=75;settings.tempo=120;
  settings.organic=(struct etch_organic_settings){10,20,30,40};
