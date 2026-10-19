@@ -914,13 +914,11 @@ static void render_internal(struct etch_native_audio *s,const struct etch_native
      uint32_t ch=((uint32_t)v->note-128u)/128u;
      matrix_pressure=(uint8_t)(s->bend[ch]>>24);
     }
-    voice_morph=etch_matrix_apply_active_ex(voice_matrix,0u,voice_morph,v->velocity,(uint16_t)v->env,matrix_wave,voice_living,matrix_pressure,matrix_note);
-    voice_depth=etch_matrix_apply_active_ex(voice_matrix,1u,voice_depth,v->velocity,(uint16_t)v->env,matrix_wave,voice_living,matrix_pressure,matrix_note);
-    voice_cutoff=etch_matrix_apply_active_ex(voice_matrix,2u,voice_cutoff,v->velocity,(uint16_t)v->env,matrix_wave,voice_living,matrix_pressure,matrix_note);
-    if(!group_patch && !matrix_global_done){
-     matrix_reverb=etch_matrix_apply_active_ex(voice_matrix,3u,locked.reverb,v->velocity,(uint16_t)v->env,matrix_wave,voice_living,matrix_pressure,matrix_note);
-     matrix_global_done=1u;
-    }
+    uint16_t *space_output=(!group_patch && !matrix_global_done)?&matrix_reverb:0;
+    etch_matrix_apply_all_active_ex(voice_matrix,&voice_morph,&voice_depth,
+      &voice_cutoff,space_output,v->velocity,(uint16_t)v->env,matrix_wave,
+      voice_living,matrix_pressure,matrix_note);
+    if(space_output)matrix_global_done=1u;
    }
    int32_t sample=preview_mix==32767u?0:
     carrier(v,voice_fx,voice_bank,v->p,v->q,organic_incs[i],organic_modincs[i],voice_morph,voice_depth,group_patch?group_patch->mod_target:c->mod_target,voice_evo,evolving?e->mode:0u,&carrier_mip[i],&mod_mip[i],

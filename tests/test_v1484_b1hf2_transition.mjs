@@ -38,8 +38,8 @@ function identity(text){
  const eng=new Engine({},()=>{},()=>{});
  eng.serve=async (_link,_image,fin)=>{steps.push(fin===C.FINISH_CHECK?'CHECK':'WRITE');return 65};
  eng.waitForB1HF2=async(pred)=>{const id={text:'ota-FM-1_900',loader:true};assert(pred(id));steps.push('OTA-900');return{id,link:link('loader')}};
- eng.waitFor=async()=>{steps.push('POST-BOOT');return{id:{text:'FM-1_1048',loader:false},link:link('app')}};
- await eng.install({id:{text:'FM-1_900',loader:false},link:link('source')},{product:'FM-1_1048',kind:'etch-stockhead',image:new Uint8Array(100)});
+ eng.waitFor=async()=>{steps.push('POST-BOOT');return{id:{text:'FM-1_1490',loader:false},link:link('app')}};
+ await eng.install({id:{text:'FM-1_900',loader:false},link:link('source')},{product:'FM-1_1490',kind:'etch-stockhead',image:new Uint8Array(100)});
  assert.deepEqual(steps.filter(x=>['CHECK','OTA-900','WRITE','POST-BOOT'].includes(x)),['CHECK','OTA-900','WRITE','POST-BOOT']);
 }
 // CHECK rejection absolutely blocks all loader probing and WRITEs.
@@ -48,15 +48,15 @@ function identity(text){
  eng.serve=async()=>{throw new Error('CHECK refused by firmware')};
  eng.waitForB1HF2=async()=>{probed++;return null};
  const link={send(){return true},async close(){}};
- await assert.rejects(eng.install({id:{text:'FM-1_900',loader:false},link},{product:'FM-1_1048',kind:'etch-stockhead',image:new Uint8Array(100)}),/CHECK refused/);
+ await assert.rejects(eng.install({id:{text:'FM-1_900',loader:false},link},{product:'FM-1_1490',kind:'etch-stockhead',image:new Uint8Array(100)}),/CHECK refused/);
  assert.equal(probed,0);assert.equal(writes,0);
 }
 // Firmware is UNCHANGED: both actual base64 payloads SHA-256 match the release files.
-for(const [id,file,kind] of [['firmware-embedded','release/ETCH-FM1-V1.48-ETCH-HEAD.fwsc','etch'],['firmware-embedded-stockhead','release/ETCH-FM1-V1.48-STOCK-HEAD.fwsc','etch-stockhead']]){
+for(const [id,file,kind] of [['firmware-embedded','release/ETCH-FM1-V1.49-ETCH-HEAD.fwsc','etch'],['firmware-embedded-stockhead','release/ETCH-FM1-V1.49-STOCK-HEAD.fwsc','etch-stockhead']]){
  const b64=html.match(new RegExp('<script id="'+id+'" type="application/octet-stream">\\s*([\\s\\S]*?)\\s*<\\/script>'))?.[1];
  assert(b64,id+' present');const raw=Buffer.from(b64.replace(/\s/g,''),'base64');
  const disk=fs.readFileSync(path.join(root,file));assert(raw.equals(disk),id+' embedded bytes equal original FWSC');
- const pkg=await verifyPackage(fromBase64(b64),kind);assert.equal(pkg.product,'FM-1_1048');
+ const pkg=await verifyPackage(fromBase64(b64),kind);assert.equal(pkg.product,'FM-1_1490');
  assert.equal(pkg.hash,crypto.createHash('sha256').update(disk).digest('hex'));
 }
 console.log('PASS V1.48.4 B1 HF2 SLOOP/Felucca OTA loader, CHECK->WRITE, denial safety, dual firmware SHA-256 parity');

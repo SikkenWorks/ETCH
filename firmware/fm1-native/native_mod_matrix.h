@@ -67,6 +67,45 @@ static inline uint16_t etch_matrix_apply_active_ex(const struct etch_mod_matrix 
  }
  return (uint16_t)(result<0?0:result>32767?32767:result);
 }
+/* V1.49: evaluate the four immutable routes ONE time for all targets.
+ * The historical four calls each traversed all four routes, even if the
+ * route belonged to a different target. Accumulate independently by target,
+ * preserving the original per-route integer division and final saturation.
+ * Null SPACE pointer skips that global destination for GROUPS and subsequent
+ * voices, preserving the original first-main-voice policy.
+ * Audio callback only: caller already verified an active immutable matrix.
+ * No allocations, floating point or additional persistent memory.
+ */
+static inline void etch_matrix_apply_all_active_ex(const struct etch_mod_matrix *m,
+ uint16_t *morph,uint16_t *depth,uint16_t *cutoff,uint16_t *space,
+ uint8_t velocity,uint16_t envelope,int16_t wave_c,uint16_t living,
+ uint8_t pressure,uint8_t note){
+ int32_t values[4]={(int32_t)*morph,(int32_t)*depth,(int32_t)*cutoff,
+                   space?(int32_t)*space:0};
+ for(uint32_t i=0;i<ETCH_MATRIX_ROUTES;i++){
+  const struct etch_mod_route *r=&m->route[i];
+  if(!r->source||!r->amount||(r->target==3u&&!space))continue;
+  int32_t src=0;
+  switch(r->source){
+   case 1:src=(int32_t)velocity*32767/127;break;
+   case 2:src=envelope>32767u?32767:(int32_t)envelope;break;
+   case 3:src=wave_c;break;
+   case 4:src=living>32767u?32767:(int32_t)living;break;
+   case 5:src=(int32_t)pressure*32767/127;break;
+   case 6:src=(int32_t)note*32767/127;break;
+   default:break;
+  }
+  values[r->target]+=(src*etch_matrix_signed(r->amount))/400;
+ }
+ for(uint8_t j=0;j<4u;j++){
+  int32_t x=values[j];
+  uint16_t out=(uint16_t)(x<0?0:x>32767?32767:x);
+  if(j==0u)*morph=out;
+  else if(j==1u)*depth=out;
+  else if(j==2u)*cutoff=out;
+  else if(space)*space=out;
+ }
+}
 static inline uint16_t etch_matrix_apply_ex(const struct etch_mod_matrix *m,
  uint8_t target,uint16_t base,uint8_t velocity,uint16_t envelope,
  int16_t wave_c,uint16_t living,uint8_t pressure,uint8_t note){

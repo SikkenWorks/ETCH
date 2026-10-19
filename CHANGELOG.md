@@ -2,9 +2,19 @@
 
 Development and release history of **ETCH**, the SikkenWorks custom synthesizer firmware for the M-VAVE FM1.
 
-This file contains product changes, fixes, optimizations and migration notes. For what ETCH is and how to operate it, use [README.md](README.md); for the extended controls and reference material, see [USER_MANUAL.md](USER_MANUAL.md). Individual archived technical reports remain in the project for traceability.
+This file contains product changes, fixes, optimizations and migration notes. For what ETCH is and how to operate it, use [README.md](README.md); the complete key/shortcut reference also lives there. Historical release details are consolidated below instead of scattered across separate Markdown files.
 
 **Important terminology:** “built”, “host-tested”, “installer-validated” and “hardware-tested” are different milestones. Unless explicitly noted, the historical reports document software testing, **not** proof of a successful physical FM1 installation or independent recovery.
+
+## V1.49 · Resource Efficiency / Matrix Processing
+
+- Combined per-voice Mod Matrix evaluation into a single four-route pass across MORPH, Wave C Depth, Filter Cutoff and optional SPACE, replacing repeated route scans per destination.
+- Preserved integer rounding, modulation saturation, per-voice expressions and the first-main-voice SPACE policy. The former public matrix API remains intact.
+- Kept 8 voices, three GROUPS parts, original DSP/FX, PJT31 project storage and B1 HF2 cross-firmware installation support.
+- Added 500,000 randomized modulation equivalence tests and seven PCM checksum comparisons against the previous version, with a pinned V1.48.5 audio reference.
+- Removed redundant historical Markdown files, duplicate legacy installers and superseded release images from the distribution project; original source and license files remain.
+- Native build identity `FM-1_1490`; dual-header `.fwsc` packages and embedded installer payloads regenerated from pinned reference boot/OTA assets.
+- Physical FM1 real-time CPU savings and installation remain **unverified**; earlier 369% load warning is not claimed resolved by host tests.
 
 ## V1.48.5 · New native firmware / B1 HF2 installer
 
@@ -13,7 +23,6 @@ This file contains product changes, fixes, optimizations and migration notes. Fo
 - Updated the B1 HF2-based WebInstaller to embed both new binaries, verify SHA-256 and look for `FM-1_1485` after reboot.
 - Kept project storage and OTA enabled, with **PJT31** and all existing synthesis behaviour unchanged.
 - Verified native compilation, package structure and targeted installer/browser tests. Physical cross-firmware flashing and independent recovery remain unverified.
-- Detail: [`V1.48.5-RELEASE-NOTES.md`](V1.48.5-RELEASE-NOTES.md).
 
 ## V1.48.4 · B1 HF2 OTA transition (installer only)
 
@@ -22,7 +31,6 @@ This file contains product changes, fixes, optimizations and migration notes. Fo
 - Kept on-device **CHECK**, loader identity verification and firmware hashing mandatory before WRITE.
 - Preserved both existing V1.48 `.fwsc` variants **byte-for-byte**; no changes to the firmware application's audio, UI or storage.
 - Tested simulated transition, CHECK refusal, unsupported-loader refusal and embedded firmware equality. Hardware results still pending.
-- Detail: [`V1.48.4-B1-HF2-OTA-RELEASE-NOTES.md`](V1.48.4-B1-HF2-OTA-RELEASE-NOTES.md).
 
 ## V1.48.3 · Safer OTA handoff (installer only)
 
@@ -30,7 +38,6 @@ This file contains product changes, fixes, optimizations and migration notes. Fo
 - Added a quiet handoff interval, targeted loader identity polling and a specific diagnosis when the original application (`FM-1_900`, for example) comes back instead of an OTA loader.
 - Blocked all WRITE operations unless a recognized OTA identity is established.
 - Kept the firmware image unchanged. The fix did not establish a successful real-device handoff.
-- Detail: [`V1.48.3-OTA-HANDOFF-FIX.md`](V1.48.3-OTA-HANDOFF-FIX.md).
 
 ## V1.48.2 · Legacy ETCH CHECK / header fix (installer only)
 
@@ -38,14 +45,12 @@ This file contains product changes, fixes, optimizations and migration notes. Fo
 - Confirmed in a simulated historical receiver that the identical ETCH application with the original V15 protected header advanced through **65** CHECK requests.
 - Changed AUTO selection for identified historical V1.34–V1.38 ETCH versions to use the original V15-header variant; rejected known contradictory manual choices.
 - Added a regression test for the 18-block failure. Both firmware package payloads remained unchanged.
-- Detail: [`V1.48.2-CHECK-ROOT-CAUSE.md`](V1.48.2-CHECK-ROOT-CAUSE.md).
 
 ## V1.48.1 · OTA reconnect diagnostics (installer only)
 
 - Increased the loader wait window from 30 to 90 seconds and improved discovery of renamed USB MIDI port pairs.
 - Added diagnostic logging and recognized direct reconnect to a known OTA loader.
 - Kept device-side CHECK and loader validation intact; a firmware that does not actually launch the loader cannot be forced to do so by the browser.
-- Detail: [`V1.48.1-OTA-RECONNECT.md`](V1.48.1-OTA-RECONNECT.md).
 
 ## V1.48 · Cross-firmware OTA compatibility
 
@@ -55,7 +60,6 @@ This file contains product changes, fixes, optimizations and migration notes. Fo
 - Required pinned loaders and header checks; refused unknown firmware targets.
 - Assigned application identity **`FM-1_1048`**. Audio, GROUPS, project serialization and synthesis parameters stayed unchanged from the previous generation.
 - Native/package/host compatibility checks passed; compatibility with every outside custom firmware or installer was **not** and cannot be guaranteed.
-- Detail: [`V1.48-RELEASE-NOTES.md`](V1.48-RELEASE-NOTES.md), [`V1.48-TEST-REPORT.md`](V1.48-TEST-REPORT.md).
 
 ## V1.47.1 · Cross-firmware recognition (installer only)
 
@@ -63,7 +67,6 @@ This file contains product changes, fixes, optimizations and migration notes. Fo
 - Added recognition of common third-party FM1 identities and MIDI port names, while still requiring a real FM1 SysEx identity reply.
 - Refused unsafe unknown loader identities and preserved SHA-256/header verification.
 - Left the native V1.47 application and `.fwsc` unchanged (`FM-1_1047`).
-- Detail: [`V1.47.1-CROSS-FIRMWARE-RELEASE-NOTES.md`](V1.47.1-CROSS-FIRMWARE-RELEASE-NOTES.md).
 
 ## V1.47 · Display rendering and audio-timing guards
 
@@ -72,7 +75,6 @@ This file contains product changes, fixes, optimizations and migration notes. Fo
 - In simulations, verified **2,000 pixel-identical final frames**; a one-band change reduced pixel transfer from 83,040 to 20,640 bytes and an unchanged screen required no pixel resend.
 - Kept native audio source identical to V1.46.2 and passed seven reference PCM comparisons.
 - Added host checks around DMA/deadline guard behaviour; no claim of measured physical ISR headroom.
-- Detail: [`V1.47-TEST-REPORT.md`](V1.47-TEST-REPORT.md).
 
 ## V1.46.2 · Realtime Mod Matrix optimization
 
@@ -80,7 +82,6 @@ This file contains product changes, fixes, optimizations and migration notes. Fo
 - Preserved the original sample-rate modulation arithmetic, shared eight voices, GROUPS, FX and PJT31.
 - Verified **7/7 bit-identical** reference PCM scenarios versus the V1.46.1 restored audio path and randomized modulation equivalence tests.
 - Recompiled as `FM-1_1462`. The 60 MHz emulator report of **369% audio-thread load** was **not proved fixed** by these tests.
-- Detail: [`V1.46.2-RELEASE-NOTES.md`](V1.46.2-RELEASE-NOTES.md), [`V1.46.2-TEST-REPORT.md`](V1.46.2-TEST-REPORT.md).
 
 ## V1.46.1 · Emergency audio rollback
 
@@ -88,14 +89,12 @@ This file contains product changes, fixes, optimizations and migration notes. Fo
 - Restored the complete V1.45 native FX/audio implementation; the compared V1.45 application and recovery application differed only in version bytes in the documented binary comparison.
 - Added rollback parity checks and removed the withdrawn V1.46 FX package from the recovery distribution.
 - Produced an experimental recovery application and installer, without claiming a physically verified cure.
-- Detail: [`V1.46.1-EMERGENCY-AUDIO-RECOVERY.md`](V1.46.1-EMERGENCY-AUDIO-RECOVERY.md), [`README-RECOVERY-FIRST.md`](README-RECOVERY-FIRST.md).
 
 ## V1.46 · Withdrawn FX resource optimization
 
 - Introduced dry/wet FX fast paths that skipped certain chorus, delay and reverb computations when not contributing to output.
 - Host PCM and selected FX-state comparisons passed, **but a physical user reported the audio engine stopping immediately**.
 - **Withdrawn**. Do not use the original V1.46 FX package as a known-stable release. It was replaced by V1.46.1 rollback and later guarded optimizations.
-- Detail: [`V1.46-RELEASE-NOTES.md`](V1.46-RELEASE-NOTES.md), [`V1.46-TEST-RESULTS.md`](V1.46-TEST-RESULTS.md).
 
 ## V1.45 · Native resource optimization
 
@@ -103,7 +102,6 @@ This file contains product changes, fixes, optimizations and migration notes. Fo
 - Replaced certain safe bounded 64-bit oscillator/filter calculations with equivalent 32-bit arithmetic.
 - Reported byte-identical PCM in tested mono/poly/GROUPS/FX scenarios and no added persistent DSP buffers.
 - Did **not** demonstrate a reliable physical FM1 CPU-saving percentage.
-- Detail: [`V1.45-RELEASE-NOTES.md`](V1.45-RELEASE-NOTES.md), [`V1.45-TEST-RESULTS.md`](V1.45-TEST-RESULTS.md).
 
 ## V1.44 · Performance Mode
 
@@ -111,7 +109,6 @@ This file contains product changes, fixes, optimizations and migration notes. Fo
 - Added live/assign modes, capture with REC and recall with PLAY/STOP; saved assignments and scenes in **PJT31**.
 - Preserved compatibility when reading older PJT30 projects.
 - Changed a small existing sequencer workbuffer placement to fit native RAM without adding large DSP allocations.
-- Detail: [`V1.44-RELEASE-NOTES.md`](V1.44-RELEASE-NOTES.md), [`NAVIGATION-V1.44.md`](NAVIGATION-V1.44.md).
 
 ## V1.43 · Wave Sequencing and navigation fixes
 
@@ -120,7 +117,6 @@ This file contains product changes, fixes, optimizations and migration notes. Fo
 - Added a chapter-based PROJECT HELP screen navigated with K1, fixed the `CAN T` display typo to `CANT`.
 - Added dirty-region drawing on GROUPS to reduce full-screen flicker during knob changes.
 - Made **MONO** the default for new projects while preserving the saved mode of existing projects.
-- Detail: [`V1.43-RELEASE-NOTES.md`](V1.43-RELEASE-NOTES.md), [`NAVIGATION-V1.43.md`](NAVIGATION-V1.43.md).
 
 ## V1.42 · Mod Matrix 2.0
 
@@ -128,7 +124,6 @@ This file contains product changes, fixes, optimizations and migration notes. Fo
 - Extended amount control to signed **−100…+100**; retained four routes and four destinations to respect RAM constraints.
 - Introduced **PJT30** with backward reading of PJT29 and earlier compatible formats.
 - Added updated browser matrix editor and restored missing `.gitignore` / GitHub Actions test workflow.
-- Detail: [`V1.42-RELEASE-NOTES.md`](V1.42-RELEASE-NOTES.md).
 
 ## V1.41 · Advanced Wave Sculpting
 
@@ -136,7 +131,6 @@ This file contains product changes, fixes, optimizations and migration notes. Fo
 - Added original-wave/preview drawing, wave selection, strength and pivot; SAVE commits the edit to the 128-point waveform and creates an undo checkpoint.
 - Preserved the existing waveform save and project formats. Applying is undoable, but **does not create a permanent nondestructive effect stack**.
 - Added corresponding simulator controls and tests.
-- Detail: [`V1.41-RELEASE-NOTES.md`](V1.41-RELEASE-NOTES.md).
 
 ## V1.40 · Expressive Voice and GROUPS (development phases)
 
@@ -251,7 +245,7 @@ This file contains product changes, fixes, optimizations and migration notes. Fo
 ## Earlier ETCH development
 
 - ETCH originated as SikkenWorks' custom M-VAVE FM1 firmware built around **DRAW · MORPH · MODULATE**, moving from the concept and web simulator through initial native JieLi builds, audio stability, projects, presets, OTA packaging and recovery research.
-- Earlier iteration-by-iteration records are not exhaustively present in the supplied V1.48.5 archive. No undocumented version-specific changes are inferred here. Preserved historical detail: [`docs/README-HISTORY-PRE-V147.md`](docs/README-HISTORY-PRE-V147.md) and [`USER_MANUAL.md`](USER_MANUAL.md).
+- Earlier iteration-by-iteration records are not exhaustively present in the supplied V1.48.5 archive. No undocumented version-specific changes are inferred here. Historical summary and current instructions are maintained in this CHANGELOG and [README.md](README.md), respectively.
 
 ---
 

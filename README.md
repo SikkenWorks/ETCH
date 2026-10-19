@@ -20,9 +20,9 @@ ETCH turns the **M-VAVE FM1** into a synthesizer built around waveforms you crea
 
 The entire instrument is designed for hands-on sound design, using the FM1's own screen, encoders and keyboard. It also supports external USB MIDI, saved sounds, pattern creation, effects, keyboard splits and live performance controls.
 
-**Current project:** V1.48.5 · Device identity `FM-1_1485` · Project format `PJT31` · GNU GPL-3.0-only.
+**Current project:** V1.49 · Device identity `FM-1_1490` · Project format `PJT31` · GNU GPL-3.0-only.
 
-> **Hardware status:** V1.48.5 is an experimental firmware build. Native compilation and installer checks do not establish that a particular FM1 can safely install, boot or recover it. Save your data and use a tested recovery method before flashing. Cross-firmware installation requires cooperation from the firmware already on the FM1.
+> **Hardware status:** V1.49 is an experimental firmware build. Native compilation and installer checks do not establish that a particular FM1 can safely install, boot or recover it. Save your data and use a tested recovery method before flashing. Cross-firmware installation requires cooperation from the firmware already on the FM1.
 
 ## How ETCH works
 
@@ -88,7 +88,7 @@ The three parts share **eight voices total**, not eight voices each. Each Group 
 5. Adjust the envelope, filter and effects; play the FM1 keyboard or a USB MIDI controller.
 6. **SAVE** the waveform, preset or project using the appropriate save context.
 
-The physical display is the authority for context-dependent controls. The tables below describe the implemented V1.48.5 layout, not the older concept mockups.
+The physical display is the authority for context-dependent controls. The tables below describe the implemented V1.49 layout, not the older concept mockups.
 
 ## Controls and shortcuts
 
@@ -224,21 +224,21 @@ DRAW + FX:    WFX 1 → WFX 2 → SCULPT → editor tools
 
 **Performance Mode.** Four macros can target MORPH, Wave C depth, CUTOFF, DRIVE or SPACE. Two scenes store their parameter values. Scene recall uses the existing parameter smoothing; it is not an automatic continuous A-to-B scene morph.
 
-For deeper information about the editors, sequencer, musical modes, diagnostic screens and sound-design recipes, see the [full user manual](USER_MANUAL.md). **For all version-by-version development history, fixes and releases, see [CHANGELOG.md](CHANGELOG.md).**
+All documented controls, shortcuts, modes and primary workflow are described in this README. For version-by-version development, fixes and releases, see [CHANGELOG.md](CHANGELOG.md).
 
 ## Installation and recovery
 
-**Use the current [`WebInstaller.html`](WebInstaller.html), not an archived installer.** V1.48.5 includes two `.fwsc` variants in [`release/`](release/): an ETCH-header variant and an original V15-header variant. They contain the same newly compiled ETCH application, identified as `FM-1_1485`; the installer chooses a compatible candidate according to the firmware it detects.
+**Use the current [`WebInstaller.html`](WebInstaller.html), not an archived installer.** V1.49 includes two `.fwsc` variants in [`release/`](release/): an ETCH-header variant and an original V15-header variant. They contain the same newly compiled ETCH application, identified as `FM-1_1490`; the installer chooses a compatible candidate according to the firmware it detects.
 
 1. Back up projects and preserve your verified, working recovery firmware/procedure.
 2. Open the WebInstaller in desktop **Chrome or Edge** over HTTPS/localhost. Use a USB data cable and close other software using the FM1 MIDI port.
 3. Connect, check the **detected device ID**, leave the header choice on AUTO if it matches your known firmware family, and review the warnings.
 4. The current firmware must approve **CHECK** before any transfer. The installer then identifies the actual OTA loader before **WRITE**.
-5. Only a restart reporting **`FM-1_1485`** constitutes installer-verified completion. Save the diagnostic log if it stops at CHECK or LOADER.
+5. Only a restart reporting **`FM-1_1490`** constitutes installer-verified completion. Save the diagnostic log if it stops at CHECK or LOADER.
 
 The installer includes the B1 HF2-style handoff for known `ota-FM-1_9xx` and `ota-FM-1_015` loader families. A loader's MIDI port name alone is **not** proof of compatibility. No WebInstaller can force an unrelated running custom firmware or third-party updater to approve ETCH; never bypass an unknown loader's checks. Genuine stock V15 restoration requires the original verified vendor `.fwsc`, which is **not** bundled.
 
-> **Do not interpret an offline-valid `.fwsc` as a brick-proof firmware.** Physical installation, sustained FM1 DSP load, flash persistence and independent recovery have not been demonstrated for V1.48.5 in this repository's test environment.
+> **Do not interpret an offline-valid `.fwsc` as a brick-proof firmware.** Physical installation, sustained FM1 DSP load, flash persistence and independent recovery have not been demonstrated for V1.49 in this repository's test environment.
 
 ## Source and development
 
@@ -261,10 +261,10 @@ export JIELI_TOOLCHAIN=/path/to/jieli-toolchain
 python3 firmware/fm1-native/build.py --storage --updater
 npm test
 npm run test:ota1484
-npm run test:v1485
+npm run test:v149
 ```
 
-See [`README-V1485.md`](README-V1485.md), [`RELEASE-MANIFEST.json`](RELEASE-MANIFEST.json) and the relevant scripts in `tools/` for reproducible package generation. `npm test` validates source behaviour and installer data; it does **not** perform a physical flash.
+See [`RELEASE-MANIFEST.json`](RELEASE-MANIFEST.json), `tools/build_v149_release.py` and the relevant build scripts in `tools/` for reproducible package generation. `npm test` validates source behaviour and installer data; it does **not** perform a physical flash.
 
 ## Credits and licensing
 
@@ -311,6 +311,6 @@ ETCH is not officially endorsed by **M-VAVE**, **JieLi Technology**, **Hügelton
 
 *Born out of passion.*
 
-[Source](https://github.com/SikkenWorks/ETCH) · [Documentation](USER_MANUAL.md) · [Changelog](CHANGELOG.md) · [License](LICENSE)
+[Source](https://github.com/SikkenWorks/ETCH) · [Documentation](README.md) · [Changelog](CHANGELOG.md) · [License](LICENSE)
 
 </div>

@@ -1,19 +1,19 @@
 {
   "name": "etch-host",
-  "version": "1.48.5",
+  "version": "1.49.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node tests/test.mjs && node tests/ui-harness.mjs && node tests/fault-injection.mjs && npm run test:v143 && node tests/test_v144_performance.mjs && node tests/test_v1485_firmware.mjs",
+    "test": "node tests/test.mjs && node tests/ui-harness.mjs && node tests/fault-injection.mjs && npm run test:v143 && node tests/test_v144_performance.mjs && node tests/test_v149_firmware.mjs",
     "test:v142": "node tests/test_v142_mod_matrix.mjs && node tests/test_v141_sculpt.mjs && node tests/test_groups.mjs && node tests/test_group_audio.mjs && node tests/test_v140_phase5_velocity.mjs && node tests/test_v140_phase7_aftertouch.mjs",
     "test:v141": "node tests/test_v141_sculpt.mjs && node tests/test_groups.mjs && node tests/test_group_audio.mjs && node tests/test_v140_phase5_velocity.mjs && node tests/test_v140_phase7_aftertouch.mjs",
     "test:legacy": "node tests/test_installer_pkg_v130.mjs",
     "test:v143": "node tests/test_v143_wave_seq.mjs && node tests/test_v142_mod_matrix.mjs && node tests/test_v141_sculpt.mjs && node tests/test_groups.mjs && node tests/test_group_audio.mjs && node tests/test_v140_phase5_velocity.mjs && node tests/test_v140_phase7_aftertouch.mjs",
-    "test:ota148": "node tests/test_cross_firmware_v148.mjs",
-    "test:ota1481": "node tests/test_ota_reconnect_v1481.mjs && node tests/test_cross_firmware_v148.mjs",
+    "test:ota148": "node tests/test_v149_firmware.mjs",
+    "test:ota1481": "node tests/test_ota_reconnect_v1481.mjs && node tests/test_v149_firmware.mjs",
     "test:ota1482": "node tests/test_v1482_bootheader.mjs && python3 tests/test_v1482_legacy_replay.py",
     "test:ota1483": "node tests/test_v1483_ota_handoff.mjs && node tests/test_v1482_bootheader.mjs && node tests/test_ota_reconnect_v1481.mjs",
-    "test:ota1484": "node tests/test_v1484_b1hf2_transition.mjs && node tests/test_v1483_ota_handoff.mjs && node tests/test_cross_firmware_v148.mjs && node tests/test_v1482_bootheader.mjs",
-    "test:v1485": "node tests/test_v1485_firmware.mjs"
+    "test:ota1484": "node tests/test_v1484_b1hf2_transition.mjs && node tests/test_v1483_ota_handoff.mjs && node tests/test_v149_firmware.mjs && node tests/test_v1482_bootheader.mjs",
+    "test:v149": "node tests/test_v149_firmware.mjs"
   }
 }
