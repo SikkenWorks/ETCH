@@ -12,7 +12,7 @@ with tempfile.TemporaryDirectory() as td:
  cc=os.environ.get('CC','cc')
  subprocess.run([cc,'-O2','-std=c11','-I',str(R/'firmware/fm1-native'),'-o',str(exe),str(R/'tests/test_v1482_v138_ota.c'),str(R/'firmware/fm1-native/native_digest.c')],check=True)
  def run(variant):
-  pkg=R/f'release/ETCH-FM1-V1.49-{variant}-HEAD.fwsc'
+  pkg=R/f'release/ETCH-FM1-V1.50-{variant}-HEAD.fwsc'
   p=subprocess.run([str(exe),str(pkg),str(head)],text=True,capture_output=True,timeout=30)
   line=next((s for s in p.stdout.splitlines() if s.startswith('CROSS_OTA_RESULT=')),None)
   assert line is not None,(p.stdout,p.stderr)

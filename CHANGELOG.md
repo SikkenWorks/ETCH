@@ -6,6 +6,16 @@ This file contains product changes, fixes, optimizations and migration notes. Fo
 
 **Important terminology:** “built”, “host-tested”, “installer-validated” and “hardware-tested” are different milestones. Unless explicitly noted, the historical reports document software testing, **not** proof of a successful physical FM1 installation or independent recovery.
 
+## V1.50 · Native Cross-Firmware OTA Compatibility (experimental)
+
+- Fixed the **native** outgoing OTA CHECK logic: an app-only firmware update no longer requires its unrelated protected bootheader to match ETCH’s own bootheader. The trusted app-only loader preserves the protected 0x0000–0x3FFF range.
+- Replaced the incoming-loader SHA whitelist with a safer handoff for standard app-only updates: ETCH **never executes the other firmware’s loader**, but stages a verified embedded copy of ETCH’s original SHA-256-pinned 6898-byte loader. Incoming app-only loaders must still have valid structural headers, be exactly the expected length and pass their transmitted data CRC.
+- Preflights the destination flash image’s filesystem headers, CRCs, `isd_config.ini` chip key `0x980F`, application region `0x4000`, app directory and `app.bin` offset `0x120` before any flash erase. Rejected/invalid targets never reach commit.
+- Retains the exact identity `ota-FM-1_015` for its actual staged loader, rather than advertising a Felucca `900` loader which is not the executable being staged. External installers must recognize the actual OTA identity; hardware compatibility still requires testing.
+- Preserved the exact-original-V15 full-flash recovery restriction and existing staged-loader readback/CRC/SHA, owner-token, timeout, interruption and flash-commit safety guards. Does not make the official V15 restore image freely interchangeable with custom images.
+- Reproduced the historical bootheader and loader-hash failure classes in a **native host harness** and tested foreign-header acceptance, foreign-loader safe substitution, corrupted app directory refusal, timeout and flash-read/erase/write failures. Full original Felucca 1.6 and 1.1.5 packages have **not yet been replayed**; actual device compatibility is unverified.
+- Compiled as `FM-1_1500` with both V15 and ETCH bootheader variants. Synth/audio signal path and PJT31 data structures unchanged.
+
 ## V1.49 · Resource Efficiency / Matrix Processing
 
 - Combined per-voice Mod Matrix evaluation into a single four-route pass across MORPH, Wave C Depth, Filter Cutoff and optional SPACE, replacing repeated route scans per destination.

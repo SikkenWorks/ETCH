@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define FELUCCA_ID "FM-1_930"
+#define FELUCCA_ID "FM-1_1500"
 #define FELUCCA_OTA_DRYRUN 0
 
 static uint8_t nor[0x100000];
@@ -24,7 +24,7 @@ static uint32_t now_ms, requests, ident_replies, mute_after = 0xFFFFFFFFu, bad_e
 static int committed;
 static uint8_t committed_parm[112];
 static int32_t last_code;
-static uint32_t io_ops,fail_at,partial,fail_forever,cancel_after;
+static uint32_t io_ops,fail_at,partial,fail_forever,cancel_after,cancel_at_io;
 static int fault(void){++io_ops;return fail_at&&(fail_forever?io_ops>=fail_at:io_ops==fail_at);}
 static uint8_t *corrupt_at;              /* flip a served byte (loader body) */
 
@@ -98,7 +98,7 @@ static int ota_frame_get(const uint8_t **p, uint32_t *n)
 static void ota_frame_done(void) { rx_full = 0; }
 static uint32_t ota_now_ms(void) { return now_ms; }
 static void ota_idle(void) { now_ms += 1; }
-static int ota_aborted(void){return cancel_after&&requests>=cancel_after;}
+static int ota_aborted(void){return (cancel_after&&requests>=cancel_after)||(cancel_at_io&&io_ops>=cancel_at_io);}
 static int ota_erase(uint32_t off)
 {
     if (off < 0xE0000u || off >= 0xE5000u || (off & 0xFFFu)) { bad_erase++; return -8; }
@@ -160,7 +160,7 @@ static void reset_dev(void)
 {
     memset(nor, 0xFF, sizeof nor);
     memset(nor+0x97000,0x4d,0xA000);
-    io_ops=fail_at=partial=fail_forever=cancel_after=0;
+    io_ops=fail_at=partial=fail_forever=cancel_after=cancel_at_io=0;
     memcpy(nor, test_cross_install ? installed_head : logical + 0x400, 0x4000); /* cross-firmware boot head or package head */
     rx_full = 0; requests = 0; ident_replies = 0; committed = 0; last_code = 0;
     mute_after = 0xFFFFFFFFu; corrupt_at = NULL; bad_erase = 0;
@@ -198,9 +198,21 @@ int main(int argc, char **argv)
         test_cross_install = 1;
         reset_dev();
         rc = ota_session();
-        printf("CROSS_OTA_RESULT=%d REQUESTS=%u COMMITTED=%d BOOT_HEAD_UNCHANGED=%d\n",
-               rc, requests, committed, !memcmp(nor, installed_head, sizeof installed_head));
-        return (rc == 0 && committed && !memcmp(nor, installed_head, sizeof installed_head)) ? 0 : 1;
+        /* Native CHECK/commit for the ACTUAL file, with the known original
+         * V15 head installed. No host OTA executable is ever staged for an
+         * app-only update: staged bytes MUST be our audited loader. */
+        int body_safe=0;
+        uint32_t body_off=ota_body_off();
+        uint32_t body_len=ota_rd32(logical+body_off-32u+8u);
+        if(body_len==ETCH_OTA_BODY_LEN){
+          body_safe=!memcmp(nor+OTA_AREA+32u,etch_trusted_app_loader,ETCH_OTA_BODY_LEN);
+        }else if(body_len==ETCH_STOCK_OTA_BODY_LEN){
+          body_safe=!memcmp(nor+OTA_AREA+32u,logical+body_off,body_len);
+        }
+        printf("CROSS_OTA_RESULT=%d REQUESTS=%u COMMITTED=%d BOOT_HEAD_UNCHANGED=%d TRUSTED_STAGED_LOADER=%d OTA_ID=%.*s\n",
+               rc, requests, committed, !memcmp(nor, installed_head, sizeof installed_head),
+               body_safe,12,committed_parm+8);
+        return (rc == 0 && committed && body_safe && !memcmp(nor, installed_head, sizeof installed_head)) ? 0 : 1;
     }
 
 
@@ -220,7 +232,7 @@ int main(int argc, char **argv)
     rc = ota_session();
     printf("  %u requests\n", requests);
     bad += check("session commits", rc == 0 && committed);
-    bad += check("headers, pinned loader, raw head comparison, confirm", ((ota_body_off() >= 0xA0000u) ? (requests >= 1200 && requests <= 1400) : (requests >= 60 && requests <= 90)));
+    bad += check("header, trusted OTA source, chip key, confirmation", (requests >= 20 && requests <= 70));
     {
         uint8_t *h = nor + 0xE0000, *p = committed_parm;
         bad += check("staged body == the package's loader", !memcmp(nor + 0xE0020, logical + ota_body_off(), 64));
@@ -264,7 +276,7 @@ int main(int argc, char **argv)
     reset_dev();corrupt_at=logical+ota_body_off()+80;rc=ota_session();
     bad+=check("altered loader refused before erase",rc==-16&&!committed&&area_erased());
     reset_dev();nor[0x100]^=1;rc=ota_session();
-    bad+=check("device boot mismatch refused before erase",rc==-5&&!committed&&area_erased());
+    bad+=check("device boot bytes preserved by app-only update",rc==0&&committed&&(nor[0x100] == (uint8_t)(logical[0x400+0x100]^1)));
     uint8_t original_header[1024];memcpy(original_header,logical,1024);
     edit_entry(0,8,0xfffffff0u,0);reset_dev();rc=ota_session();
     bad+=check("overflowing package address refused before erase",rc<0&&!committed&&area_erased());memcpy(logical,original_header,1024);
@@ -284,8 +296,67 @@ int main(int argc, char **argv)
     reset_dev();fail_at=baseline;fail_forever=1;rc=ota_session();
     uint8_t *pending=nor+OTA_RES;
     bad+=check("late cleanup fault can retain confirmed record",rc==-17&&!committed&&ota_rd16(pending)==ota_crc16(pending+2,78,0));
-    reset_dev();cancel_after=50;rc=ota_session();
+    reset_dev();cancel_at_io=80;rc=ota_session();
     bad+=check("cancel during staging cleans without commit",rc<0&&!committed&&area_erased());
+    /* Same shape as the GitHub report: host's executable OTA payload differs.
+     * ETCH must stage its OWN pinned app-only loader, not the host's. */
+    {
+        uint32_t off=ota_body_off();
+        uint8_t save=logical[off+100];
+        logical[off+100]^=0x17;
+        uint32_t h=off-32u;
+        ota_wr16(logical+h+2,ota_crc16(logical+off,ETCH_OTA_BODY_LEN,0));
+        ota_wr16(logical+h,ota_crc16(logical+h+2,30,0));
+        reset_dev();rc=ota_session();
+        bad+=check("foreign OTA binary is NOT executed; trusted loader staged",
+            rc==0 && committed && !memcmp(nor+OTA_AREA+32,etch_trusted_app_loader,ETCH_OTA_BODY_LEN) &&
+            !memcmp(committed_parm+8,"ota-FM-1_015",12));
+        logical[off+100]=save;
+        /* Reconstruct the original pinned package's OTA entry. */
+        ota_wr16(logical+h+2,ota_crc16(logical+off,ETCH_OTA_BODY_LEN,0));
+        ota_wr16(logical+h,ota_crc16(logical+h+2,30,0));
+    }
+    /* A structurally valid package whose boot header bytes are different
+     * remains eligible: the trusted app-only loader cannot overwrite them. */
+    {
+        uint32_t pos=0x400u+0x100u;
+        uint8_t save=logical[pos];logical[pos]^=0x3C;
+        reset_dev();rc=ota_session();
+        bad+=check("foreign protected header accepted and device boot retained",
+             rc==0 && committed && !memcmp(nor,logical+0x400,0x4000));
+        logical[pos]=save;
+    }
+    /* A structurally correct ISD config with the WRONG chip key must be
+     * rejected even after rebuilding both JieLi entry CRCs. */
+    {
+        uint8_t head[0xA0],saved_entry[32];
+        memcpy(head,logical+0x400u,sizeof head);
+        for(uint32_t k=0;k<sizeof head;k+=32u)ota_jl_enc(head+k,32);
+        uint8_t *entry=head+0x40u;
+        uint32_t isd_off=ota_rd32(entry+4u),isd_len=ota_rd32(entry+8u);
+        if(isd_len>=32u && isd_len<0x4000u && isd_off<0x4000u-isd_len){
+           memcpy(saved_entry,logical+0x400u+0x40u,32u);
+           uint8_t saved=logical[0x400u+isd_off+16u];
+           logical[0x400u+isd_off+16u]^=0x40u;
+           ota_wr16(entry+2u,ota_crc16(logical+0x400u+isd_off,isd_len,0));
+           ota_wr16(entry,ota_crc16(entry+2,30,0));
+           ota_jl_enc(entry,32);
+           memcpy(logical+0x400u+0x40u,entry,32u);
+           reset_dev();rc=ota_session();
+           bad+=check("wrong FM1 chip key rejected before erase",rc==-21&&!committed&&area_erased());
+           logical[0x400u+isd_off+16u]=saved;
+           memcpy(logical+0x400u+0x40u,saved_entry,32u);
+        }else bad+=check("ISD config fixture is valid",0);
+    }
+    /* Image mismatch in app metadata is a hard failure before any erase. */
+    {
+        uint32_t pos=0x400u+0x4000u;
+        uint8_t save=logical[pos];logical[pos]^=0x77;
+        reset_dev();rc=ota_session();
+        bad+=check("incompatible/corrupted app directory refused safely",
+             rc==-21 && !committed && area_erased());
+        logical[pos]=save;
+    }
     reset_dev();now_ms=0xfffffff0u;mute_after=0;rc=ota_session();
     bad+=check("timeout across millisecond rollover refuses",rc<0&&!committed&&area_erased());
     printf("%s\n", bad ? "OTA TEST FAILED" : "ota test passed");

@@ -193,7 +193,7 @@ static volatile uint32_t native_nested_ticks, native_nested_count;
 #define ETCH_NATIVE_OTA 0
 #endif
 #define FELUCCA_OTA ETCH_NATIVE_OTA
-#define FELUCCA_ID "FM-1_1490"
+#define FELUCCA_ID "FM-1_1500"
 #define ETCH_UI_VERSION "V147"
 #define FELUCCA_OTA_DRYRUN 0
 #define RING_PUBLISH() __asm__ volatile("" ::: "memory")

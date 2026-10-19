@@ -1,4 +1,4 @@
-name: ETCH V1.49 OTA and DSP parity checks
+name: ETCH V1.50 Native OTA and DSP parity checks
 on: [push, pull_request]
 jobs:
   host:
@@ -24,8 +24,13 @@ jobs:
       - name: Verify dual-header packages and native OTA receiver
         run: |
           gcc -std=c11 -O2 -I firmware/fm1-native tests/test_native_v148_cross.c firmware/fm1-native/native_digest.c -o /tmp/etch-v148-ota
-          /tmp/etch-v148-ota release/ETCH-FM1-V1.49-ETCH-HEAD.fwsc release/ETCH-FM1-V1.49-STOCK-HEAD.fwsc
-          node tests/test_v149_firmware.mjs
+          /tmp/etch-v148-ota release/ETCH-FM1-V1.50-ETCH-HEAD.fwsc release/ETCH-FM1-V1.50-STOCK-HEAD.fwsc
+          node tests/test_v150_firmware.mjs
+      - name: V1.50 native CHECK / trusted OTA / foreign-header simulation
+        run: |
+          gcc -std=c11 -O2 -fsanitize=address,undefined -fno-omit-frame-pointer -I firmware/fm1-native tests/test_v150_native_ota.c firmware/fm1-native/native_digest.c -o /tmp/etch-v150-native-ota
+          ASAN_OPTIONS=detect_leaks=0 /tmp/etch-v150-native-ota release/ETCH-FM1-V1.50-STOCK-HEAD.fwsc
+          python3 tools/replay_external_fm1_ota.py --package release/ETCH-FM1-V1.50-STOCK-HEAD.fwsc
       - name: Run web DSP/UI/firmware-package tests
         run: npm test
       - name: Replay exact V1.38 updater against both protected-header variants

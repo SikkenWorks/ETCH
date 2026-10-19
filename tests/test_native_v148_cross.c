@@ -33,7 +33,7 @@ int main(int argc,char **argv){
  bad+=test_on_head("ETCh app with stock boothead",argv[1],stock_head,0);
  bad+=test_on_head("Stockhead app on installed ETCH",argv[2],etch_head,0);
  bad+=test_on_head("Stockhead app on installed stock",argv[2],stock_head,0);
- bad+=test_on_head("Unknown installed boothead rejected",argv[2],garbage_head,-5);
+ bad+=test_on_head("Different installed boothead preserved",argv[2],garbage_head,0);
  if(argc==4)bad+=test_on_head("Pinned exact original V15 restore from ETCH",argv[3],etch_head,0);
  else puts("Original V15 restore test SKIPPED (supply pinned vendor package).");
  // Unknown staging data must not be cleared without a valid owned stage.

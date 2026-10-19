@@ -1,0 +1,29 @@
+{
+  "version": "1.50",
+  "firmware_identity": "FM-1_1500",
+  "native_ota_enabled": true,
+  "native_storage_enabled": true,
+  "project_format": "PJT31",
+  "firmware_variants": {
+    "etch": {
+      "file": "release/ETCH-FM1-V1.50-ETCH-HEAD.fwsc",
+      "sha256": "ef8de6dc0b1b0a2d15d45d42649856379f3b7d8a2718cf4fa5e0d3cf105a67c0",
+      "bootheader_sha256": "a65e0e1a2fad1db943c00b529b45553c524257146145db61b69628cefcf2b2c9",
+      "bytes": 610086
+    },
+    "stock": {
+      "file": "release/ETCH-FM1-V1.50-STOCK-HEAD.fwsc",
+      "sha256": "cc50fc1fe8d793f6a70f80c50dbbf9d519171ceeb81567d50d16c72c8835423f",
+      "bootheader_sha256": "d9f43191777656de01c7bed4f9e9ba2e34e94832c5d2ed02c3fc7ab7a6d9bd67",
+      "bytes": 610086
+    }
+  },
+  "application_sha256": "52036fd4b3b155be326572cd6f9e081045032c3127f37614425b0362313cb53f",
+  "application_bytes": 208228,
+  "ota_loader_sha256": "d71d1b7c12adede951605e758a3580dacccedc427d49e1fceaf51decccc68a4b",
+  "audio_pcm_bit_exact_vs_v1485": true,
+  "outgoing_app_only_ota": "native host regression passed; original Felucca releases and hardware pending",
+  "stock_v15_restore": "exact pinned stock image only, physical transition not verified",
+  "hardware_verified": false,
+  "installer_basis": "B1 V4.3 HF2 ported in ETCH V1.48.5"
+}
