@@ -1,0 +1,48 @@
+{
+  "passed": 7,
+  "total": 7,
+  "cases": [
+    {
+      "name": "audio_timing",
+      "status": "PASS",
+      "seconds": 0.12,
+      "detail": "PASS Felucca ALNK wall/DSP/nested accounting, DMA guard with reserved copy time, wrap\n"
+    },
+    {
+      "name": "irq_bridge",
+      "status": "PASS",
+      "seconds": 0.21,
+      "detail": "PASS Felucca nested USB EP4/SIE, 60s jittered scan and TIMER4 wrap\n"
+    },
+    {
+      "name": "usb",
+      "status": "PASS",
+      "seconds": 0.2,
+      "detail": "USB: descriptor lengths/endpoints/ETCH name, malformed MIDI rejection, overflow, fragmented ROM softkey OTA command and oversized frame rejection passed\n"
+    },
+    {
+      "name": "usb_audio",
+      "status": "PASS",
+      "seconds": 0.27,
+      "detail": "USB Audio UAC1: descriptor and 44.1k PCM capture, ring and disconnect PASS\n"
+    },
+    {
+      "name": "usb_audio_48k",
+      "status": "PASS",
+      "seconds": 3.31,
+      "detail": "PASS USB 44100 Hz: packets=11998 frames=529303 underrun=0 overrun=0\nPASS USB 48000 Hz: packets=119998 frames=5762756 underrun=0 overrun=0\nPASS USB 44100 Hz: packets=11998 frames=529252 underrun=0 overrun=0\nPASS USB 48000 Hz: packets=119998 frames=5761607 underrun=0 overrun=0\nPASS USB 44100 Hz: packets=11998 frames=529303 underrun=0 overrun=0\nPASS U02 44.1/48/44.1/48/44.1 rate-switch, 2x120s drift soak, stereo and descriptors\n"
+    },
+    {
+      "name": "usb_audio_dma_shift",
+      "status": "PASS",
+      "seconds": 3.68,
+      "detail": "PASS USB 44100 Hz: packets=11998 frames=529303 underrun=0 overrun=0\nPASS USB 48000 Hz: packets=119998 frames=5762756 underrun=0 overrun=0\nPASS USB 44100 Hz: packets=11998 frames=529252 underrun=0 overrun=0\nPASS USB 48000 Hz: packets=119998 frames=5761607 underrun=0 overrun=0\nPASS USB 44100 Hz: packets=11998 frames=529303 underrun=0 overrun=0\nPASS Q15<<7 DMA-equivalent U02 44.1/48/44.1/48/44.1 rate-switch, 2x120s drift soak, stereo and descriptors\n"
+    },
+    {
+      "name": "usb_audio_soak",
+      "status": "PASS",
+      "seconds": 0.32,
+      "detail": "diagnostic: good=59750 pkts=59998 underrun=0 overrun=0 fill=115\nPASS UAC 60s: pkts=59998 frames=2646946 adj_up=1047 adj_down=13 underruns=0 overruns=0, reconnect\n"
+    }
+  ]
+}

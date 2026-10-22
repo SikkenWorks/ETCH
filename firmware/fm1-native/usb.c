@@ -36,6 +36,13 @@
 #undef FELUCCA_UAC_48K
 #define FELUCCA_UAC_48K 0
 #endif
+/* The FM1 stores DAC samples as Q15 << 7. Felucca's standalone USB
+ * tests feed Q15 directly (shift zero), while ETCH passes the ALNK DMA half
+ * itself to UAC, avoiding a second 1024-byte stereo staging buffer. */
+#ifndef FELUCCA_UAC_DMA_SHIFT
+#define FELUCCA_UAC_DMA_SHIFT 0
+#endif
+_Static_assert(FELUCCA_UAC_DMA_SHIFT <= 15, "USB audio PCM shift must be valid");
 enum { S_FADDR = 0, S_POWER = 1, S_INTRTX1 = 2, S_INTRTX2 = 3, S_INTRRX1 = 4, S_INTRRX2 = 5, S_INTRUSB = 6,
        S_INTRTX1E = 7, S_INTRTX2E = 8, S_INTRRX1E = 9, S_INTRRX2E = 10, S_INTRUSBE = 11, S_FRAME1 = 12,
        S_FRAME2 = 13, S_INDEX = 14,
@@ -91,9 +98,15 @@ _Static_assert(UA_HI48 + UA_REND48 + UA_MAXF < UA_N, "the ring holds the band, a
 #endif
 #define UAC_MAXP (UA_MAXF * 4u)
 _Static_assert(UA_HI + HALF_FRAMES + UA_MAXF < UA_N, "the ring holds the band, a render and a packet");
-static uint32_t ua_ring[UA_N];
+/* These are only consumed after UAC primes/publishes them. No USB endpoint
+ * may use them before a complete packet is generated. Using the reserved
+ * dedicated unused RAMTEXT tail keeps .bss below its strict 96-KiB limit.
+ * Linker reserves 0x01C04000..0x01C05FFF exclusively for UAC; all live
+ * loader code must fit in 0x01C00000..0x01C03FFF. This is NOLOAD and never
+ * touched by the bootloader/recovery mailbox region. */
+static uint32_t ua_ring[UA_N] __attribute__((section(".uac_ram"),aligned(4)));
 static volatile uint32_t ua_w, ua_r;
-static uint32_t ep4tx[UA_MAXF] __attribute__((aligned(4)));
+static uint32_t ep4tx[UA_MAXF] __attribute__((section(".uac_ram"),aligned(4)));
 static struct {
     volatile uint8_t alt;        /* streaming interface setting: 1 = the host records */
     volatile uint8_t r48;        /* the host's rate (SET_CUR): 1 = 48 kHz, 0 = 44.1 (bus reset) */
@@ -126,7 +139,7 @@ static struct {
 #if FELUCCA_UAC_TONE
     uint32_t tone;
 #endif
-} rs;
+} rs __attribute__((section(".uac_ram"),aligned(4)));
 #endif
 #endif
 
@@ -162,6 +175,8 @@ static volatile uint32_t so_w, so_r;
 
 /* MIDI rings: 4-byte USB-MIDI event packets */
 #define MQ 64u
+/* Keep USB-MIDI queue data in its established, boot-zeroed RAM section.
+ * The indexes and slots retain the existing ownership and reset semantics. */
 static uint32_t midi_in_q[MQ], midi_out_q[MQ];
 static uint32_t midi_in_ms[MQ];
 static uint8_t midi_in_source[MQ];                    /* 1 USB, 2 TRS */
@@ -1045,7 +1060,7 @@ static __attribute__((noinline)) void uac_tap48(const int32_t *out, uint32_t n)
     }
     for (i = 0; i < n; i++) {
         uint32_t s = h & (RS_H - 1u);
-        int16_t l = (int16_t)uac_s16(out[2u * i]), r = (int16_t)uac_s16(out[2u * i + 1u]);
+        int16_t l = (int16_t)uac_s16(out[2u * i] >> FELUCCA_UAC_DMA_SHIFT), r = (int16_t)uac_s16(out[2u * i + 1u] >> FELUCCA_UAC_DMA_SHIFT);
         rs.l[s] = rs.l[s + RS_H] = l;
         rs.r[s] = rs.r[s + RS_H] = r;
         h++;
@@ -1119,8 +1134,8 @@ static __attribute__((noinline)) void uac_tap(const int32_t *out, uint32_t n)   
     }
 #else
     for (i = 0; i < n; i++)
-        ua_ring[(w + i) & (UA_N - 1u)] = (uint32_t)(uint16_t)uac_s16(out[2u * i]) |
-                                         (uint32_t)(uint16_t)uac_s16(out[2u * i + 1u]) << 16;
+        ua_ring[(w + i) & (UA_N - 1u)] = (uint32_t)(uint16_t)uac_s16(out[2u * i] >> FELUCCA_UAC_DMA_SHIFT) |
+                                         (uint32_t)(uint16_t)uac_s16(out[2u * i + 1u] >> FELUCCA_UAC_DMA_SHIFT) << 16;
 #endif
     RING_PUBLISH();
     ua_w = w + n;

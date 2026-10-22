@@ -188,6 +188,8 @@ static volatile uint32_t native_nested_ticks, native_nested_count;
 #define ETCH_NATIVE_UAC_48K 0
 #endif
 #define FELUCCA_UAC_48K ETCH_NATIVE_UAC_48K /* host-selectable FIR resampling; device unvalidated */
+/* ETCH sends its post-gain/post-ramp DMA half to UAC directly (Q15 << 7). */
+#define FELUCCA_UAC_DMA_SHIFT 7
 #define HALF_FRAMES 128u /* Must match ETCH_NATIVE_FRAMES, verified after audio_core.h */
 #define ETCH_NATIVE_PANEL_MIDI 1
 #ifndef ETCH_NATIVE_OTA
@@ -195,7 +197,7 @@ static volatile uint32_t native_nested_ticks, native_nested_count;
 #endif
 #define FELUCCA_OTA ETCH_NATIVE_OTA
 #define FELUCCA_ID "FM-1_1500"
-#define ETCH_UI_VERSION "V160"
+#define ETCH_UI_VERSION "V161"
 #define FELUCCA_OTA_DRYRUN 0
 #define RING_PUBLISH() __asm__ volatile("" ::: "memory")
 #include "usb.c"

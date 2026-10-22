@@ -38,7 +38,7 @@ for name in ['bringup.c','audio_core.c','native_performance.c','native_seq_ui.c'
  if name.endswith('.c'):cmd+=['-Os','-fno-builtin','-ffunction-sections','-I'+str(src/'hal'),'-DETCH_FLASH_READ_ONLY='+str(int(read_only)),'-DETCH_NATIVE_STORAGE='+str(int(args.storage)),'-DETCH_NATIVE_OTA='+str(int(args.updater)),'-DETCH_TEST_RESTORE_ONLY='+str(int(args.hardware_test)),'-DETCH_NATIVE_UAC='+str(int(args.usb_audio)),'-DETCH_NATIVE_UAC_48K='+str(int(args.usb_audio_48k)),'-DETCH_P04_EXPANDED='+str(int(args.extended_store)),'-DETCH_P05_MULTI='+str(int(args.multi_project)),'-DETCH_STORE_SPARE_ENABLED=0','-DETCH_STORE_OWNED_ENABLED='+str(int(args.storage))]
  subprocess.run(cmd+['-c',str(src/name),'-o',str(obj)],check=True);objs.append(obj)
 elf=out/'etch-native.elf'
-subprocess.run([str(ld),'--gc-sections','-e','_start','-T',str(src/'app.ld'),*map(str,objs),'-o',str(elf)],check=True)
+subprocess.run([str(ld),'--gc-sections','-e','_start','-T',str(src/('app-uac.ld' if args.usb_audio else 'app.ld')),*map(str,objs),'-o',str(elf)],check=True)
 subprocess.run([sys.executable,str(root/'tools/fm1_elf_to_app.py'),str(elf),str(out/'app.bin'),'--toolchain',str(tc)],check=True)
 subprocess.run([sys.executable,str(root/'tools/fm1_app_validate.py'),str(out/'app.bin'),'--elf',str(elf),'--toolchain',str(tc),'--report',str(out/'app.bin.audit.json')],check=True)
 if read_only:
@@ -46,4 +46,4 @@ if read_only:
 print('Compiled native audio candidate. Compile-time read-only:',read_only,'; persistent writes enabled:',args.storage,'; updater writes:',args.updater,'; hardware verification is still required.')
 
 import json,hashlib
-(out/'native-build-options.json').write_text(json.dumps({'app_sha256':hashlib.sha256((out/'app.bin').read_bytes()).hexdigest(),'storage_writes':args.storage,'ota_writes':args.updater,'readonly_hardware_test':args.hardware_test,'flash_read_only':read_only,'version':'1.60 OTA CROSS-FIRMWARE'  ,'hardware_verified':False,'usb_audio_44100':args.usb_audio,'usb_audio_48000_experimental':args.usb_audio_48k,'extended_store_experimental':args.extended_store,'multi_project_experimental':args.multi_project,'product':'FM-1_1500'},indent=2)+'\n')
+(out/'native-build-options.json').write_text(json.dumps({'app_sha256':hashlib.sha256((out/'app.bin').read_bytes()).hexdigest(),'storage_writes':args.storage,'ota_writes':args.updater,'readonly_hardware_test':args.hardware_test,'flash_read_only':read_only,'version':'1.61 USB AUDIO RAM FIX'  ,'hardware_verified':False,'usb_audio_44100':args.usb_audio,'usb_audio_48000_experimental':args.usb_audio_48k,'extended_store_experimental':args.extended_store,'multi_project_experimental':args.multi_project,'product':'FM-1_1500'},indent=2)+'\n')

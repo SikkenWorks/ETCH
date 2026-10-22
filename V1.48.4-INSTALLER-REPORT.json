@@ -1,0 +1,26 @@
+{
+  "installer_version": "1.48.4",
+  "firmware_version": "1.48",
+  "expected_running_identity": "FM-1_1048",
+  "source_transport": "User provided working B1 V4.3 SLOOP Transition Installer HF2",
+  "supported_sloop_transition": "FM-1_900 -> ota-FM-1_9xx",
+  "alternative_loader": "ota-FM-1_015",
+  "ota_check_required": true,
+  "ota_loader_identity_required_before_write": true,
+  "physical_etch_flash_confirmed": false,
+  "installer_sha256": "9ef9e5049016753bfbff32064b67e0dbd375456b757799cec6a0aa3fa3c0f04f",
+  "firmware_variants": {
+    "etch-header": {
+      "name": "ETCH-FM1-V1.48-ETCH-HEAD.fwsc",
+      "sha256": "06b434cb3536da333a74c0d818f71760239920039253a3c8b959b2552d9b61e1",
+      "bytes": 610086
+    },
+    "v15-header": {
+      "name": "ETCH-FM1-V1.48-STOCK-HEAD.fwsc",
+      "sha256": "2a4b90f4e066927382b1675ed380f1c18ad5ea2e14f7aef8563869f28bb9ae80",
+      "bytes": 610086
+    }
+  },
+  "test_command": "npm test",
+  "b1hf2_test": "node tests/test_v1484_b1hf2_transition.mjs"
+}

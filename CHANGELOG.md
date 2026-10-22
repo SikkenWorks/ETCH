@@ -6,6 +6,16 @@ This file contains product changes, fixes, optimizations and migration notes. Fo
 
 **Important terminology:** “built”, “host-tested”, “installer-validated” and “hardware-tested” are different milestones. Unless explicitly noted, the historical reports document software testing, **not** proof of a successful physical FM1 installation or independent recovery.
 
+## V1.61 · USB Audio SRAM Allocation Fix (software-verified candidate) — 22 October 2026
+
+- Fixed the native `--storage --updater --usb-audio` **linker overflow (2,332 bytes)** without reducing any synth buffers, project slots, USB rings, sequencer capacity, FX line sizes, or oscilloscope resolution.
+- Added `app-uac.ld`: a USB-audio-only linker variant that partitions the pre-existing 24 KiB Felucca flash-execution RAM window into **16 KiB `.ram_text`** and **8 KiB `.uac_ram`**. The audited default `app.ld` remains byte-identical to the Felucca baseline, and the dedicated 8 KiB lies below reserved debug SRAM, stack, `.noinit` and boot mailboxes.
+- Relocated the **USB capture ring + USB IN endpoint TX buffer + optional 48 kHz FIR history + double-buffered 1024-sample scope capture** to this USB-specific scratch region. The scope is explicitly zeroed by `native_start`, and the USB ring is fully primed before publication; no persistent state is expected in the new NOLOAD section.
+- Deleted the redundant **1,024-byte USB stereo DMA copy**. `uac_tap` reads the already calculated 24-bit-aligned DAC DMA half and converts Q15<<7 back to original stereo Q15; original Felucca/host tests still use the unshifted input path.
+- Added native `check_uac_memory.py` guard for all section limits, loader RAMTEXT, reserved SRAM, full flash app audit and actual ELF placement. Added scaled-DMA 44.1/48 kHz packet, reconnect and clock-drift tests.
+- **44.1 kHz + 48 kHz USB builds both compile** with unchanged UI, MIDI, DSP, FX, patch/project format (`PJT31`) and OTA identity **`FM-1_1500`**. The original non-USB V1.60 binary was byte-identical after the memory-only source changes (before updating the visible version to V161).
+- 48 kHz is still unverified for physical CPU load, timing and host enumeration; neither an ELF memory audit nor host USB packet tests prove a functioning real FM1 USB audio stream. Keep the known ROM/recovery process available; do not infer physical OTA safety from the build.
+
 ## V1.60 · Cross-Firmware OTA Compatibility and Integrity (software-verified candidate) — 22 October 2026
 
 - **Preserved the exact V1.50 product/package and USB identity `FM-1_1500`.** This is intentionally not `FM-1_1600`. V160 is the user-visible release indicator and does not alter package identity or `PJT31` project storage.

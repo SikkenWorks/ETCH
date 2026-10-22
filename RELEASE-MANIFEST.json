@@ -1,32 +1,33 @@
 {
-  "release_version": "1.60",
+  "release_version": "1.61",
   "firmware_identity": "FM-1_1500",
-  "native_ota_enabled": true,
-  "native_storage_enabled": true,
+  "app_sha256": "8f5c30a903b0d58fabf1e6fdf54b88974cc4c812569ee7a6f6f0d17ae4cb7b21",
+  "app_bytes": 219180,
   "project_format": "PJT31",
-  "app_sha256": "3a39501ed98a7d9250e9e8ea98eac968ec79599ec5e3e3d48d32d212cbbc03b7",
-  "app_bytes": 209844,
+  "native_storage_enabled": true,
+  "native_ota_enabled": true,
+  "usb_audio_44100": true,
+  "usb_audio_48000": true,
   "hardware_verified": false,
-  "source_variant": "firmware/fm1-native/build.py --storage --updater",
-  "cross_firmware_tests": "native synthetic container replay; external Felucca packages and FM1 hardware not tested",
+  "primary_fwsc": "release/ETCH-V1.61.fwsc",
   "packages": {
     "etch": {
-      "file": "release/ETCH-FM1-V1.60-ETCH-HEAD.fwsc",
-      "sha256": "fbc521fde816bb1b9f26652e13dae4ca51d4bce5b32c0da60741233fc1b17ccc",
+      "file": "release/ETCH-V1.61.fwsc",
+      "sha256": "f2cb183b3b5d4171f2fb9957599e1dfce5e3bcf76037054cf3bab9c09f81651c",
       "bytes": 610086,
       "protected_boot_sha256": "a65e0e1a2fad1db943c00b529b45553c524257146145db61b69628cefcf2b2c9",
-      "original_package_identity": "FM-1_1500",
       "ota_sha256": "d71d1b7c12adede951605e758a3580dacccedc427d49e1fceaf51decccc68a4b",
-      "ota_executable_preserved": true
+      "identity": "FM-1_1500",
+      "type": "official"
     },
     "stock": {
-      "file": "release/ETCH-FM1-V1.60-STOCK-HEAD.fwsc",
-      "sha256": "c19094aba5bdff71baf66b7e9ab19d50bd35f28ad4dc3476b6f71f6b3cad6203",
+      "file": "compat/ETCH-V1.61-LEGACY-STOCK-HEAD.fwsc",
+      "sha256": "86c37864c2eb09902e0139af45c97a09a7800685950e4c5f46e8fe13135196d6",
       "bytes": 610086,
       "protected_boot_sha256": "d9f43191777656de01c7bed4f9e9ba2e34e94832c5d2ed02c3fc7ab7a6d9bd67",
-      "original_package_identity": "FM-1_1500",
       "ota_sha256": "d71d1b7c12adede951605e758a3580dacccedc427d49e1fceaf51decccc68a4b",
-      "ota_executable_preserved": true
+      "identity": "FM-1_1500",
+      "type": "webinstaller-legacy-only"
     }
   }
 }

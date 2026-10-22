@@ -95,7 +95,17 @@ def audit(app: bytes, symbols: dict[str, int] | None = None, sections: list[dict
             if name.startswith((".text", ".rodata", ".init", ".vectors")):
                 if not range_inside(vma, size, APP_XIP, APP_XIP + APP_SLOT):
                     errors.append(f"{name} VMA {vma:#x}+{size:#x} outside app XIP slot")
+            elif name == ".uac_ram":
+                # Linker-carved, non-overlapping tail of the Felucca RAMTEXT
+                # region; NEVER allocate into the debug/boot mailbox area.
+                if not range_inside(vma, size, 0x01C04000, 0x01C06000):
+                    errors.append(f"{name} VMA {vma:#x}+{size:#x} outside dedicated UAC RAM")
+                if lma >= APP_XIP:
+                    errors.append(".uac_ram must be NOLOAD, not packaged in XIP")
             elif name.startswith((".data", ".bss", ".ram_text", ".noinit", ".pool")):
+                if name == ".ram_text" and any(x["name"] == ".uac_ram" for x in sections):
+                    if not range_inside(vma, size, 0x01C00000, 0x01C04000):
+                        errors.append("flash-busy RAMTEXT overlaps UAC scratch")
                 if not range_inside(vma, size, RAM_START, RAM_SAFE_END):
                     errors.append(f"{name} VMA {vma:#x}+{size:#x} outside ETCH safe RAM")
                 if name != ".bss" and lma >= APP_XIP and not range_inside(lma, size, APP_XIP, APP_XIP + APP_SLOT):

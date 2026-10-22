@@ -13,9 +13,6 @@ static volatile struct etch_native_controls native_controls;
 static int32_t native_dma[ETCH_NATIVE_FRAMES*4] __attribute__((aligned(4)));
 static int16_t native_mono[ETCH_NATIVE_FRAMES] __attribute__((section(".noinit")));
 static int16_t native_stereo[ETCH_NATIVE_FRAMES*2] __attribute__((section(".noinit")));
-#if ETCH_NATIVE_UAC
-static int32_t native_usb_stereo[ETCH_NATIVE_FRAMES*2] __attribute__((section(".noinit")));
-#endif
 #ifndef ETCH_NATIVE_PANEL_MIDI
 #define ETCH_NATIVE_PANEL_MIDI 0
 #endif
@@ -25,7 +22,15 @@ static struct etch_perf_midi native_perf_out;
 static int native_panel_usb_emit(uint32_t packet,void *unused){(void)unused;return midi_out_event(packet);}
 #endif
 #define ETCH_SCOPE_CAPTURE 1024u
+/* The 1024-frame double capture is explicitly cleared by native_start()
+ * and published only on completed blocks. On UAC builds it shares the
+ * dedicated SRAM window with the USB ring, without touching audio DMA,
+ * stack, storage, protected .noinit, or the legacy UI canvas. */
+#if ETCH_NATIVE_UAC
+static int16_t native_scope[2][ETCH_SCOPE_CAPTURE] __attribute__((section(".uac_ram"),aligned(4)));
+#else
 static int16_t native_scope[2][ETCH_SCOPE_CAPTURE];
+#endif
 static volatile uint8_t native_scope_ready;
 static uint16_t native_scope_cursor;
 static volatile uint8_t native_scope_has_signal;
@@ -272,12 +277,11 @@ etch_native_reset(&native_audio);native_audio.keys=keys&0x7ffffffu;}
    if(pl>=32767u||pr>=32767u)block_clips++;
    native_mono[i]=(int16_t)((left+right)/2);
    dst[2*i]=left*128;dst[2*i+1]=right*128;
-#if ETCH_NATIVE_UAC
-   native_usb_stereo[2*i]=left;native_usb_stereo[2*i+1]=right;
-#endif
   }
 #if ETCH_NATIVE_UAC
-  if(uac.feed)uac_tap(native_usb_stereo,ETCH_NATIVE_FRAMES);
+  /* All output processing is complete in dst. Its Q15 << 7 samples are
+   * decoded by the USB tap without a duplicate stereo PCM allocation. */
+  if(uac.feed)uac_tap(dst,ETCH_NATIVE_FRAMES);
 #endif
   /* Publish a completed 1024-sample contiguous audio window every 8 DMA
    halves. The renderer sees a stable waveform instead of arbitrary 128-sample
