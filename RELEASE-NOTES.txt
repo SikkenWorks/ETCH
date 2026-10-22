@@ -1,1 +1,0 @@
-ETCH V1.37 / FM-1_1037 — SEQ-held at power-on selects silent 27-key USB-MIDI controller. Octave shift OCT-/OCT+, MIDI CH1; USB connection/reconnection and Note Off backpressure guarded. Normal synth, ARP7 and all earlier features retained. .fwsc == installer exact bytes. Software tests only; independent recovery and unplugged synth startup pop unresolved.

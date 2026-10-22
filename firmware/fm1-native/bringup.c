@@ -56,6 +56,7 @@ static void etch_lcd_blit_segmented(uint32_t x,uint32_t y,uint32_t w,uint32_t h,
  * has been verified by the target linker. RGB565 is byte-swapped for SPI. */
 #define ETCH_SCOPE_MAX_HEIGHT 173u
 static uint16_t etch_scope_canvas[240u*ETCH_SCOPE_MAX_HEIGHT] __attribute__((section(".pool"),aligned(4)));
+_Static_assert(sizeof etch_scope_canvas >= 8192u, "OTA CRC validation requires 8 KiB scratch from the suspended scope pool");
 static uint8_t etch_scope_active;
 /* Non-PLAY pages build their entire mutable content in RAM. Nested
  * legacy scope begin/commit calls must not flush a half-rendered page. */
@@ -194,7 +195,7 @@ static volatile uint32_t native_nested_ticks, native_nested_count;
 #endif
 #define FELUCCA_OTA ETCH_NATIVE_OTA
 #define FELUCCA_ID "FM-1_1500"
-#define ETCH_UI_VERSION "V147"
+#define ETCH_UI_VERSION "V160"
 #define FELUCCA_OTA_DRYRUN 0
 #define RING_PUBLISH() __asm__ volatile("" ::: "memory")
 #include "usb.c"
@@ -411,6 +412,7 @@ static void native_preset_snapshot(uint8_t slot);
 #include "native_seq_cursor.h"
 #include "wave_store_target.c"
 #if ETCH_NATIVE_OTA
+#define ETCH_OTA_REUSE_SCOPE 1
 #include "ota.c"
 #include "ota_target.c"
 #else

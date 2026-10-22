@@ -1,8 +1,0 @@
-{
-  "previous_firmware_sha256": "095ef70ccf50a2677d794a0a9d939742c574cf42713c733c9ad7553c1fdbba8a",
-  "new_embedded_firmware_sha256": "095ef70ccf50a2677d794a0a9d939742c574cf42713c733c9ad7553c1fdbba8a",
-  "binary_unchanged": true,
-  "accepted_extra_identity": "FM-1_2042",
-  "loader_parity_v042": "NOT VERIFIED",
-  "hardware_flashed": false
-}

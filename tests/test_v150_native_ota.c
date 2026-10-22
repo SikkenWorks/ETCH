@@ -204,7 +204,7 @@ int main(int argc, char **argv)
         int body_safe=0;
         uint32_t body_off=ota_body_off();
         uint32_t body_len=ota_rd32(logical+body_off-32u+8u);
-        if(body_len==ETCH_OTA_BODY_LEN){
+        if(body_len!=ETCH_STOCK_OTA_BODY_LEN){
           body_safe=!memcmp(nor+OTA_AREA+32u,etch_trusted_app_loader,ETCH_OTA_BODY_LEN);
         }else if(body_len==ETCH_STOCK_OTA_BODY_LEN){
           body_safe=!memcmp(nor+OTA_AREA+32u,logical+body_off,body_len);
@@ -230,9 +230,9 @@ int main(int argc, char **argv)
     /* full session */
     reset_dev();
     rc = ota_session();
-    printf("  %u requests\n", requests);
+    printf("  %u requests, rc=%d\n", requests, rc);
     bad += check("session commits", rc == 0 && committed);
-    bad += check("header, trusted OTA source, chip key, confirmation", (requests >= 20 && requests <= 70));
+    bad += check("complete image CRC, trusted OTA, chip key and confirmation", (requests >= 2300 && requests <= 3000));
     {
         uint8_t *h = nor + 0xE0000, *p = committed_parm;
         bad += check("staged body == the package's loader", !memcmp(nor + 0xE0020, logical + ota_body_off(), 64));
@@ -307,24 +307,30 @@ int main(int argc, char **argv)
         uint32_t h=off-32u;
         ota_wr16(logical+h+2,ota_crc16(logical+off,ETCH_OTA_BODY_LEN,0));
         ota_wr16(logical+h,ota_crc16(logical+h+2,30,0));
+        edit_entry(1u,4u,ota_crc16(logical+h,ota_rd32(logical+h+8)+32u,0),1u);
         reset_dev();rc=ota_session();
-        bad+=check("foreign OTA binary is NOT executed; trusted loader staged",
-            rc==0 && committed && !memcmp(nor+OTA_AREA+32,etch_trusted_app_loader,ETCH_OTA_BODY_LEN) &&
-            !memcmp(committed_parm+8,"ota-FM-1_015",12));
+        bad+=check("tampered compressed loader rejected despite repaired outer/UFW CRCs",
+            rc==-16 && !committed && area_erased());
         logical[off+100]=save;
         /* Reconstruct the original pinned package's OTA entry. */
         ota_wr16(logical+h+2,ota_crc16(logical+off,ETCH_OTA_BODY_LEN,0));
         ota_wr16(logical+h,ota_crc16(logical+h+2,30,0));
+        edit_entry(1u,4u,ota_crc16(logical+h,ota_rd32(logical+h+8)+32u,0),1u);
     }
     /* A structurally valid package whose boot header bytes are different
      * remains eligible: the trusted app-only loader cannot overwrite them. */
     {
         uint32_t pos=0x400u+0x100u;
         uint8_t save=logical[pos];logical[pos]^=0x3C;
+        /* The protected header is not programmed in an APP_ONLY transition,
+         * but the package-wide flash.bin CRC MUST reflect changed bytes. */
+        uint32_t flash_off=0x400u,flash_len=0x93000u;
+        edit_entry(0,4u,ota_crc16(logical+flash_off,flash_len,0),1u);
         reset_dev();rc=ota_session();
-        bad+=check("foreign protected header accepted and device boot retained",
+        bad+=check("different protected boot bytes accepted in valid APP_ONLY package",
              rc==0 && committed && !memcmp(nor,logical+0x400,0x4000));
         logical[pos]=save;
+        edit_entry(0,4u,ota_crc16(logical+flash_off,flash_len,0),1u);
     }
     /* A structurally correct ISD config with the WRONG chip key must be
      * rejected even after rebuilding both JieLi entry CRCs. */
@@ -342,20 +348,24 @@ int main(int argc, char **argv)
            ota_wr16(entry,ota_crc16(entry+2,30,0));
            ota_jl_enc(entry,32);
            memcpy(logical+0x400u+0x40u,entry,32u);
+           edit_entry(0u,4u,ota_crc16(logical+0x400u,0x93000u,0),1u);
            reset_dev();rc=ota_session();
-           bad+=check("wrong FM1 chip key rejected before erase",rc==-21&&!committed&&area_erased());
+           bad+=check("wrong FM1 chip key rejected after full payload CRC validated",rc==-21&&!committed&&area_erased());
            logical[0x400u+isd_off+16u]=saved;
            memcpy(logical+0x400u+0x40u,saved_entry,32u);
+           edit_entry(0u,4u,ota_crc16(logical+0x400u,0x93000u,0),1u);
         }else bad+=check("ISD config fixture is valid",0);
     }
     /* Image mismatch in app metadata is a hard failure before any erase. */
     {
         uint32_t pos=0x400u+0x4000u;
         uint8_t save=logical[pos];logical[pos]^=0x77;
+        edit_entry(0u,4u,ota_crc16(logical+0x400u,0x93000u,0),1u);
         reset_dev();rc=ota_session();
-        bad+=check("incompatible/corrupted app directory refused safely",
-             rc==-21 && !committed && area_erased());
+        bad+=check("incompatible app directory refused after full image integrity",
+             rc==-21&&!committed&&area_erased());
         logical[pos]=save;
+        edit_entry(0u,4u,ota_crc16(logical+0x400u,0x93000u,0),1u);
     }
     reset_dev();now_ms=0xfffffff0u;mute_after=0;rc=ota_session();
     bad+=check("timeout across millisecond rollover refuses",rc<0&&!committed&&area_erased());

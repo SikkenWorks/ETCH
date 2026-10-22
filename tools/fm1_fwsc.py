@@ -33,7 +33,7 @@ APP_AREA_FLASH = 0x4000
 FLASH_PACKAGE_BYTES = 0x93000
 KEY_MAC_FLASH = 0xFF000
 DEFAULT_CHIP_KEY = 0x980F
-DEFAULT_PRODUCT = "FM-1_923"
+DEFAULT_PRODUCT = "FM-1_1500"  # PINNED ETCH identity from supplied V1.50, even for V1.60+
 UFW_CHIP = b"AC791N"
 # 30-byte JieLi SDK default flash-header payload for this FM-1 layout.
 FLASH_HEADER_PAYLOAD = bytes.fromhex(

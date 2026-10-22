@@ -31,7 +31,9 @@ static void ota_idle(void){
   /* One 40-line LCD stripe per 120ms keeps USB/flash service dominant.
    * The *separate* ROM/UBOOT loader owns the LCD after ota_commit(). */
   uint32_t now=ota_now_ms();
-  if((uint32_t)(now-ota_matrix_last)>=120u){
+  /* During CHECK, the decompressor borrows the scope DMA canvas; it must
+   * not be repainted until its CRC/entry validation is complete. */
+  if(ota_matrix_step!=1u && (uint32_t)(now-ota_matrix_last)>=120u){
    ota_matrix_last=now;
    ota_matrix_paint_band(ota_matrix_band_index);
    if(++ota_matrix_band_index>=6u){ota_matrix_band_index=0u;++ota_matrix_frame;}

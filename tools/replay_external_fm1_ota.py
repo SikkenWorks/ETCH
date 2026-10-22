@@ -4,7 +4,7 @@
 Example:
   python tools/replay_external_fm1_ota.py --package ./felucca-1.6.fwsc --version felucca-1.6
 
-This tool compiles/executes the *real ETCH V1.50 ota.c* inside a fake NOR and
+This tool compiles/executes the *real ETCH V1.60 ota.c* inside a fake NOR and
 synthetic SysEx host. It never sends MIDI, accesses USB, or writes hardware.
 """
 from pathlib import Path
@@ -26,7 +26,7 @@ digest=hashlib.sha256(blob).hexdigest()
 print(f'Package: {a.package.name} | {len(blob)} bytes | SHA-256 {digest}',flush=True)
 if a.version in PINS and digest!=PINS[a.version]:
     sys.exit('BLOCK: package SHA-256 does not match the published official release')
-with tempfile.TemporaryDirectory(prefix='etch-v150-ota-') as temp:
+with tempfile.TemporaryDirectory(prefix='etch-v160-ota-') as temp:
     dst=Path(temp)/'ota_replay'
     subprocess.run(['cc','-std=c11','-O2', '-I',str(root/'firmware/fm1-native'),
                     str(root/'tests/test_v150_native_ota.c'),

@@ -6,6 +6,19 @@ This file contains product changes, fixes, optimizations and migration notes. Fo
 
 **Important terminology:** “built”, “host-tested”, “installer-validated” and “hardware-tested” are different milestones. Unless explicitly noted, the historical reports document software testing, **not** proof of a successful physical FM1 installation or independent recovery.
 
+## V1.60 · Cross-Firmware OTA Compatibility and Integrity (software-verified candidate) — 22 October 2026
+
+- **Preserved the exact V1.50 product/package and USB identity `FM-1_1500`.** This is intentionally not `FM-1_1600`. V160 is the user-visible release indicator and does not alter package identity or `PJT31` project storage.
+- Fixed the V1.50 *incoming* loader-length gate: compatible versioned Felucca-family loaders can have different LZ4 encodings and lengths. The loader container, inner address `0x01C0A800`, decoded `FELUCCA-LOADER-1` tag, bounds and **both compressed-wrapper and uncompressed-body CRCs** are checked in native C.
+- Fixed a related staging bug: the **actual staged loader length is always the pinned ETCH writer's 6,898 bytes** for app-only updates. It no longer uses the incoming loader length and cannot read past its trusted embedded binary when another compatible build has a larger OTA container.
+- Verified the full UFW `flash.bin`/`ota.bin` CRCs, file offsets and declared sizes before erase. Strengthened application verification to include complete encrypted-file integrity, decoded app-area and `app.bin` CRCs, `isd_config.ini` key `0x980F` and standard JieLi XIP/size/boundaries. Invalid input aborts before writing the OTA region.
+- Kept the original protected 16 KiB outside app-only writes; a different unused incoming bootheader no longer causes automatic rejection, while a tampered package still fails its global checksum.
+- Continued to stage and SHA-check **only ETCH's original trusted app-only executable** (`ota-FM-1_015`). Untrusted incoming loader code is parsed but never run. Official V15 full-flash restore remains an exact pinned-image exception. USB-MIDI handshake, completion acknowledgement, readback, owner record and recovery logic remain in place.
+- Reused existing OTA-suspended scope DMA memory for bounded LZ4 integrity validation, avoiding a permanent 8 KiB RAM increase. No audio, synth, sequencer, UI workflow, samples or project schema were removed or simplified.
+- Built a JieLi pi32v2 application and regenerated *both* boothead `.fwsc` variants and the embedded WebInstaller with independently matching SHA-256. Source, tests and files are included; the stock-head ETCH variant is not official stock firmware.
+- Host native replay passed on exact ETCH `.fwsc` fixtures; an alternate **synthetically re-encoded** but otherwise equivalent loader passed while malformed, corrupted and unknown-family loaders failed before commit. USB interruption, failed staging I/O and missing host confirmation failed closed. The existing browser regression suite passed.
+- **Not hardware-tested:** actual ETCH → original Felucca 1.6/1.1.5 → ETCH, official vendor V15 restoration and physical power-loss/recovery must still be verified on an FM1. A host simulation is not proof of a universally interoperable flashing path.
+
 ## V1.50 · Native Cross-Firmware OTA Compatibility (experimental)
 
 - Fixed the **native** outgoing OTA CHECK logic: an app-only firmware update no longer requires its unrelated protected bootheader to match ETCH’s own bootheader. The trusted app-only loader preserves the protected 0x0000–0x3FFF range.

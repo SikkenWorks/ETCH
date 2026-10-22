@@ -1,2 +1,0 @@
-b2b24fcdcfdd6f7c4e1ac332d83be2e30101f9f3bed60c44113b28b3e9623494  build/fm1-native-storage-updater-uac/app.bin
-eba4d5563e78289c3cab62c8868bc502f49ac5fe19c46c9b6fe1e84d12766329  build/fm1-native-storage-updater-uac-ext/app.bin

@@ -1,0 +1,32 @@
+{
+  "release_version": "1.60",
+  "firmware_identity": "FM-1_1500",
+  "native_ota_enabled": true,
+  "native_storage_enabled": true,
+  "project_format": "PJT31",
+  "app_sha256": "3a39501ed98a7d9250e9e8ea98eac968ec79599ec5e3e3d48d32d212cbbc03b7",
+  "app_bytes": 209844,
+  "hardware_verified": false,
+  "source_variant": "firmware/fm1-native/build.py --storage --updater",
+  "cross_firmware_tests": "native synthetic container replay; external Felucca packages and FM1 hardware not tested",
+  "packages": {
+    "etch": {
+      "file": "release/ETCH-FM1-V1.60-ETCH-HEAD.fwsc",
+      "sha256": "fbc521fde816bb1b9f26652e13dae4ca51d4bce5b32c0da60741233fc1b17ccc",
+      "bytes": 610086,
+      "protected_boot_sha256": "a65e0e1a2fad1db943c00b529b45553c524257146145db61b69628cefcf2b2c9",
+      "original_package_identity": "FM-1_1500",
+      "ota_sha256": "d71d1b7c12adede951605e758a3580dacccedc427d49e1fceaf51decccc68a4b",
+      "ota_executable_preserved": true
+    },
+    "stock": {
+      "file": "release/ETCH-FM1-V1.60-STOCK-HEAD.fwsc",
+      "sha256": "c19094aba5bdff71baf66b7e9ab19d50bd35f28ad4dc3476b6f71f6b3cad6203",
+      "bytes": 610086,
+      "protected_boot_sha256": "d9f43191777656de01c7bed4f9e9ba2e34e94832c5d2ed02c3fc7ab7a6d9bd67",
+      "original_package_identity": "FM-1_1500",
+      "ota_sha256": "d71d1b7c12adede951605e758a3580dacccedc427d49e1fceaf51decccc68a4b",
+      "ota_executable_preserved": true
+    }
+  }
+}
