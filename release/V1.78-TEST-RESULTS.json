@@ -1,0 +1,43 @@
+{
+  "version": "1.78",
+  "identity": "FM-1_1500",
+  "hardware_tested": false,
+  "jieLi_builds": {
+    "normal": "PASS",
+    "uac_44100": "PASS",
+    "uac_48000": "PASS",
+    "uac_48000_reproducible": "PASS"
+  },
+  "host_tests": {
+    "boot_prompt": "PASS",
+    "boot_prompt_ASAN_UBSAN": "PASS",
+    "full_flash_integration": "PASS",
+    "integration_ASAN_UBSAN": "PASS",
+    "existing_Felucca_takeover": "PASS",
+    "native_audio_scenarios": "7/7 PASS",
+    "preset_MIDI_protocol": "PASS",
+    "identity_packages": "PASS",
+    "installer_embeds": "PASS",
+    "installer_js_syntax": "PASS",
+    "native_code_preserved": 123
+  },
+  "native_changed_files": [
+    "bringup.c",
+    "build.py"
+  ],
+  "native_new_file": "native_storage_boot_prompt.h",
+  "ram_free_bytes": {
+    ".ram_text": 13496,
+    ".uac_ram": 1588,
+    ".data": 98208,
+    ".bss": 4004,
+    ".pool": 10180,
+    ".noinit": 140
+  },
+  "flash_erased_only_after_confirmation": true,
+  "boot_header_preserved": true,
+  "ota_loader_preserved": true,
+  "project_format": "PJT31",
+  "on_device_format_tested": false,
+  "fwsc_sha256": "dbdb5b3d34d6fad2b6d253b3f105043e22f7c04644eec6d517305100d920e509"
+}

@@ -1,0 +1,102 @@
+{
+  "passed": 16,
+  "total": 16,
+  "cases": [
+    {
+      "name": "audio",
+      "status": "PASS",
+      "seconds": 7.14,
+      "detail": "Native C core: silence, audible output, octave-safe release, voice bounds, max-depth stress and gain mute passed\n"
+    },
+    {
+      "name": "diagnostics",
+      "status": "PASS",
+      "seconds": 0.16,
+      "detail": "PASS V0.53 read-only panel diagnostics, callback CPU budget math, seven SYSTEM tabs\n"
+    },
+    {
+      "name": "factory",
+      "status": "PASS",
+      "seconds": 0.43,
+      "detail": "V1.70: 16 usable sound starter templates and 16 legacy patches in RAM only\n"
+    },
+    {
+      "name": "fx",
+      "status": "PASS",
+      "seconds": 1.96,
+      "detail": "Native FX: exact dry bypass, delay echoes, bounded feedback passed\n"
+    },
+    {
+      "name": "midi",
+      "status": "PASS",
+      "seconds": 6.35,
+      "detail": "MIDI: channel separation, velocity, sustain, retrigger, CC120/121/123, panic isolation, note bounds; boot SAFE latch passed\n"
+    },
+    {
+      "name": "overload",
+      "status": "PASS",
+      "seconds": 6.01,
+      "detail": "PASS 27 simultaneous keys, adaptive 8->6->4->3->2 budget, soft tails, 8 restoration, 1000 stereo render blocks\n"
+    },
+    {
+      "name": "poly",
+      "status": "PASS",
+      "seconds": 6.28,
+      "detail": "Native advanced: 256 poly steps, individual lengths, locks, keylock/chord, MIDI clock/start/stop pass\n"
+    },
+    {
+      "name": "project",
+      "status": "PASS",
+      "seconds": 4.86,
+      "detail": "V10 project: 256-step poly, lock/FX/harmony roundtrip, 16 fault cuts x2, CRC rollback, V2 upgrade, full-bank rejection PASS\n"
+    },
+    {
+      "name": "scope_ui",
+      "status": "PASS",
+      "seconds": 0.16,
+      "detail": "PASS live scope zero crossing and 8 effect parameter change invalidations\n"
+    },
+    {
+      "name": "seq_ui",
+      "status": "PASS",
+      "seconds": 0.97,
+      "detail": "PASS V0.44 cursor clamp, 16-key GRID, lock LEDs, chord key-selection (no accidental erase), duplicate/capacity boundaries, safe clear\n"
+    },
+    {
+      "name": "store",
+      "status": "PASS",
+      "seconds": 5.43,
+      "detail": "Native store: 64 slots, every write cut, CRC fallback, v1->v2 migration, 32 patch/name/sequence records passed\n"
+    },
+    {
+      "name": "ui_navigation",
+      "status": "PASS",
+      "seconds": 0.3,
+      "detail": "PASS V0.77 all 33 page IDs, FX four-page SELECT, GLO GUIDE/FIFTHS/SYSTEM, ADSR via ENV, no destructive page transitions\n"
+    },
+    {
+      "name": "ui_wave",
+      "status": "PASS",
+      "seconds": 0.17,
+      "detail": "PASS V0.46 library validity, wrapped search, preview morph endpoints, and LCD text clipping\n"
+    },
+    {
+      "name": "usb_audio",
+      "status": "PASS",
+      "seconds": 0.15,
+      "detail": "USB Audio UAC1: descriptor and 44.1k PCM capture, ring and disconnect PASS\n"
+    },
+    {
+      "name": "usb_audio_48k",
+      "status": "PASS",
+      "seconds": 1.89,
+      "detail": "PASS USB 44100 Hz: packets=11998 frames=529303 underrun=0 overrun=0\nPASS USB 48000 Hz: packets=119998 frames=5762756 underrun=0 overrun=0\nPASS USB 44100 Hz: packets=11998 frames=529252 underrun=0 overrun=0\nPASS USB 48000 Hz: packets=119998 frames=5761607 underrun=0 overrun=0\nPASS USB 44100 Hz: packets=11998 frames=529303 underrun=0 overrun=0\nPASS U02 44.1/48/44.1/48/44.1 rate-switch, 2x120s drift soak, stereo and descriptors\n"
+    },
+    {
+      "name": "usb_audio_dma_shift",
+      "status": "PASS",
+      "seconds": 2.2,
+      "detail": "PASS USB 44100 Hz: packets=11998 frames=529303 underrun=0 overrun=0\nPASS USB 48000 Hz: packets=119998 frames=5762756 underrun=0 overrun=0\nPASS USB 44100 Hz: packets=11998 frames=529252 underrun=0 overrun=0\nPASS USB 48000 Hz: packets=119998 frames=5761607 underrun=0 overrun=0\nPASS USB 44100 Hz: packets=11998 frames=529303 underrun=0 overrun=0\nPASS Q15<<7 DMA-equivalent U02 44.1/48/44.1/48/44.1 rate-switch, 2x120s drift soak, stereo and descriptors\n"
+    }
+  ]
+}

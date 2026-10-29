@@ -1,0 +1,12 @@
+{
+  "passed": 1,
+  "total": 1,
+  "cases": [
+    {
+      "name": "v175_shared_undo",
+      "status": "PASS",
+      "seconds": 1.02,
+      "detail": "PASS V1.75: 25032 V1.74-equivalent undo/redo operations, all 3 waves; 12,288 bytes saved\n"
+    }
+  ]
+}

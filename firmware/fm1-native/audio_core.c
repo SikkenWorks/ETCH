@@ -737,27 +737,55 @@ static void render_internal(struct etch_native_audio *s,const struct etch_native
   if(s->clock_samples>44100u&&s->clock_running){s->clock_running=0;}
   uint8_t rates_changed=perf_tick(s,&perf_control,keys);
   if(rates_changed)native_rates(s,c,increments,modincrements);
-  /* Run the Organic LFO at 32-sample control rate, NOT with 8 costly
-   * 64-bit multiplies per audio sample. The bounded smoothed pitch target
-   * never jumps even as random points change. The zero state is exact. */
+  /* V1.76 ORGANIC drift: 32-sample control-rate smoothstep between
+   * slow random targets. The old 1/16 target chase settled in ~12ms and
+   * held a pitch until the next random target, producing audible steps.
+   * `pitch` now stores a segment START, `goal` its END; `time` packs a
+   * 16-bit duration and 16-bit elapsed count. No new per-voice RAM.
+   * On a live DRIFT=0 change, gently return to neutral in 1.5 seconds.
+   * All-zero settings from reset remain an exact, cost-free bypass. */
   if((f&31u)==0u || rates_changed){
    const struct etch_organic_settings *org=&c->organic;
-   uint8_t enabled=(uint8_t)(c->mono_mode && etch_organic_valid(org) && (org->drift||org->variance));
+   uint8_t valid=(uint8_t)(c->mono_mode && etch_organic_valid(org));
    for(uint32_t oi=0;oi<ETCH_NATIVE_VOICES;oi++){
     struct etch_native_voice *ov=&s->voice[oi];
     struct organic_voice_state *os=organic_at(oi);
     int32_t deviation=0;
-    if(enabled && ov->active){
-     if(!os->ready){os->seed=etch_organic_hash(os->seed);
-      os->time=0;os->pitch=os->goal=0;os->ready=1;}
-     if(!os->time){
-      os->goal=etch_organic_target(os->seed,org->drift);
-      os->seed=etch_organic_hash(os->seed+0x9e3779b9u);
-      os->time=etch_organic_interval(org->rate);
+    if(valid && ov->active && (org->drift || org->variance || os->ready)){
+     uint16_t duration=(uint16_t)(os->time>>16);
+     uint16_t elapsed=(uint16_t)os->time;
+     if(org->drift){
+      if(os->ready!=1u){
+       /* Fresh note, or re-enable after a gentle fade to zero. */
+       int32_t start=(os->ready==2u)?
+        etch_organic_smooth_pitch(os->pitch,os->goal,elapsed,duration):0;
+       os->seed=etch_organic_hash(os->seed);
+       os->pitch=start;
+       os->goal=etch_organic_target(os->seed,org->drift);
+       duration=etch_organic_duration_ticks(org->rate);
+       elapsed=0;os->ready=1u;
+      }
+      if(elapsed>=duration){
+       os->pitch=os->goal;
+       os->seed=etch_organic_hash(os->seed+0x9e3779b9u);
+       os->goal=etch_organic_target(os->seed,org->drift);
+       duration=etch_organic_duration_ticks(org->rate);
+       elapsed=0;
+      }
+     }else if(os->ready==1u){
+      /* Don't jump back to the original pitch when DRIFT is turned off. */
+      os->pitch=etch_organic_smooth_pitch(os->pitch,os->goal,elapsed,duration);
+      os->goal=0;
+      duration=2068u; /* ~1.5 seconds at 44.1kHz */
+      elapsed=0;os->ready=2u;
      }
-     if(os->time>32u)os->time-=32u;else os->time=0;
-     os->pitch+=(os->goal-os->pitch)/16;
-     deviation=os->pitch+etch_organic_static(ov->birth*2654435761u,org->variance);
+     if(os->ready==1u || os->ready==2u){
+      deviation=etch_organic_smooth_pitch(os->pitch,os->goal,elapsed,duration);
+      if(elapsed<duration)elapsed++;
+      else if(os->ready==2u){os->ready=3u;os->pitch=os->goal=0;}
+      os->time=((uint32_t)duration<<16)|elapsed;
+     }
+     deviation+=etch_organic_static(ov->birth*2654435761u,org->variance);
     }
     organic_incs[oi]=deviation?etch_organic_pitch_inc(increments[oi],deviation):increments[oi];
     organic_modincs[oi]=deviation?etch_organic_pitch_inc(modincrements[oi],deviation):modincrements[oi];

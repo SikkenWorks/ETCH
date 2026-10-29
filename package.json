@@ -1,10 +1,10 @@
 {
   "name": "etch-host",
-  "version": "1.70.0",
+  "version": "1.74.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node tests/test.mjs && node tests/ui-harness.mjs && node tests/fault-injection.mjs && npm run test:v143 && node tests/test_v144_performance.mjs && npm run test:v170",
+    "test": "node tests/test.mjs && node tests/ui-harness.mjs && node tests/fault-injection.mjs && npm run test:v143 && node tests/test_v144_performance.mjs && npm run test:v172",
     "test:v142": "node tests/test_v142_mod_matrix.mjs && node tests/test_v141_sculpt.mjs && node tests/test_groups.mjs && node tests/test_group_audio.mjs && node tests/test_v140_phase5_velocity.mjs && node tests/test_v140_phase7_aftertouch.mjs",
     "test:v141": "node tests/test_v141_sculpt.mjs && node tests/test_groups.mjs && node tests/test_group_audio.mjs && node tests/test_v140_phase5_velocity.mjs && node tests/test_v140_phase7_aftertouch.mjs",
     "test:legacy": "node tests/test_installer_pkg_v130.mjs",
@@ -16,6 +16,9 @@
     "test:ota1484": "node tests/test_v1484_b1hf2_transition.mjs && node tests/test_v1483_ota_handoff.mjs && node tests/test_v160_firmware.mjs && node tests/test_v1482_bootheader.mjs",
     "test:v150": "node tests/test_v150_firmware.mjs",
     "test:v160": "node tests/test_v160_firmware.mjs",
-    "test:v170": "node tests/test_v170_firmware.mjs"
+    "test:v170": "node tests/test_v170_firmware.mjs",
+    "test:v171": "node tests/test_v171_firmware.mjs",
+    "test:v172": "node tests/test_v172_firmware.mjs",
+    "test:v174": "node tests/test_v174_firmware.mjs"
   }
 }

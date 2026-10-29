@@ -1,0 +1,8 @@
+{
+  "v178_native_files": 114,
+  "missing": [],
+  "changed": [
+    "firmware/fm1-native/bringup.c"
+  ],
+  "note": "only bringup and new header files; all old 62 pages remain supported"
+}

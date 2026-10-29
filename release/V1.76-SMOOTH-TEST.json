@@ -1,0 +1,12 @@
+{
+  "passed": 1,
+  "total": 1,
+  "cases": [
+    {
+      "name": "organic_smooth_v176",
+      "status": "PASS",
+      "seconds": 0.16,
+      "detail": "PASS V1.76 smooth organic: 2424 monotonic segments, zero endpoint jumps, zero-depth exact bypass, 2.5-9s cadence\n"
+    }
+  ]
+}

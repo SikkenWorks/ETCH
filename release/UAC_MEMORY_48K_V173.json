@@ -1,0 +1,41 @@
+{
+  "hardware_tested": false,
+  "sections": {
+    ".ram_text": {
+      "start": "0x1c00000",
+      "size": 2888,
+      "limit": 16384,
+      "free": 13496
+    },
+    ".uac_ram": {
+      "start": "0x1c04000",
+      "size": 6604,
+      "limit": 8192,
+      "free": 1588
+    },
+    ".data": {
+      "start": "0x1c08000",
+      "size": 96,
+      "limit": 98304,
+      "free": 98208
+    },
+    ".bss": {
+      "start": "0x1c08060",
+      "size": 94204,
+      "limit": 98304,
+      "free": 4004
+    },
+    ".pool": {
+      "start": "0x1c20000",
+      "size": 344060,
+      "limit": 344064,
+      "free": 4
+    },
+    ".noinit": {
+      "start": "0x1c7c000",
+      "size": 12148,
+      "limit": 12288,
+      "free": 140
+    }
+  }
+}

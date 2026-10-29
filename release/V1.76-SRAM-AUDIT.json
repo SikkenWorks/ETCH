@@ -1,0 +1,99 @@
+{
+  "hardware_validated": false,
+  "source_release": "1.75",
+  "static_only": true,
+  "areas": {
+    ".ram_text": {
+      "vma": "0x1c00000",
+      "size": 2888,
+      "budget_bytes": 16384,
+      "remaining_bytes": 13496
+    },
+    ".uac_ram": {
+      "vma": "0x1c04000",
+      "size": 6604,
+      "budget_bytes": 8192,
+      "remaining_bytes": 1588
+    },
+    ".data": {
+      "vma": "0x1c08000",
+      "size": 96,
+      "budget_bytes": 98304,
+      "remaining_bytes": 98208
+    },
+    ".bss": {
+      "vma": "0x1c08060",
+      "size": 94204,
+      "budget_bytes": 98304,
+      "remaining_bytes": 4004
+    },
+    ".pool": {
+      "vma": "0x1c20000",
+      "size": 331772,
+      "budget_bytes": 344064,
+      "remaining_bytes": 12292
+    },
+    ".noinit": {
+      "vma": "0x1c7c000",
+      "size": 12148,
+      "budget_bytes": 12288,
+      "remaining_bytes": 140
+    }
+  },
+  "stack_guards": {
+    "_guard0": "0x1c74000",
+    "_ustack_lo": "0x1c74100",
+    "_ustack_top": "0x1c7a000",
+    "_guard1": "0x1c7a000",
+    "_sstack_lo": "0x1c7a100",
+    "_sstack_top": "0x1c7c000"
+  },
+  "largest_allocations": [
+    {
+      "name": "etch_scope_canvas",
+      "bytes": 83040,
+      "address": "0x1c42044"
+    },
+    {
+      "name": "native_banks",
+      "bytes": 55296,
+      "address": "0x1c564b0"
+    },
+    {
+      "name": "native_audio",
+      "bytes": 48864,
+      "address": "0x1c20000"
+    },
+    {
+      "name": "native_project_cfg",
+      "bytes": 48676,
+      "address": "0x1c2bee0"
+    },
+    {
+      "name": "native_patch_swap",
+      "bytes": 28674,
+      "address": "0x1c3b040"
+    },
+    {
+      "name": "packed",
+      "bytes": 20224,
+      "address": "0x1c6c0fc"
+    },
+    {
+      "name": "scratch",
+      "bytes": 19532,
+      "address": "0x1c63cb0"
+    },
+    {
+      "name": "scratch_pattern",
+      "bytes": 14336,
+      "address": "0x1c688fc"
+    },
+    {
+      "name": "native_editor",
+      "bytes": 13116,
+      "address": "0x1c37d04"
+    }
+  ],
+  "bytes_recovered_vs_v174": 12288
+}

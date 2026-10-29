@@ -1,0 +1,120 @@
+{
+  "passed": 19,
+  "total": 19,
+  "cases": [
+    {
+      "name": "audio",
+      "status": "PASS",
+      "seconds": 6.03,
+      "detail": "Native C core: silence, audible output, octave-safe release, voice bounds, max-depth stress and gain mute passed\n"
+    },
+    {
+      "name": "fx",
+      "status": "PASS",
+      "seconds": 2.32,
+      "detail": "Native FX: exact dry bypass, delay echoes, bounded feedback passed\n"
+    },
+    {
+      "name": "fx_advanced",
+      "status": "PASS",
+      "seconds": 2.28,
+      "detail": "Advanced FX: dynamic echo time/feedback, serial/parallel and max-feedback bounded stress PASS\n"
+    },
+    {
+      "name": "fx_calibration",
+      "status": "PASS",
+      "seconds": 2.29,
+      "detail": "PASS V0.53 FX stereo/feedback sweep: 18 scenarios; divergent=800543 frames; peak=11244/32768 (offline, not device-calibrated)\n"
+    },
+    {
+      "name": "fx_pcm_v174",
+      "status": "PASS",
+      "seconds": 2.05,
+      "detail": "scene0=5af1e7ebab11c715\nscene1=e0635d464b8afaf7\nscene2=6583fb2ba6a44505\nscene3=f2049c34dc44e9e7\nPASS: four V1.73 PCM reference renders unchanged\n"
+    },
+    {
+      "name": "fx_rc_guard",
+      "status": "PASS",
+      "seconds": 2.32,
+      "detail": "PASS F03 native FX 5s x 6 routes/wet levels: peak=30000/32768, fullscale_frames=0, stereo_diff=880085\n"
+    },
+    {
+      "name": "fx_signal_v085",
+      "status": "PASS",
+      "seconds": 2.04,
+      "detail": "effect 1: wet sample difference=32496615, release tail=841921\neffect 2: wet sample difference=17674770, release tail=19653291\neffect 3: wet sample difference=46691681, release tail=3018438\nPASS: CHORUS, DELAY, REVERB change PCM and retain audible note-release tails\n"
+    },
+    {
+      "name": "fx_space_v122",
+      "status": "PASS",
+      "seconds": 2.11,
+      "detail": "PASS V1.22 SPACE 2.0: early=10407202 late=23588965 stereo=7237398 chorus=51910685 peak=13786, dry/flush safe\n"
+    },
+    {
+      "name": "fx_stereo",
+      "status": "PASS",
+      "seconds": 2.27,
+      "detail": "PASS stereo FX: dry bypass, divergent L/R wet returns, serial/parallel, full-depth bounded (76071 differing samples)\n"
+    },
+    {
+      "name": "fx_v102",
+      "status": "PASS",
+      "seconds": 5.4,
+      "detail": "OK trem_mix difference 6000\nOK phaser_mix difference 6000\nOK flanger_mix difference 5982\nPASS V1.02 six FX DSP and PJT14/PJT13 codec\n"
+    },
+    {
+      "name": "overload",
+      "status": "PASS",
+      "seconds": 5.85,
+      "detail": "PASS 27 simultaneous keys, adaptive 8->6->4->3->2 budget, soft tails, 8 restoration, 1000 stereo render blocks\n"
+    },
+    {
+      "name": "patch_swap",
+      "status": "PASS",
+      "seconds": 7.18,
+      "detail": "I03 transactional pattern prepare/commit, corrupt archive refusal, 8-voice nonstopping bank crossfade PASS\n"
+    },
+    {
+      "name": "poly",
+      "status": "PASS",
+      "seconds": 6.05,
+      "detail": "Native advanced: 256 poly steps, individual lengths, locks, keylock/chord, MIDI clock/start/stop pass\n"
+    },
+    {
+      "name": "project",
+      "status": "PASS",
+      "seconds": 4.35,
+      "detail": "V10 project: 256-step poly, lock/FX/harmony roundtrip, 16 fault cuts x2, CRC rollback, V2 upgrade, full-bank rejection PASS\n"
+    },
+    {
+      "name": "scope_ui",
+      "status": "PASS",
+      "seconds": 0.14,
+      "detail": "PASS live scope zero crossing and 8 effect parameter change invalidations\n"
+    },
+    {
+      "name": "store",
+      "status": "PASS",
+      "seconds": 4.69,
+      "detail": "Native store: 64 slots, every write cut, CRC fallback, v1->v2 migration, 32 patch/name/sequence records passed\n"
+    },
+    {
+      "name": "usb_audio",
+      "status": "PASS",
+      "seconds": 0.15,
+      "detail": "USB Audio UAC1: descriptor and 44.1k PCM capture, ring and disconnect PASS\n"
+    },
+    {
+      "name": "usb_audio_48k",
+      "status": "PASS",
+      "seconds": 2.31,
+      "detail": "PASS USB 44100 Hz: packets=11998 frames=529303 underrun=0 overrun=0\nPASS USB 48000 Hz: packets=119998 frames=5762756 underrun=0 overrun=0\nPASS USB 44100 Hz: packets=11998 frames=529252 underrun=0 overrun=0\nPASS USB 48000 Hz: packets=119998 frames=5761607 underrun=0 overrun=0\nPASS USB 44100 Hz: packets=11998 frames=529303 underrun=0 overrun=0\nPASS U02 44.1/48/44.1/48/44.1 rate-switch, 2x120s drift soak, stereo and descriptors\n"
+    },
+    {
+      "name": "usb_audio_soak",
+      "status": "PASS",
+      "seconds": 0.21,
+      "detail": "diagnostic: good=59750 pkts=59998 underrun=0 overrun=0 fill=115\nPASS UAC 60s: pkts=59998 frames=2646946 adj_up=1047 adj_down=13 underruns=0 overruns=0, reconnect\n"
+    }
+  ]
+}

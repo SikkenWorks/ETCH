@@ -80,5 +80,32 @@ void etch_factory_seed(struct etch_wave_library *l){
   r->delay=(i==3u||i==6u||i==9u||i==14u)?2400u:0u;
   r->reverb=(i==1u||i==5u||i==7u||i==10u||i==13u)?6300u:1800u;
  }
+ /* Add the new strings preset without disturbing any of the 16 existing
+  * named patches or the 15 remaining legacy factory slots. */
+ etch_factory_strings_patch(&l->patches[16]);
  for(uint32_t i=0;i<64;i++)l->sequence[i]=255;
+}
+
+/* Built-in preview can be applied to a *working sound* from any existing
+ * PJT31 project. Nothing is written to the user's wave library or flash. */
+void etch_factory_strings_patch(struct etch_native_patch *r){
+ *r=(struct etch_native_patch){0};
+ name12(r->name,"STRING ENS");r->valid=1u;
+ r->slot_a=1u;r->slot_b=5u;r->slot_c=0u;
+ r->morph=12500u;r->depth=0u;
+ r->mod_mode=0u;r->mod_target=0u;r->mod_ratio=0u;r->filter_type=1u;
+ r->attack_ms=320u;r->decay_ms=380u;r->sustain=28000u;r->release_ms=1450u;
+ r->cutoff=6200u;r->resonance=350u;r->drive=0u;
+ r->chorus=13000u;r->delay=0u;r->reverb=3400u;
+ r->arp_mode=0u;r->seq_length=16u;r->tempo=120u;
+}
+void etch_factory_strings_wave(uint8_t wave,int16_t points[128]){
+ for(uint32_t i=0;i<128u;i++){
+  int32_t a=etch_tables[0][0][i*4u];
+  int32_t b=etch_tables[0][0][(i*8u)&511u];
+  int32_t c=etch_tables[0][0][(i*12u)&511u];
+  int32_t n=wave==0u?(int32_t)i*453-29000:
+            wave==1u?a+b/3+c/5:a;
+  points[i]=sat(n);
+ }
 }

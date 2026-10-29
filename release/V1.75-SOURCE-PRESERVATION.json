@@ -1,0 +1,10 @@
+{
+  "v174_native_C_H_files": 107,
+  "removed": [],
+  "changed": [
+    "firmware/fm1-native/bringup.c",
+    "firmware/fm1-native/wave_editor.c",
+    "firmware/fm1-native/wave_editor.h"
+  ],
+  "license_files_retained": true
+}

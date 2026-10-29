@@ -19,6 +19,11 @@ jobs:
         run: |
           gcc -std=c11 -O2 -Wall -Wextra -Werror tests/test_v147_display_bands.c -o /tmp/etch-v147-display
           /tmp/etch-v147-display
+      - name: V1.73 safe LCD glyph pixel equivalence and complete static routes
+        run: |
+          gcc -std=c11 -O2 -Wall -Wextra -Werror tests/test_v173_glyph_bounds.c -o /tmp/etch-v173-glyph
+          /tmp/etch-v173-glyph
+          python3 tools/audit_v173_ui.py
       - name: Verify audio DMA deadline guards
         run: |
           gcc -std=c11 -O2 -Wall -Wextra -Werror tests/test_v147_audio_deadline.c -o /tmp/etch-v147-timing

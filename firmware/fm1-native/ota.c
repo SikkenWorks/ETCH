@@ -162,6 +162,50 @@ static void ota_service(void)
     uint32_t d = ota_take();
     if (d == 7u && ota_dec[2] == 0x11)
         ota_reply_identity();
+#if ETCH_NATIVE_OTA
+    /* ETCH manager commands are strictly separate from OTA writes, and
+     * never stage an update loader. Keep the original 0x11 identity intact. */
+    else if(d>=7u && ota_dec[2]>=0x60u && ota_dec[2]<=0x64u){
+        uint8_t cmd=ota_dec[2];uint32_t size=sizeof(etch_manager_out);
+        uint8_t reply[32]={0};
+        if(cmd==0x60u && d==7u){
+            etch_manager_capture();etch_manager_written=0u;
+            reply[0]=1u;reply[1]=(uint8_t)size;reply[2]=(uint8_t)(size>>8);
+            uint32_t crc=etch_store_crc(&etch_manager_out,size);
+            ota_wr32(reply+3,crc);
+            reply[7]=(uint8_t)(native_store_status==ETCH_STORE_OK?0u:
+                native_store_status==ETCH_STORE_EMPTY?1u:
+                native_store_status==ETCH_STORE_FOREIGN?2u:
+                native_store_status==ETCH_STORE_FULL?3u:4u);
+            ota_send_msg(0x60u,reply,8u);
+        }else if(cmd==0x61u && d==9u){
+            uint32_t off=ota_rd16(ota_dec+6);
+            if(off<size){
+                uint32_t n=size-off;if(n>24u)n=24u;
+                reply[0]=(uint8_t)off;reply[1]=(uint8_t)(off>>8);reply[2]=(uint8_t)n;
+                for(uint32_t i=0;i<n;i++)reply[3+i]=((const uint8_t*)&etch_manager_out)[off+i];
+                ota_send_msg(0x62u,reply,n+3u);
+            }
+        }else if(cmd==0x63u && d>=10u){
+            uint32_t off=ota_rd16(ota_dec+6),n=d-9u;
+            if(off==0u)etch_manager_written=0u;
+            reply[0]=0u;
+            if(n<=24u&&off==etch_manager_written&&off<=size&&n<=size-off){
+                for(uint32_t i=0;i<n;i++)((uint8_t*)&etch_manager_in)[off+i]=ota_dec[8u+i];
+                etch_manager_written+=n;reply[0]=1u;
+            }
+            reply[1]=(uint8_t)etch_manager_written;reply[2]=(uint8_t)(etch_manager_written>>8);
+            ota_send_msg(0x63u,reply,3u);
+        }else if(cmd==0x64u&&d==11u){
+            uint32_t crc=ota_rd32(ota_dec+6);
+            reply[0]=0u;
+            if(etch_manager_written==size && etch_store_crc(&etch_manager_in,size)==crc)
+                reply[0]=etch_manager_apply();
+            etch_manager_written=0u;
+            ota_send_msg(0x64u,reply,1u);
+        }
+    }
+#endif
 }
 
 /* one read request (3 tries x 5 s); data -> dst */

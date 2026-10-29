@@ -10,10 +10,10 @@ src=(root/'firmware/fm1-native/bringup.c').read_text()
 factory=(root/'firmware/fm1-native/native_factory.c').read_text()
 nav=(root/'firmware/fm1-native/native_ui_navigation.h').read_text()
 assert '#define FELUCCA_ID "FM-1_1500"' in src
-assert '#define ETCH_UI_VERSION "V170"' in src
+assert '#define ETCH_UI_VERSION "V171"' in src
 assert 'ETCH_UI_PAGE_COUNT=62' in nav
 for needle in ('label_box(title,88,14,WHITE,194u)', 'label_box(names[i],knob_x,198',
-               'HOLD HOME: PRESETS', 'SOUND', 'ETCH_UI_FX)native_page=ETCH_UI_FX_DRIVE',
+               'SIMPLE  SEL: NEXT  GLO: MODE', 'SOUND', 'native_page=etch_ui_workflow_fx(native_page,native_workflow)',
                'etch_ui_refresh_budget(', 'native_project_cfg', 'native_patch_change('):
     assert needle in src, f'missing native UI or retained route: {needle}'
 for needle in ('WARM KEYS','GLASS PAD','DUST BASS','ETCH_PATCH_SLOTS'):
@@ -23,4 +23,4 @@ with tempfile.TemporaryDirectory() as temp:
     subprocess.run(['gcc','-std=c11','-Wall','-Wextra','-Werror',
                     str(root/'tests/test_native_ui_v170.c'),'-o',str(out)],check=True)
     subprocess.run([str(out)],check=True)
-print('PASS: 62 native pages retained, sound-first routing, full product ID, fixed UI geometry')
+print('PASS: 62 native pages retained, V1.71 workflow, full product ID, focused geometry')

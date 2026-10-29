@@ -1,0 +1,12 @@
+{
+  "reference": "ETCH V1.75 full-source ZIP",
+  "removed": [],
+  "modified_native_sources": [
+    "firmware/fm1-native/audio_core.c",
+    "firmware/fm1-native/bringup.c",
+    "firmware/fm1-native/native_organic.h"
+  ],
+  "original_native_source_count": 112,
+  "preserved_identity": "FM-1_1500",
+  "project_format": "PJT31"
+}

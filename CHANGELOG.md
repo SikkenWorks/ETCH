@@ -1,3 +1,49 @@
+## V1.78 · First-Boot Storage Ownership Prompt (software-tested candidate)
+
+- On boot, detect `ETCH_STORE_FOREIGN` in the **ETCH target storage banks**, and offer a modal **FORMAT FOR ETCH? YES/NO** screen. NO is selected initially and exits to RAM-only operation without writes; the question returns on a future boot until storage is made compatible.
+- YES requires an explicit K1 selection, physical SEL button confirmation, release of SAVE and a continuous **3-second SAVE hold**. HOME cancels at every stage. The user is warned that old sample slots 2 and 3 will be permanently erased.
+- Reuse the existing, confirmed bounded storage initialization in `wave_store.c`: only `0xB4000..0xDBFFF` may be erased. Valid legacy ETCH projects or already initialized ETCH storage are never silently replaced; unrelated boot, OTA staging, sample slot 1, other project and recovery areas are preserved. Read errors, boot-loop Safe Mode and USB-controller boot cannot enter the wipe.
+- Show **FORMATTING / VERIFYING** while the work is underway, followed by **FORMAT VERIFIED** or a specific failure. The new prompt state is in the existing `.pool` memory region; project format `PJT31`, original `FM-1_1500` identity, protected 16 KiB header, OTA loader, preset manager and all existing synth features are unchanged.
+- Host tests verify default NO, button holds and interruptions, no destructive operations before complete confirmation, permitted flash sectors, protection of valid ETCH projects and safe handling of I/O failure; native JieLi builds succeed with/without USB-audio. No FM1 hardware validation is claimed.
+
+## V1.77 · RAM Preset Rescue & Save Feedback
+
+- Added a versioned RAM-only SysEx snapshot interchange (0x60–0x64), CRC-checked 24-byte chunk transfer. The original OTA identity command and update protocol remain unchanged.
+- Added complete live-sound snapshot of A/B/C 128-point waveforms, wave effects, global effects, patch and envelope, ORGANIC, LIVING, MOD MATRIX, evolution and harmony settings. This is **not a full multi-project backup**; projects and patterns beyond the active sound are not transferred.
+- Added a standalone Web MIDI Project/Preset Manager for live capture and `.etchpreset` download/import with SHA-256 + CRC32. Upload only auditions in RAM. No automatic flash writes.
+- Added real SAVE / VERIFYING feedback before blocking project/preset/wave flash work. Existing success displays remain readback-verified; failure messages remain visible instead of pretending success.
+- Preserved original storage ownership protection. `STORAGE LOCKED` is not blindly turned into automatic format; `STORAGE FULL` remains an explicit capacity error when the project does not fit.
+- No new product ID, no project serializer changes, no boot/OTA flash layout changes, no UI pages removed. New snapshots work **only after V1.77 boots**; they cannot rescue unsaved V1.76 RAM by flashing V1.77.
+- Software builds and tests are not physical FM1 verification. Full bidirectional hardware USB-MIDI transfer and storage recovery are still unverified.
+
+## V1.74 — DSP arithmetic optimization & SRAM guard audit (29 October 2026)
+
+- Converted four bounded Q15 one-pole filtering steps from 64-bit to 32-bit signed intermediate multiplication. The coefficient upper bound is 15,000, and the bounded sample/state difference is at most 65,535, making the product at most 983,025,000 (below INT32_MAX). Integer division semantics remain unchanged, as verified by four deterministic V1.73 PCM reference hashes.
+- Added a reusable `fx_pcm_v174` host regression and section/symbol linker audit `tools/v174_memory_audit.py`; this rejects SRAM budget growth, unexpected stack-guard addresses or overlapping USB-audio/pool regions on the tested UAC48 target.
+- JieLi FM1 builds for no-UAC, USB 44.1 and USB 48 kHz compile; native regressions include FX, audio, polyphony, projects, USB audio, overload and patch swaps. See `docs/V1.74-DSP-MEMORY-REPORT.md` for exact results.
+- All 62 native screens, SIMPLE/ADVANCED navigation, STRING ENS, all 278 native source/header files, PJT31 project persistence, calibration, MIDI, audio engine, OTA recovery, original bootheader, loader and original `FM-1_1500` identity are retained.
+- **No RAM reduction and no physical CPU improvement has been established.** The DSP pool is still essentially full (4 B free). Stack high-water and full hardware stress tests remain outstanding. This is not an FM1 hardware-qualified release.
+
+## V1.73 — Bounded LCD compositor and rendering efficiency (29 October 2026)
+
+- Replaced the inner loop of the standard 5×7 label renderer with a direct, RGB565 byte-swapped glyph blit **only when fully inside the existing active canvas**. The original rendering method remains as a fallback for partial glyphs, unbuffered screens and scale-2 splash graphics. No changes to fonts, colors or target panel pixels are intended.
+- Added preflight guards for offscreen scope/UI height, y-origin, missing begin state, and invalid composite commit before writing to the fixed 240×173 RGB565 canvas or sending LCD DMA. No additional framebuffer and no malloc.
+- Verified the new glyph blit against the previous per-pixel fill semantics in 8,192 deterministic randomized canvases under ASan and UBSan. Guard-canaries and invalid rectangle/edge rejection passed.
+- Preserved all 62 screen IDs, every existing source C/header file, SIMPLE/ADVANCED catalog, STRING ENS, all MIDI/audio/FX modules, PJT31 storage and native OTA code. Only the native UI composite code and version string changed from V1.72.
+- JieLi app builds for normal FM1 and USB audio 44.1/48 kHz, 16/16 targeted native regressions, firmware/installer SHA parity and pinned identity all passed. This is a host/software result, not a physical FM1 measurement.
+- **RAM limitation:** `.pool` remains 344,060/344,064 bytes (4 bytes free), `.bss`+`.data` unchanged, UAC pool unchanged. This iteration improves the draw path and bounds safety, **not** DSP memory capacity. No claim of lower physical CPU load without hardware profiling.
+- Release provides one official `ETCH-V1.73.fwsc`; a legacy stock-bootheader ETCH variant remains only inside the installer. The official identity is still `FM-1_1500`, never `FM-1_1730`.
+- Full 62-screen physical pixel QA, external cross-firmware installs and recovery tests remain open.
+
+## V1.72 — Screen Catalog and String Ensemble (29 October 2026)
+
+- Added an ADVANCED screen catalog covering all **62** existing pages. SIMPLE navigation and all existing physical shortcuts remain intact; no page IDs, synth modules or serializers were removed.
+- K3 browses page IDs and K4 opens the selected screen. MONO-only editors are guarded in POLY. NAME, PROJECT SAVE and PRESETS use the existing initialization and confirmation flows.
+- Added **STRING ENS** as an additional factory string-machine-inspired preset in slot 17 of fresh, unsaved factory content. The original 16 named starters are byte-for-byte unchanged in definition. Existing stored projects are not migrated or overwritten.
+- New non-destructive strings audition from WORKFLOW (K1 twice) for users with existing PJT31 data. Preview uses the existing wave render, envelope and chorus and leaves all persistent data untouched until an explicit SAVE; active notes prevent heavy waveform rebuilds.
+- Preserved unchanged OTA package identity `FM-1_1500`, standard bootheader, trusted loader, WebInstaller and PJT31 format.
+- Tests: JieLi 44.1/48-kHz USB build; portable factory, catalog, and legacy workflow checks; USB-audio packet/60-second soak, FX and audio checks; installer SHA and UFW checks. Full hardware and whole-UI pixel capture are not yet verified. RAM pool margin remains 4 bytes.
+
 # ETCH · Changelog
 
 Development and release history of **ETCH**, the SikkenWorks custom synthesizer firmware for the M-VAVE FM1.
@@ -5,6 +51,40 @@ Development and release history of **ETCH**, the SikkenWorks custom synthesizer 
 This file contains product changes, fixes, optimizations and migration notes. For what ETCH is and how to operate it, use [README.md](README.md); the complete key/shortcut reference also lives there. Historical release details are consolidated below instead of scattered across separate Markdown files.
 
 **Important terminology:** “built”, “host-tested”, “installer-validated” and “hardware-tested” are different milestones. Unless explicitly noted, the historical reports document software testing, **not** proof of a successful physical FM1 installation or independent recovery.
+
+## V1.79 · RGB VHS Boot + Flicker-Free Setup — 29 October 2026
+
+- Replaced the old static pre-audio splash with nine bounded RGB chromatic-shift and VHS scan-glitch frames, then an unmodified SIKKENWORKS screen with `BORN OUT OF PASSION.` held for one second (watchdog is fed throughout). Animation runs before the audio engine starts, without extra framebuffers, heap allocations, flash operations or changes to USB/interrupt code.
+- Added a first-class boot workflow choice: **ETCH → SIMPLE / ADVANCED**, default SIMPLE, select with K1 and confirm with SEL. This is runtime-only and cannot write to flash. All 62 existing page IDs and the complete ADVANCED catalog remain accessible. The existing foreign-storage YES/NO takeover question is shown *after* workflow selection, not removed.
+- Eliminated the previous storage modal's repeated visible full-LCD erase: all changing content now composes into the existing 240×173 RGB565 panel and is transferred only on state changes; an offscreen header avoids a transient black top panel. A quantized dirty-state test verifies no redundant draws for steady input. Preserved the separate hold-to-format guard, NO default, protected flash ranges, recovery priority and all status/error messages.
+- Host tests: 16/16 native audio/USB/project/FX regressions; boot dirty-state tests; the original V1.78 format confirmation and flash-boundary integration; installer CHECK/WRITE simulated regression; firmware packages verified to keep exact `FM-1_1500` identity, protected 16 KiB bootheader, unchanged OTA loader and matching installer SHA-256.
+- Normal/UAC 44.1/UAC 48 kHz JieLi builds passed; no physical FM1 display timing, real USB performance or power-loss recovery claim. The effect intentionally has colored registration glitches during the animation, **never** on the stable branding or interactive prompts.
+
+## V1.76 · Continuous Analog-Style ORGANIC Drift — 29 October 2026
+
+- **Fixes audible stepping in ORGANIC DRIFT.** Former V1.75 updated random pitch targets every 0.09–0.91 seconds and settled in roughly 12ms, producing abrupt tuning jumps followed by holds. V1.76 uses a bounded quadratic ease-in/out with a flat slope at the endpoints, moving continuously between random destinations over **2.5–9 seconds** depending on RATE.
+- New deterministic per-voice state uses the existing `seed`, `time`, `pitch`, and `goal` fields. `time` packs elapsed and duration ticks, with no extra SRAM or heap allocations. Interpolation runs at the existing 32-sample control rate, not per PCM sample; all easing intermediates fit in 32 bits.
+- Turning DRIFT to zero on held notes now eases back to neutral over approximately 1.5 seconds instead of snapping. A newly loaded zeroed patch remains a bit-exact bypass. PHASE and per-voice static VARIANCE behavior are retained.
+- 2,424 sampled randomized target transitions pass monotonicity, endpoints and maximum control-step checks under sanitizer; the original ORGANIC + audio/FX/project/USB regressions remain passing.
+- JieLi native builds for no UAC, 44.1k and 48k UAC compile; 48k linker retains **12,292 bytes free DSP pool** and unchanged boot/stack/OTA regions. The native firmware and packaged `.fwsc` keep identity **`FM-1_1500`** and `PJT31`.
+- **Not proven on physical FM1 hardware.** Listen to a sustained single note in MONO with high DRIFT and RATE to confirm smoothness; no new hardware stability/flash safety assertion is made.
+
+## V1.75 · Wave History RAM Recovery — 29 October 2026
+
+- Removed **12,288 bytes of duplicate static undo/redo snapshots** from the runtime-only waveform editor. The previous two 16-entry arrays are now one reversible 16-entry circular history, with exact sample swaps that preserve both the 16-step undo depth and redo after undos. No waveform resolution, tools, limits or functionality is dropped.
+- On the linked 48 kHz UAC FM1 build, `.pool` shrinks from **344,060** to **331,772 bytes**, leaving **12,292 free** instead of 4. Ordinary RAM, UAC scratch and protected stack guard locations are unchanged. The change is **static RAM recovery**, not a measured CPU-speed improvement.
+- New reference-model stress test compares **25,032 edit/undo/redo operations** to the original V1.74 algorithm on all three waveforms. Added host test integration and a link-time memory regression gate.
+- Preserved every native UI page and 62-screen catalog, SIMPLE/ADVANCED, STRING ENS, 16 starter sounds, 8 voices, effects, USB 44.1/48 kHz, project storage `PJT31`, stock/OTA safety handling, package identity **`FM-1_1500`**, protected 16 KiB bootheader and pinned loader.
+- JeeLi target builds, native audio/FX/USB/project/OTA software regressions and `.fwsc` SHA-verification passed. **No on-device flashing, USB soak or ROM recovery has been validated**. Do not describe this as an on-device stable release.
+
+## V1.71 · SIMPLE/ADVANCED Workflow + UI Safety — 29 October 2026
+
+- Adds a runtime-only SIMPLE mode (default): SELECT cycles SOUND, MORPH, FILTER, FX, LIBRARY; FX, LFO, ARP and SEQ open their familiar entry pages without forcing long advanced cycles. Existing ADVANCED mode retains the V1.70 routing and all 62 native editor page IDs.
+- GLO from SIMPLE opens SYSTEM's new eighth WORKFLOW tab. K2 switches between SIMPLE/ADVANCED. The mode is deliberately not written to PJT31, so opening previous projects never changes content or format.
+- Fixes a verified V1.70 layout error: the fourth knob's exclusive right edge was **241**, while label_box rejects edges above **240**. Labels for K4 could therefore disappear entirely. V1.71 bounds K4 at 240.
+- Clips all generic footer numeric values to their own parameter boxes, not only their labels; unexpected large numbers are explicitly marked instead of bleeding into adjacent columns. Auxiliary page titles get bounded boxes to avoid overlapping status and fault messages.
+- Adds native tests for both workflow modes, 8 system tabs, all 62 page title strings, four parameter cell boundaries, and static 240x240 literal-text bounds. No new frame buffers or audio-thread code; unchanged UAC RAM, DSP pool and project/OTA layout.
+- JieLi builds, software regressions and package SHA tests are documented separately. A **physical full 62-screen pixel QA**, audio soak, flash and recovery test have **not been performed**. Only a small, targeted fraction of the screens were geometrically tested.
 
 ## V1.70 · Sound-first UI / LCD Layout / Audio-priority Rendering — 29 October 2026
 

@@ -15,6 +15,17 @@ static int16_t tape_line[512] __attribute__((section(".noinit")));
 static int16_t space_diffuser[64] __attribute__((section(".noinit")));
 static int16_t clip16(int32_t v){return (int16_t)(v<-32768?-32768:v>32767?32767:v);}
 static uint16_t qclamp(uint16_t x){return x>32767?32767:x;}
+/* V1.74: signed 32-bit equivalent of the previous int64/32768 LP steps.
+ * BOUND PROOF: EQ and SPACE inputs are clipped int16 samples; one-pole
+ * states start at zero and have 0 <= alpha < 32768, so they remain within
+ * [-32768,32767]. |delta| <= 65535. Largest coefficient is 15000:
+ * 65535*15000 = 983025000 < INT32_MAX. No rounding/phase change.
+ * The independent V1.73 golden PCM tests cover dry/wet, EQ/HPF/SPACE.
+ * Do NOT reuse for a feedback integrator without the same proof. */
+_Static_assert(65535LL * 15000LL <= INT32_MAX, "LP step must not overflow 32-bit");
+static inline int32_t etch_fx_bounded_lp_step(int32_t delta, int32_t alpha){
+ return (delta*alpha)/32768;
+}
 /* RC candidate F03: wet-output soft knee before the hardware DAC/USB stage.
  * No effect sends means exact bit-for-bit dry bypass. The knee starts at
  * 22,000 and asymptotically approaches 30,192 in Q15, avoiding full-scale
@@ -78,10 +89,10 @@ static int16_t etch_fx_ring_eq(struct etch_native_fx *s,int16_t sample,const str
  s->ring_phase+=s->ring_increment;
  /* One-pole crossovers: low <~200Hz, mid ~200Hz..~6kHz, high >~6kHz.
   * The three bands recombine exactly to dry when each gain is at unity. */
- s->eq_lp_low+=(int32_t)(((int64_t)(x-s->eq_lp_low)*900)/32768);
- s->eq_lp_high+=(int32_t)(((int64_t)(x-s->eq_lp_high)*9000)/32768);
+ s->eq_lp_low+=(int32_t)(etch_fx_bounded_lp_step(x-s->eq_lp_low,900));
+ s->eq_lp_high+=(int32_t)(etch_fx_bounded_lp_step(x-s->eq_lp_high,9000));
  if(c->eq_hpf){
-  s->eq_lp_hpf+=(int32_t)(((int64_t)(x-s->eq_lp_hpf)*s->eq_hpf_alpha)/32768);
+  s->eq_lp_hpf+=(int32_t)(etch_fx_bounded_lp_step(x-s->eq_lp_hpf,s->eq_hpf_alpha));
   x-=s->eq_lp_hpf;
  }else s->eq_lp_hpf=x;
  if(s->eq_gain_smooth[0]!=16384||s->eq_gain_smooth[1]!=16384||s->eq_gain_smooth[2]!=16384){
@@ -414,7 +425,7 @@ void etch_fx_process_stereo_ex(struct etch_native_fx *s,int16_t in,uint16_t chor
  space_diffuser[s->reverb_pos&63u]=clip16(diff_in+(diff_prev/2));
  /* Feedback damping reduces bright, metallic accumulation at large DECAY.
   * The coefficient changes only when user control settings change. */
- s->space_damp_state+=(int32_t)(((int64_t)(diffusion-s->space_damp_state)*s->space_damp_alpha)/32768);
+ s->space_damp_state+=(int32_t)(etch_fx_bounded_lp_step(diffusion-s->space_damp_state,s->space_damp_alpha));
  s->reverb[s->reverb_pos]=clip16(diffused+(int32_t)(((int64_t)s->space_damp_state*decay*27)>>20));
  s->reverb_pos=(s->reverb_pos+1u)&(ETCH_REVERB_SIZE-1u);
  /* V1.14: REVERB MIX is a true constant-gain dry/wet blend. V1.13

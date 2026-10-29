@@ -1,0 +1,60 @@
+{
+  "passed": 9,
+  "total": 9,
+  "cases": [
+    {
+      "name": "midi",
+      "status": "PASS",
+      "seconds": 7.18,
+      "detail": "MIDI: channel separation, velocity, sustain, retrigger, CC120/121/123, panic isolation, note bounds; boot SAFE latch passed\n"
+    },
+    {
+      "name": "mono_advanced_v100",
+      "status": "PASS",
+      "seconds": 4.98,
+      "detail": "PASS V1.00 MONO last-note priority, release fallback, MIDI sustain/retrigger, sample-boundary SEQ, playhead\n"
+    },
+    {
+      "name": "organic_smooth_v176",
+      "status": "PASS",
+      "seconds": 0.17,
+      "detail": "PASS V1.76 smooth organic: 2424 monotonic segments, zero endpoint jumps, zero-depth exact bypass, 2.5-9s cadence\n"
+    },
+    {
+      "name": "organic_v123",
+      "status": "PASS",
+      "seconds": 10.58,
+      "detail": "PASS V1.35 organic MONO: off, drift, phase, variance, priority stack, PJT22 and PJT21 migration\n"
+    },
+    {
+      "name": "overload",
+      "status": "PASS",
+      "seconds": 6.64,
+      "detail": "PASS 27 simultaneous keys, adaptive 8->6->4->3->2 budget, soft tails, 8 restoration, 1000 stereo render blocks\n"
+    },
+    {
+      "name": "patch_swap",
+      "status": "PASS",
+      "seconds": 6.15,
+      "detail": "I03 transactional pattern prepare/commit, corrupt archive refusal, 8-voice nonstopping bank crossfade PASS\n"
+    },
+    {
+      "name": "project",
+      "status": "PASS",
+      "seconds": 3.83,
+      "detail": "V10 project: 256-step poly, lock/FX/harmony roundtrip, 16 fault cuts x2, CRC rollback, V2 upgrade, full-bank rejection PASS\n"
+    },
+    {
+      "name": "usb_audio_48k",
+      "status": "PASS",
+      "seconds": 3.32,
+      "detail": "PASS USB 44100 Hz: packets=11998 frames=529303 underrun=0 overrun=0\nPASS USB 48000 Hz: packets=119998 frames=5762756 underrun=0 overrun=0\nPASS USB 44100 Hz: packets=11998 frames=529252 underrun=0 overrun=0\nPASS USB 48000 Hz: packets=119998 frames=5761607 underrun=0 overrun=0\nPASS USB 44100 Hz: packets=11998 frames=529303 underrun=0 overrun=0\nPASS U02 44.1/48/44.1/48/44.1 rate-switch, 2x120s drift soak, stereo and descriptors\n"
+    },
+    {
+      "name": "v175_shared_undo",
+      "status": "PASS",
+      "seconds": 1.61,
+      "detail": "PASS V1.75: 25032 V1.74-equivalent undo/redo operations, all 3 waves; 12,288 bytes saved\n"
+    }
+  ]
+}

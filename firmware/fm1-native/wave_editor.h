@@ -7,7 +7,12 @@ struct etch_native_bank {int16_t table[3][6][512];};
 struct etch_wave_editor {
  int16_t points[3][128];
  struct etch_wave_fx_params fx[3];
- int16_t history[16][3][128],redo[16][3][128];
+ /* V1.75: one shared, capacity-16 circular snapshot ring.
+  * Undo occupies [head-undo_count, head); redo [head, head+redo_count).
+  * A snapshot popped on undo is swapped with the working state and becomes
+  * the nearest redo snapshot, so both histories need only sixteen slots.
+  * The editor is runtime-only; no saved project/patch layout changes. */
+ int16_t history[16][3][128];
  uint8_t undo_count,undo_head,redo_count;
  uint8_t wave,cursor,has_undo,dirty;
  uint32_t revision;

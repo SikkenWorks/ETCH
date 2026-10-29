@@ -1,0 +1,102 @@
+{
+  "passed": 16,
+  "total": 16,
+  "cases": [
+    {
+      "name": "audio",
+      "status": "PASS",
+      "seconds": 6.64,
+      "detail": "Native C core: silence, audible output, octave-safe release, voice bounds, max-depth stress and gain mute passed\n"
+    },
+    {
+      "name": "editor",
+      "status": "PASS",
+      "seconds": 8.18,
+      "detail": "Native wave editor: directional bounds, A/B/C, undo, DC rejection, mip bounds and 256-sample bank handoff passed\n"
+    },
+    {
+      "name": "fx",
+      "status": "PASS",
+      "seconds": 2.1,
+      "detail": "Native FX: exact dry bypass, delay echoes, bounded feedback passed\n"
+    },
+    {
+      "name": "fx_space_v122",
+      "status": "PASS",
+      "seconds": 2.42,
+      "detail": "PASS V1.22 SPACE 2.0: early=10407202 late=23588965 stereo=7237398 chorus=51910685 peak=13786, dry/flush safe\n"
+    },
+    {
+      "name": "overload",
+      "status": "PASS",
+      "seconds": 6.07,
+      "detail": "PASS 27 simultaneous keys, adaptive 8->6->4->3->2 budget, soft tails, 8 restoration, 1000 stereo render blocks\n"
+    },
+    {
+      "name": "patch_swap",
+      "status": "PASS",
+      "seconds": 7.6,
+      "detail": "I03 transactional pattern prepare/commit, corrupt archive refusal, 8-voice nonstopping bank crossfade PASS\n"
+    },
+    {
+      "name": "poly",
+      "status": "PASS",
+      "seconds": 6.07,
+      "detail": "Native advanced: 256 poly steps, individual lengths, locks, keylock/chord, MIDI clock/start/stop pass\n"
+    },
+    {
+      "name": "project",
+      "status": "PASS",
+      "seconds": 4.56,
+      "detail": "V10 project: 256-step poly, lock/FX/harmony roundtrip, 16 fault cuts x2, CRC rollback, V2 upgrade, full-bank rejection PASS\n"
+    },
+    {
+      "name": "scope_ui",
+      "status": "PASS",
+      "seconds": 0.15,
+      "detail": "PASS live scope zero crossing and 8 effect parameter change invalidations\n"
+    },
+    {
+      "name": "store",
+      "status": "PASS",
+      "seconds": 4.74,
+      "detail": "Native store: 64 slots, every write cut, CRC fallback, v1->v2 migration, 32 patch/name/sequence records passed\n"
+    },
+    {
+      "name": "ui_navigation",
+      "status": "PASS",
+      "seconds": 0.26,
+      "detail": "PASS V0.77 all 33 page IDs, FX four-page SELECT, GLO GUIDE/FIFTHS/SYSTEM, ADSR via ENV, no destructive page transitions\n"
+    },
+    {
+      "name": "usb_audio",
+      "status": "PASS",
+      "seconds": 0.18,
+      "detail": "USB Audio UAC1: descriptor and 44.1k PCM capture, ring and disconnect PASS\n"
+    },
+    {
+      "name": "usb_audio_48k",
+      "status": "PASS",
+      "seconds": 2.31,
+      "detail": "PASS USB 44100 Hz: packets=11998 frames=529303 underrun=0 overrun=0\nPASS USB 48000 Hz: packets=119998 frames=5762756 underrun=0 overrun=0\nPASS USB 44100 Hz: packets=11998 frames=529252 underrun=0 overrun=0\nPASS USB 48000 Hz: packets=119998 frames=5761607 underrun=0 overrun=0\nPASS USB 44100 Hz: packets=11998 frames=529303 underrun=0 overrun=0\nPASS U02 44.1/48/44.1/48/44.1 rate-switch, 2x120s drift soak, stereo and descriptors\n"
+    },
+    {
+      "name": "usb_audio_dma_shift",
+      "status": "PASS",
+      "seconds": 2.36,
+      "detail": "PASS USB 44100 Hz: packets=11998 frames=529303 underrun=0 overrun=0\nPASS USB 48000 Hz: packets=119998 frames=5762756 underrun=0 overrun=0\nPASS USB 44100 Hz: packets=11998 frames=529252 underrun=0 overrun=0\nPASS USB 48000 Hz: packets=119998 frames=5761607 underrun=0 overrun=0\nPASS USB 44100 Hz: packets=11998 frames=529303 underrun=0 overrun=0\nPASS Q15<<7 DMA-equivalent U02 44.1/48/44.1/48/44.1 rate-switch, 2x120s drift soak, stereo and descriptors\n"
+    },
+    {
+      "name": "usb_audio_soak",
+      "status": "PASS",
+      "seconds": 0.17,
+      "detail": "diagnostic: good=59750 pkts=59998 underrun=0 overrun=0 fill=115\nPASS UAC 60s: pkts=59998 frames=2646946 adj_up=1047 adj_down=13 underruns=0 overruns=0, reconnect\n"
+    },
+    {
+      "name": "v135_poly_guard",
+      "status": "PASS",
+      "seconds": 5.37,
+      "detail": "PASS V1.35: POLY identical at 8 voices with EVOLUTION/ORGANIC presets; MONO restores both\n"
+    }
+  ]
+}

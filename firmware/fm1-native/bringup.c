@@ -35,6 +35,9 @@
 #include "native_live_controls_v117.h"
 #include "lcd.c"
 #include "native_display_bands.h"
+#include "native_ui_glyph_fast_v173.h"
+#include "native_ui_bounds_v173.h"
+#include "native_boot_visual_v179.h"
 /* Preserve Felucca's original lcd.c byte-for-byte (audit and OTA safety).
  * ETCH's taller offscreen UI pages need an application-only segmented blit:
  * do not ask the SPI DMA engine for an unproven >64-KiB transfer. Separate
@@ -95,10 +98,21 @@ static void etch_ui_fill(uint32_t x,uint32_t y,uint32_t w,uint32_t h,uint16_t co
 }
 static void etch_scope_begin(uint16_t y,uint16_t height){
  if(etch_panel_composite)return; /* A legacy scope is part of the pending page. */
+ /* Refuse invalid rectangles BEFORE any draw can address the shared DMA
+  * canvas. All existing legal frames are unchanged, including 0..65. */
+ if(!etch_ui_canvas_rect_valid(y,height,ETCH_SCOPE_MAX_HEIGHT)){
+  etch_scope_active=0u;etch_scope_height=0u;
+  etch_display_invalidate(&etch_panel_cache);
+  return;
+ }
  etch_scope_origin=y;etch_scope_height=height;etch_scope_active=1;
 }
 static void etch_scope_commit(void){
  if(etch_panel_composite)return; /* Commit once after every label and value. */
+ if(!etch_scope_active || !etch_ui_canvas_rect_valid(etch_scope_origin,
+        etch_scope_height,ETCH_SCOPE_MAX_HEIGHT)){
+  etch_scope_active=0u;etch_display_invalidate(&etch_panel_cache);return;
+ }
  etch_scope_active=0;
  if(etch_panel_cache.valid && etch_scope_origin<etch_panel_cache.top+etch_panel_cache.height &&
    etch_scope_origin+etch_scope_height>etch_panel_cache.top)etch_display_invalidate(&etch_panel_cache);
@@ -110,6 +124,13 @@ static void etch_scope_commit(void){
  * This replaces dozens of visible SPI rectangles with one consistent blit.
  * No DMA/flash/audio ISR change: the operation remains on the UI thread. */
 static void etch_panel_begin(uint16_t top){
+ /* The compositor can only hold 173 lines. Never let future page variants
+  * overrun this allocation. Current pages all request top=67. */
+ if(!etch_ui_panel_top_valid(top,ETCH_SCOPE_MAX_HEIGHT)){
+  etch_scope_active=0u;etch_panel_composite=0u;
+  etch_display_invalidate(&etch_panel_cache);
+  return;
+ }
  etch_scope_origin=top;
  etch_scope_height=(uint16_t)(240u-top);
  etch_scope_active=1u;
@@ -119,6 +140,12 @@ static void etch_panel_begin(uint16_t top){
  for(uint32_t i=0;i<n;i++)etch_scope_canvas[i]=0u;
 }
 static void etch_panel_commit(void){
+ if(!etch_panel_composite || !etch_scope_active ||
+    !etch_ui_canvas_rect_valid(etch_scope_origin,etch_scope_height,
+                               ETCH_SCOPE_MAX_HEIGHT)){
+  etch_panel_composite=0u;etch_scope_active=0u;
+  etch_display_invalidate(&etch_panel_cache);return;
+ }
  /* Audio ISR is never involved. Reuse the existing DMA-safe framebuffer;
   * tiny UI edits transfer only changed strips, full changes use the
   * pre-existing segmented path to avoid four extra window commands. */
@@ -198,7 +225,7 @@ static volatile uint32_t native_nested_ticks, native_nested_count;
 #endif
 #define FELUCCA_OTA ETCH_NATIVE_OTA
 #define FELUCCA_ID "FM-1_1500"
-#define ETCH_UI_VERSION "V170"
+#define ETCH_UI_VERSION "V179"
 #define FELUCCA_OTA_DRYRUN 0
 #define RING_PUBLISH() __asm__ volatile("" ::: "memory")
 #include "usb.c"
@@ -284,8 +311,15 @@ static void label(const char *text,uint32_t x,uint32_t y,uint16_t color){
    }
   }
   if(!bits)continue;
+  const uint32_t gx=x+c*8u*etch_label_scale;
+  /* Main-loop-only compositor fast path: one clipped glyph write into the
+   * existing RGB565 canvas, rather than 10-25 etch_ui_fill calls. Unsupported
+   * placements and the boot splash retain the original exact pixel path. */
+  if(etch_scope_active && etch_label_scale==1u &&
+      etch_ui_glyph_fast_565(etch_scope_canvas,240u,
+        etch_scope_origin,etch_scope_height,gx,y,bits,color))continue;
   for(uint32_t row=0;row<7;row++)for(uint32_t col=0;col<5;col++)if(bits[row]&(16u>>col))
-   lcd_fill(x+c*8u*etch_label_scale+col*etch_label_scale,y+row*etch_label_scale,
+   lcd_fill(gx+col*etch_label_scale,y+row*etch_label_scale,
             etch_label_scale,etch_label_scale,color);
  }
 }
@@ -303,14 +337,47 @@ static void label_box(const char *text,uint32_t x,uint32_t y,uint16_t color,uint
 static void label_large(const char *text,uint32_t x,uint32_t y,uint16_t color){
  etch_label_scale=2u;label(text,x,y,color);etch_label_scale=1u;
 }
-/* Boot branding is intentionally shown before the audio IRQ begins.
- * No waiting in the realtime audio thread or application main loop. */
-/* Minimal centered splash: nothing else on screen. */
+/* V1.79: self-contained RGB/VHS-inspired boot intro.
+ * Nine composited glitch frames, then a steady, unmodified brand frame held
+ * for exactly one second (delay loop fed by watchdog). No blind full-screen
+ * clears between frames, no temporary framebuffers, no audio-ISR work.
+ * Early boot keeps the normal REC/OCT- recovery priority unchanged. */
+static void etch_boot_brand_frame(uint8_t frame,uint8_t clean){
+ etch_panel_begin(67u);
+ if(!clean){
+  int32_t jitter=etch_boot_rgb_shift(frame);
+  /* Chromatic registration errors. The final frame never has RGB offsets. */
+  label_large("SIKKENWORKS",(uint32_t)(32+jitter-2),99u,0x07ff);
+  label_large("SIKKENWORKS",(uint32_t)(32+jitter+2),99u,0xf81f);
+  label_large("SIKKENWORKS",(uint32_t)(32+jitter),99u,0xffff);
+  label("BORN OUT OF PASSION.",40u,145u,0x7bef);
+  for(uint8_t n=0u;n<5u;n++){
+   uint32_t y=75u+((uint32_t)frame*29u+(uint32_t)n*37u)%137u;
+   uint32_t x=10u+((uint32_t)frame*17u+(uint32_t)n*31u)%49u;
+   uint32_t w=175u+(uint32_t)(n&1u)*20u;
+   lcd_fill(x,y,w,1u,(n&1u)?0x07ff:0xf81f);
+  }
+  /* Short scan dropouts instead of high-frequency full-screen strobing. */
+  lcd_fill(14u,185u+(uint32_t)(frame%3u)*7u,211u,2u,0x39c7);
+ }else{
+  label_large("SIKKENWORKS",32u,99u,0xffff);
+  label("BORN OUT OF PASSION.",40u,145u,0xffff);
+  lcd_fill(40u,163u,160u,1u,0x4208);
+ }
+ etch_panel_commit();
+}
 static void etch_boot_splash(void){
- lcd_fill(0,0,240,240,0x0000);
- label_large("SIKKENWORKS",32,95,0xffff);
- label("Born out of passion.",40,132,0xffff);
- lcd_sync();fm1_wdt_feed();fm1_delay_ms(480u);fm1_wdt_feed();
+ /* The one-time clear precedes the first composed frame. No black frames
+  * are sent between subsequent frames, including the branding hold. */
+ lcd_fill(0u,0u,240u,240u,0x0000);
+ for(uint8_t f=0;f<ETCH_BOOT_GLITCH_FRAMES;f++){
+  etch_boot_brand_frame(f,0u);
+  fm1_wdt_feed();fm1_delay_ms(ETCH_BOOT_FRAME_DELAY_MS);
+ }
+ etch_boot_brand_frame(0u,1u);
+ for(uint32_t elapsed=0u;elapsed<ETCH_BOOT_BRAND_HOLD_MS;elapsed+=25u){
+  fm1_wdt_feed();fm1_delay_ms(25u);
+ }
 }
 
 #include "native_project_codec.h"
@@ -337,6 +404,10 @@ static uint8_t native_morph_a,native_morph_b;
 static uint8_t native_browser_slot,native_browser_target,native_morph_focus;
 static uint8_t native_wave_load_armed,native_wave_load_page;
 static uint8_t native_wave_load_error,native_system_tab;
+static uint8_t native_workflow=ETCH_WORKFLOW_SIMPLE; /* runtime UI preference, never saved in PJT31 */
+static uint8_t native_workflow_pending __attribute__((section(".pool"))); /* always ask at a normal cold boot, never persist */
+static uint8_t native_catalog_page=ETCH_UI_PLAY; /* V1.72: 0..61 screen finder, not serialized */
+static uint8_t native_strings_armed; /* requires two explicit K1 actions */
 /* V1.40 P2: live expressive response; intentionally not stored in PJT27. */
 static uint8_t native_velocity_curve;
 /* P05: four named projects, independent CRC snapshots. SEL confirms project
@@ -353,6 +424,7 @@ static uint32_t native_saved_until;
 static uint8_t native_save_notice_pending;
 static uint8_t native_saved_wave;
 static uint8_t native_save_missing_name,native_save_attempted;
+static uint8_t native_save_busy __attribute__((section(".pool")));
 static uint8_t native_save_origin_draw,native_save_overwrite;
 static uint8_t native_save_preset_mode,native_preset_save_slot;
 static uint32_t native_home_tap_at;
@@ -421,12 +493,27 @@ static uint32_t native_free_millihz=1000,native_init_held;
  * deliberately holds FX+SAVE for five full seconds on SYSTEM/STORAGE. */
 static uint8_t native_storage_setup_armed;
 static struct etch_flash_probe native_flash_probe;
+/* First boot on occupied non-ETCH project sectors: modal YES/NO,
+ * no flash action until explicit SEL + three-second SAVE confirmation. */
+#include "native_storage_boot_prompt.h"
+#include "native_storage_prompt_paint.h"
+static struct etch_storage_prompt_paint native_storage_paint __attribute__((section(".pool")));
+static struct etch_storage_boot_prompt native_storage_boot __attribute__((section(".pool")));
+static uint8_t native_storage_boot_busy __attribute__((section(".pool")));
+
 
 static uint8_t native_cache_pattern(uint8_t slot);
 static void native_patch_capture(struct etch_native_patch *p);
 static void native_preset_snapshot(uint8_t slot);
 #include "native_seq_cursor.h"
 #include "wave_store_target.c"
+/* Main-thread-only RAM preset transfer. Never writes flash or touches the OTA loader. */
+static void etch_manager_capture(void);
+static uint8_t etch_manager_apply(void);
+#include "native_live_preset.h"
+static struct etch_live_preset etch_manager_out __attribute__((section(".pool")));
+static struct etch_live_preset etch_manager_in __attribute__((section(".pool")));
+static uint32_t etch_manager_written __attribute__((section(".pool")));
 #if ETCH_NATIVE_OTA
 #define ETCH_OTA_REUSE_SCOPE 1
 #include "ota.c"
@@ -959,6 +1046,73 @@ static void native_preset_snapshot(uint8_t slot){
  if((native_preset_dsp.groups.group[0].enabled&&native_preset_dsp.groups.group[0].preset==slot)||
     (native_preset_dsp.groups.group[1].enabled&&native_preset_dsp.groups.group[1].preset==slot))native_editor.dirty=1u;
 }
+/* RAM export captures the currently audible/editable sound, including unsaved
+ * waveform points, without modifying the existing patch or project banks. */
+static void etch_manager_capture(void){
+ struct etch_live_preset *v=&etch_manager_out;
+ v->magic=ETCH_LIVE_MAGIC;v->version=1u;v->bytes=(uint16_t)sizeof(*v);
+ v->patch=native_library.patches[native_patch_slot];
+ native_patch_capture(&v->patch);
+ for(uint32_t w=0;w<3u;w++){
+  for(uint32_t j=0;j<128u;j++)v->points[w][j]=native_editor.points[w][j];
+  v->wave_fx[w]=native_editor.fx[w];
+ }
+ v->global_fx=native_fx_settings;
+ v->dsp=native_preset_dsp.slot[native_patch_slot];
+ v->dsp.organic=native_project_cfg.organic;
+ v->dsp.living=native_project_cfg.living;
+ v->dsp.matrix=native_project_cfg.matrix;
+ v->dsp.evolution=native_project_cfg.evolution;
+ v->dsp.spectral_wave=native_editor.wave;
+ v->dsp.spectral_part=native_harmonic;
+ v->dsp.spectral_gain=native_spectral_gain;
+ v->dsp.spectral_tilt=native_spectral_tilt;
+ v->dsp.blend_a=native_blend_a;
+ v->dsp.blend_b=native_blend_b;
+ v->dsp.blend_pct=native_blend_pct;
+ v->dsp.blend_on=native_blend_on;
+ v->dsp.velocity_curve=native_velocity_curve;
+ v->mono_mode=native_mono_mode;
+ v->harmony=native_harmony;
+ v->arp_rate=native_arp_rate;v->arp_octaves=native_arp_octaves;
+ v->seq_rate=native_seq_rate;v->seq_gate=native_seq_gate;v->seq_swing=native_seq_swing;
+}
+/* Import is an explicit, RAM-only audition. Flash is never erased/programmed.
+ * User must then SAVE normally; storage safety guards stay enforced. */
+static uint8_t etch_manager_apply(void){
+ const struct etch_live_preset *v=&etch_manager_in;
+ if(!etch_live_validate(v) || native_updating || native_safe || native_seq_run || fm1_in.notes)return 0u;
+ uint8_t was_running=(uint8_t)(!native_tripped&&!native_boot_muted);
+ native_pause();
+ native_library.patches[native_patch_slot]=v->patch;
+ for(uint32_t w=0;w<3u;w++){
+  for(uint32_t j=0;j<128u;j++)native_editor.points[w][j]=v->points[w][j];
+  native_editor.fx[w]=v->wave_fx[w];
+ }
+ native_fx_settings=v->global_fx;
+ native_preset_dsp.slot[native_patch_slot]=v->dsp;
+ native_project_cfg.organic=v->dsp.organic;
+ native_project_cfg.living=v->dsp.living;
+ native_project_cfg.matrix=v->dsp.matrix;
+ native_project_cfg.evolution=v->dsp.evolution;
+ native_harmony=v->harmony;
+ native_mono_mode=v->mono_mode;native_project_cfg.mono_mode=v->mono_mode;
+ native_arp_rate=v->arp_rate;native_arp_octaves=v->arp_octaves;
+ native_seq_rate=v->seq_rate;native_seq_gate=v->seq_gate;native_seq_swing=v->seq_swing;
+ native_project_cfg.preset_valid|=1u<<native_patch_slot;
+ native_project_cfg.preset_fx[native_patch_slot]=v->global_fx;
+ native_project_cfg.patch_fx_valid|=1u<<native_patch_slot;
+ for(uint32_t w=0;w<3u;w++){
+  for(uint32_t j=0;j<128u;j++)native_project_cfg.preset_wave[native_patch_slot][w][j]=v->points[w][j];
+  native_project_cfg.patch_fx[native_patch_slot][w]=v->wave_fx[w];
+ }
+ native_library.reserved=native_patch_slot+1u;
+ native_patch_load(0u);native_editor.dirty=1u;
+ native_compile_edit();
+ if(was_running){fm1_irq_off();native_start();fm1_irq_enable_all();}
+ native_page=ETCH_UI_PLAY;native_draw=0u;
+ return 1u;
+}
 static uint8_t native_cache_pattern(uint8_t slot){
  int rc=etch_pattern_bank_capture(&native_project_cfg.patterns,slot,&native_pattern);
  if(rc){native_seq_warning=1;return 0;}
@@ -1020,6 +1174,42 @@ static void native_patch_load(uint8_t pattern_prepared){
  /* Atomic ISR handoff: all new parameters and the output crossfade start
   * at the same publication boundary. Cold boot has no live preset ramp. */
  fm1_irq_off();native_parameter_publish();if(pattern_prepared)native_preset_ramp_requested=1u;fm1_irq_enable_all();
+}
+/* Preview a built-in strings patch without overwriting any preset, waveform
+ * library slot or flash. Explicit SAVE is required to persist the audition.
+ * Called only from the control thread with no active notes/voices. */
+static void native_strings_preview(int32_t *m,int32_t *d){
+ struct etch_native_patch p;
+ etch_factory_strings_patch(&p);
+ for(uint8_t w=0u;w<3u;w++){
+  etch_factory_strings_wave(w,native_editor.points[w]);
+  native_editor.fx[w]=(struct etch_wave_fx_params){0};
+ }
+ native_library.selection[0]=p.slot_a;
+ native_library.selection[1]=p.slot_b;
+ native_library.selection[2]=p.slot_c;
+ native_morph_a=p.slot_a;native_morph_b=p.slot_b;
+ etch_fx_defaults(&native_fx_settings);
+ native_fx_settings.chorus_rate=4800u;
+ native_fx_settings.chorus_depth=24000u;
+ native_mod_mode=p.mod_mode;native_mod_ratio=p.mod_ratio;
+ native_filter_type=p.filter_type;
+ native_env_ms[0]=p.attack_ms;native_env_ms[1]=p.decay_ms;
+ native_env_ms[2]=p.release_ms;native_sustain=p.sustain;
+ native_cutoff=p.cutoff;native_resonance=p.resonance;
+ native_drive=p.drive;native_chorus=p.chorus;
+ native_delay=p.delay;native_reverb=p.reverb;
+ native_mono_mode=0u;native_project_cfg.mono_mode=0u;
+ native_motion_recording=0u;native_motion_playing=0u;
+ native_blend_on=0u;native_blend_pct=0u;
+ native_arp_mode=0u;
+ native_controls.mod_target=0u;
+ native_controls.morph=p.morph;native_controls.depth=p.depth;
+ *m=p.morph;*d=p.depth;
+ native_seq_run=0u;native_seq_recording=0u;
+ native_editor.dirty=1u;++native_editor.revision;
+ native_page=ETCH_UI_PLAY;native_draw=0u;
+ native_strings_armed=0u;
 }
 static void native_patch_save(uint8_t muted){
  /* Native PRESET SAVE: stage complete 3-wave sound, per-wave processing,
@@ -1258,7 +1448,11 @@ static void parameters(void){
   values[0]=native_clock_follow;values[1]=native_seq_gate;values[2]=native_seq_swing;values[3]=native_tempo;}
  else if(native_page==25){
   names[0]="TAB";values[0]=native_system_tab+1;
-  if(native_system_tab==6){
+  if(native_system_tab==7){
+   names[1]="MODE";values[1]=native_workflow+1u;
+   names[2]="PAGE";values[2]=native_catalog_page+1u;
+   names[3]="OPEN";values[3]=etch_ui_catalog_allowed(native_catalog_page,native_mono_mode);
+  }else if(native_system_tab==6){
    names[1]="CURVE";values[1]=native_velocity_curve;
    names[2]="MODE";values[2]=native_velocity_curve;
    names[3]="LIVE";values[3]=1;
@@ -1341,7 +1535,7 @@ static void parameters(void){
   /* 8 glyphs x 8px cannot fit at x=184 (only 56px remain).
    * Reserve the rightmost 72px for the full NEW RIFF caption. */
   uint32_t knob_x=(native_page==ETCH_UI_ARP && native_arp_mode==7u && i==3u)?168u:4u+i*60u;
-  label_box(names[i],knob_x,198,0x7bef,4u+(i+1u)*60u-3u);
+  label_box(names[i],knob_x,198,0x7bef,etch_ui_footer_right((uint8_t)i));
   if(i==0 && (native_page==ETCH_UI_GUIDE || native_page==ETCH_UI_HARM || native_page==ETCH_UI_FIFTHS))
    label(etch_note_name(native_harmony.root),4+i*60,214,0xffff);
   else if(i==1 && (native_page==ETCH_UI_GUIDE || native_page==ETCH_UI_HARM || native_page==ETCH_UI_FIFTHS))
@@ -1350,7 +1544,11 @@ static void parameters(void){
    label(etch_lock_name(native_harmony.keylock),4+i*60,214,0xffff);
   else if(native_page==ETCH_UI_ARP && i==2 && native_arp_octaves>=5u)
    label(native_arp_octaves==6u?"-2":"-1",4+i*60,214,0xffff);
-  else number(values[i],knob_x,214);
+  else{
+   char bounded_value[11];
+   etch_ui_cell_number(values[i],bounded_value,(uint8_t)((etch_ui_footer_right((uint8_t)i)-knob_x)/8u));
+   label_box(bounded_value,knob_x,214,0xffff,etch_ui_footer_right((uint8_t)i));
+  }
   if(native_page==ETCH_UI_PLAY||native_page==4||native_page==16||native_page==17||etch_ui_is_fx_editor(native_page)){
    /* Direct numeric feedback AND a short horizontal value meter on FX pages. */
    uint32_t percent=(native_page==ETCH_UI_PLAY && i==2u)?
@@ -1391,9 +1589,10 @@ static void web_ui_primary(void){
   lcd_fill(0,0,240,42,BG);
   label_large("ETCH",12,9,LIME);
   const char *title=draw?"DRAW":page==ETCH_UI_PLAY?"SOUND":page==ETCH_UI_MOD?"MOD WAVE":
-   page==ETCH_UI_FX_TAPE?"TAPE INSTAB.":etch_ui_title(page);
+   etch_ui_short_title(page);
   label_box(title,88,14,WHITE,194u);
   label(ETCH_UI_VERSION,196,12,0x7bef);
+  if(page==ETCH_UI_PLAY)label(native_workflow?"A":"S",231u,14u,AMBER);
   lcd_fill(12,33,216,1,GRID);
   etch_scope_commit();
  }
@@ -1605,7 +1804,7 @@ static void web_ui_primary(void){
    etch_presets_name_copy(short_name,native_library.patches[native_patch_slot].name);
    label("SOUND",14,166,LIME);
    label_box(short_name,70,166,WHITE,232u);
-   label("HOLD HOME: PRESETS",14,181,0x7bef);
+   label_box(native_workflow?"ADV  SEL: MORPH / FILTER":"SIMPLE  SEL: NEXT  GLO: MODE",14,181,0x7bef,232u);
    parameters();
   }else{parameters();}
   web_last_controls=hash;web_last_fault=native_tripped;
@@ -1812,7 +2011,97 @@ static void etch_keyboard_screen(void){
  number(n,70u,183u);
  first_frame=0u;
 }
+/* V1.79: STORAGE SETUP is composed off-screen below its fixed header.
+ * The prior implementation cleared the entire LCD on every UI input and
+ * every 400 ms during SAVE hold, visibly exposing the blank panel.
+ * No new framebuffer: use the 240 x 173 DMA-safe canvas/cache already used
+ * by every other advanced page. The header is drawn only on a first frame.
+ * Progress is quantized so unchanged ticks perform zero LCD transfers. */
+/* Draw the entire selectable area before one DMA transfer. Header is also
+ * prepared off-screen: moving between intro, mode question and storage setup
+ * never exposes an erased LCD frame. No extra static buffer allocations. */
+static void native_boot_header(const char *subtitle){
+ etch_scope_begin(0u,66u);
+ lcd_fill(0u,0u,240u,66u,0x0000);
+ label_large("ETCH",12u,12u,0xdfe4);
+ label(subtitle,12u,45u,0x07ff);
+ label("V179",187u,18u,0xffe0);
+ lcd_fill(12u,62u,216u,1u,0x2945);
+ etch_scope_commit();
+}
+static uint8_t native_workflow_paint_valid __attribute__((section(".pool")));
+static uint8_t native_workflow_paint_mode __attribute__((section(".pool")));
+static void native_workflow_prompt_render(void){
+ if(!first_frame && native_workflow_paint_valid && native_workflow_paint_mode==native_workflow)return;
+ if(first_frame)native_boot_header("SELECT MODE");
+ etch_panel_begin(67u);
+ label("CHOOSE YOUR WORKFLOW",12u,80u,0xffff);
+ label("YOU CAN SWITCH LATER",12u,94u,0x8410);
+ for(uint8_t i=0;i<2u;i++){
+  uint32_t top=i?155u:110u;
+  uint16_t chosen=(i==native_workflow)?0x0c2b:0x1082;
+  lcd_fill(12u,top,216u,39u,chosen);
+  lcd_fill(12u,top,3u,39u,(i==native_workflow)?0x07ff:0x39e7);
+  label(i?"ADVANCED":"SIMPLE",25u,top+7u,0xffff);
+  label(i?"ALL 62 EDITORS":"PLAY AND SHAPE",25u,top+23u,0xad55);
+  if(i==native_workflow)label(">",210u,top+11u,0x07ff);
+ }
+ label("K1 SELECT",12u,212u,0xffe0);
+ label("SEL CONFIRM",128u,212u,0x07ff);
+ etch_panel_commit();
+ native_workflow_paint_valid=1u;native_workflow_paint_mode=native_workflow;
+ first_frame=0u;
+}
+static void native_storage_prompt_render(void){
+ const uint8_t phase=native_storage_boot.phase;
+ const uint8_t progress=etch_storage_prompt_progress(&native_storage_boot,
+                                                      fm1_in.buttons,etch_ms);
+ if(!etch_storage_prompt_paint_needed(&native_storage_paint,
+      phase,native_storage_boot.yes,native_storage_boot_busy,
+      (uint8_t)native_store_status,progress,first_frame))return;
+ if(first_frame)native_boot_header("STORAGE SETUP");
+ etch_panel_begin(67u);
+ if(native_storage_boot_busy){
+  label("FORMATTING...",12u,83u,0xffe0);
+  label("VERIFYING PROJECT",12u,109u,0xffff);
+  label("DO NOT POWER OFF",12u,155u,0xf800);
+ }else if(phase==ETCH_STORAGE_PROMPT_FAILED){
+  label("FORMAT FAILED",12u,83u,0xf800);
+  label(native_store_status==ETCH_STORE_IO?"FLASH I/O ERROR":
+       native_store_status==ETCH_STORE_INCOMPATIBLE?"ETCH DATA EXISTS":
+       native_store_status==ETCH_STORE_FULL?"PROJECT TOO LARGE":
+       "FLASH VERIFY ERROR",12u,113u,0xfda0);
+  label("NO FURTHER ERASING",12u,147u,0xffff);
+  label("HOME: USE RAM ONLY",12u,210u,0x07ff);
+ }else if(phase==ETCH_STORAGE_PROMPT_SUCCESS){
+  label("FORMAT VERIFIED",12u,89u,0x07e0);
+  label("ETCH STORAGE READY",12u,123u,0xffff);
+  label("SEL: CONTINUE",12u,210u,0x07ff);
+ }else{
+  label("FOREIGN STORAGE FOUND",12u,76u,0xffe0);
+  label("FORMAT FOR ETCH?",12u,99u,0xffff);
+  label("ERASES SAMPLE SLOTS",12u,122u,0xf800);
+  label("2 + 3 PERMANENTLY",12u,140u,0xf800);
+  if(phase==ETCH_STORAGE_PROMPT_CHOOSE){
+   label(native_storage_boot.yes?"  NO     > YES":" > NO       YES",12u,172u,0x07ff);
+   label("K1 CHOOSE  SEL OK",12u,209u,0xffff);
+  }else{
+   label("YES: HOLD SAVE 3S",12u,174u,0xffe0);
+   /* Only a small strip changes during the hold. Never clear LCD RAM. */
+   lcd_fill(12u,192u,216u,5u,0x2945);
+   if(progress)lcd_fill(12u,192u,18u*(uint32_t)progress,5u,0x07e0);
+   label("HOME: NO / CANCEL",12u,210u,0xffff);
+  }
+ }
+ etch_panel_commit();
+ first_frame=0u;
+}
 static void screen_render(void){
+ if(native_workflow_pending && !native_safe && !native_keyboard_mode && !native_updating){
+  native_workflow_prompt_render();return;
+ }
+ if(native_storage_boot.phase){native_storage_prompt_render();return;}
+
  if(native_keyboard_mode){etch_keyboard_screen();return;}
  /* Until the analog output has settled, leave the splash on the LCD.
   * Never accidentally hide Safe Mode, audio-fault or OTA diagnostics. */
@@ -1937,9 +2226,10 @@ static void screen_render(void){
    }
    cache_pos=native_name_pos;
   }
-  if(cache_warning!=warning||cache_status!=native_store_status){
+  if(cache_warning!=warning||cache_status!=native_store_status||native_save_busy){
    lcd_fill(11,164,228,29,BG);
-   if(native_save_missing_name)label("ENTER A NAME",12,167,0xf800);
+   if(native_save_busy){label("SAVING / VERIFYING",12,167,CYAN);label("DO NOT POWER OFF",12,184,AMBER);}
+   else if(native_save_missing_name)label("ENTER A NAME",12,167,0xf800);
    else if(page==ETCH_UI_PROJECT_SAVE?native_save_overwrite:native_save_confirm){
     label("OVERWRITE?",12,167,AMBER);
     label("SAVE YES / HOME NO",12,184,WHITE);
@@ -2058,7 +2348,7 @@ static void screen_render(void){
   if(native_recovery_reason==ETCH_RECOVERY_STORAGE_FAULT)label("STORE FAIL",90,68,0xF800);
   else if(native_recovery_reason==ETCH_RECOVERY_BOOT_LOOP)label("BOOT FAIL",90,68,0xF800);
   else if(native_recovery_reason==ETCH_RECOVERY_OTA_CLEANUP)label("OTA FAIL",90,68,0xF800);
-  else label("REC MODE",90,68,0xFFE0);}else if(native_page==8){label("NAME",12,68,0xFFFF);}else if(native_page==9){label(native_tool==12u?"GENETICS":"TOOLS",12,68,0xFFFF);}else if(native_draw){label(native_page==14?"WFX 1":native_page==15?"WFX 2":native_page==ETCH_UI_SCULPT?"SCULPT":"DRAW",12,68,0xFFFF);char wave[2]={(char)('A'+native_editor.wave),0};label(wave,56,68,0xFFE0);}else label(etch_ui_title(native_page),12,68,0xFFFF);
+  else label("REC MODE",90,68,0xFFE0);}else if(native_page==8){label("NAME",12,68,0xFFFF);}else if(native_page==9){label(native_tool==12u?"GENETICS":"TOOLS",12,68,0xFFFF);}else if(native_draw){label(native_page==14?"WFX 1":native_page==15?"WFX 2":native_page==ETCH_UI_SCULPT?"SCULPT":"DRAW",12,68,0xFFFF);char wave[2]={(char)('A'+native_editor.wave),0};label(wave,80,68,0xFFE0);}else label_box(etch_ui_short_title(native_page),12,68,0xFFFF,108u);
  if(native_draw){
   char slot[4]={'S',(char)('0'+native_slot/10),(char)('0'+native_slot%10),0};label(slot,80,68,0xFFFF);
   const char *state=!ETCH_NATIVE_STORAGE?"RAM":native_save_confirm?"SURE":native_store_status==ETCH_STORE_OK?"OK":native_store_status==ETCH_STORE_EMPTY?"EMPTY":native_store_status==ETCH_STORE_FOREIGN?"LOCK":native_store_status==ETCH_STORE_FULL?"FULL":"FAIL";
@@ -2204,7 +2494,7 @@ static void screen_render(void){
   label("REC CAPTURE",12,157,0xffff);label("PLAY LOOP",125,157,0xffff);
  }
  if(!native_draw&&native_page==25){
-  lcd_fill(0,85,240,101,0);
+  lcd_fill(0,85,240,111,0);
   if(native_system_tab==0){
    label("SYSTEM USB AUDIO",10,91,0x07ff);
    label(usb.config?(usb.suspended?"USB SUSPENDED":"USB CONNECTED"):"USB DISCONNECTED",10,110,usb.config?0x07e0:0xfda0);
@@ -2274,6 +2564,19 @@ static void screen_render(void){
    label("LATE",10,181,0x7bef);number(native_late,65,181);
    label("GUARD",123,181,0x7bef);number(native_dma_blocked,184,181);
    if(native_tripped)label("HOME PLAY RESTART",10,92,0xF800);
+  }else if(native_system_tab==7){
+   label("WORKFLOW",10,91,0x07ff);
+   label(native_workflow?"ADVANCED":"SIMPLE",10,110,0xffff);
+   label("K2 MODE  K3 PAGE",10,129,0x07ff);
+   label("SCREEN",10,149,0x7bef);
+   number((uint32_t)native_catalog_page+1u,68,149);
+   label_box(etch_ui_title(native_catalog_page),104,149,0xffff,230u);
+   if(!native_workflow)label("ADV TO OPEN PAGES",10,169,0xfda0);
+   else if(!etch_ui_catalog_allowed(native_catalog_page,native_mono_mode))
+    label("MONO MODE REQUIRED",10,169,0xfda0);
+   else label("K4: OPEN SCREEN",10,169,0x07e0);
+   label(native_strings_armed?"K1 AGAIN: LOAD STR":"K1 TWICE: STRINGS",10,182,
+         native_strings_armed?0xffe0:0x7bef);
   }else if(native_system_tab==6){
    label("EXPRESSIVE RESPONSE",10,91,0x07ff);
    label("VELOCITY CURVE",10,113,0x7bef);
@@ -2460,7 +2763,8 @@ static void screen_render(void){
 static void screen(void){
  if(first_frame)etch_display_invalidate(&etch_panel_cache);
  uint8_t can_paint=(uint8_t)(native_screen_gate.ready && !native_screen_gate.timed_out &&
-                            !native_safe && !native_tripped && !native_updating);
+                            !native_safe && !native_tripped && !native_updating &&
+                            !native_workflow_pending && !native_storage_boot.phase);
  /* Count the display duration from first committed UI draw, not from the
   * end of flash IO. This survives slow LCD or a delayed UI service tick. */
  if(native_save_notice_pending && native_screen_gate.ready){
@@ -2505,6 +2809,8 @@ void fm1_cstart(void){
  /* SEQ is physical button 11. REC Safe Mode and OCT- ROM recovery
   * always take priority over controller boot. Keep this mode transient. */
  native_keyboard_mode=etch_keyboard_boot_requested(safe,fm1_in.buttons);
+ native_workflow_pending=(uint8_t)(!safe && !native_keyboard_mode);
+ native_workflow=ETCH_WORKFLOW_SIMPLE;
  native_keyboard_octave=0;native_keyboard_usb_ready=0;native_keyboard_boot_healthy=0;
  etch_panel_midi_reset(&native_panel_out);
  uint8_t muted=safe;native_boot_muted=muted;
@@ -2544,6 +2850,12 @@ void fm1_cstart(void){
  etch_native_groups_patch_bank(native_library.patches);
  if(!safe){native_library_boot();
   if(native_store_status==ETCH_STORE_FOREIGN)native_flash_probe=etch_flash_probe_read(native_store_io.read);
+  /* Prompt is opt-in and only for an occupied ETCH-target region.
+   * Do not offer format in Safe Mode, on read I/O failures, or for healthy
+   * existing ETCH projects. This performs NO flash writes. */
+  etch_storage_prompt_open(&native_storage_boot,native_store_status,
+      (uint8_t)(native_recovery_reason==ETCH_RECOVERY_NORMAL && !native_keyboard_mode && !native_flash_probe.io_error),
+      (uint8_t)ETCH_NATIVE_STORAGE);
   /* Foreign Felucca data is read-only: never auto-erase or boot to SAFE.
    * Use RAM factory patches; explicit manual initialise is required for SAVE. */
   if(native_store_status==ETCH_STORE_FOREIGN){
@@ -2740,6 +3052,55 @@ void fm1_cstart(void){
    int32_t alg=fm1_enc_take(1);
    const int32_t observations[ETCH_DIAG_ENCODERS]={select,alg,dm,dd,up,down,preset};
    etch_diag_panel_record(&native_panel_diag,observations,fm1_in.notes,pressed);
+   /* V1.79: always choose a workflow first; no flash writes or project
+    * mutations may occur in this state. The storage warning follows only
+    * after the selected workflow is confirmed. K1 rotates, SEL clicks. */
+   if(native_workflow_pending){
+    const uint8_t next=etch_boot_mode_pick(native_workflow,dm,select);
+    if(next!=native_workflow){native_workflow=next;}
+    if(pressed&(1u<<3)){
+     native_workflow_pending=0u;
+     native_workflow_paint_valid=0u;
+     first_frame=1u;
+     /* The intro screen must be replaced by a complete stable UI frame. */
+    }
+    if(first_frame||next!=native_workflow_paint_mode || !native_workflow_paint_valid){
+     screen();last_ui_paint_ms=etch_ms;
+    }
+    last_seq_notes=fm1_in.notes;
+    continue;
+   }
+   /* Startup question intercepts ALL ordinary UI navigation and SAVE.
+    * Only the intentional confirm+hold path may call the existing bounded
+    * initialize routine; no erase before its second confirmation. */
+   if(native_storage_boot.phase){
+    enum etch_storage_prompt_action action=etch_storage_prompt_input(
+      &native_storage_boot,dm,select,pressed,buttons,etch_ms);
+    if(action==ETCH_STORAGE_PROMPT_FORMAT){
+     if(native_store_status==ETCH_STORE_FOREIGN && !native_flash_probe.io_error &&
+        !native_safe && !native_updating && native_recovery_reason==ETCH_RECOVERY_NORMAL){
+      native_storage_boot_busy=1u;first_frame=1u;screen();
+      native_library_initialize(muted);
+      native_storage_boot_busy=0u;
+      native_storage_boot.phase=(uint8_t)(native_store_status==ETCH_STORE_OK?
+        ETCH_STORAGE_PROMPT_SUCCESS:ETCH_STORAGE_PROMPT_FAILED);
+      if(native_store_status==ETCH_STORE_OK){
+       native_project_browser_refresh();native_storage_setup_armed=0u;
+      }
+     }else native_storage_boot.phase=ETCH_STORAGE_PROMPT_FAILED;
+     first_frame=1u;
+    }else if(action==ETCH_STORAGE_PROMPT_KEEP){first_frame=1u;}
+    if(native_storage_boot.phase==ETCH_STORAGE_PROMPT_SUCCESS && (pressed&(1u<<3))){
+     native_storage_boot.phase=ETCH_STORAGE_PROMPT_CLOSED;first_frame=1u;
+    }
+    if(first_frame||pressed||dm||select||native_storage_boot_busy||
+       (native_storage_boot.phase==ETCH_STORAGE_PROMPT_CONFIRM &&
+        (buttons&(1u<<9)) && etch_ms-last_ui_paint_ms>=125u)){
+     screen();last_ui_paint_ms=etch_ms;
+    }
+    last_seq_notes=fm1_in.notes;
+    continue;
+   }
    /* Exclusive diagnostic capture: no shortcuts, patch writes, octave moves,
     * boot shortcuts or ordinary notes while exercising the full panel.
     * REC starts a fresh run. HOME + SAVE exits (no project write). */
@@ -2878,7 +3239,8 @@ void fm1_cstart(void){
       uint8_t existed=(native_library.valid[native_slot>>5]>>(native_slot&31))&1u;
       uint8_t confirmed=native_save_confirm;
       native_save_attempted=1u;
-      native_library_save(muted);
+      native_save_busy=1u;first_frame=1u;screen();
+      native_library_save(muted);native_save_busy=0u;
       if(native_store_status==ETCH_STORE_OK && (!existed||confirmed) && !native_save_confirm){
        native_page=ETCH_UI_PLAY;native_draw=1;
        native_saved_until=etch_ms+2300u;native_save_notice_pending=1u;native_saved_wave=1u;
@@ -2890,8 +3252,10 @@ void fm1_cstart(void){
       if(occupied&&!native_save_overwrite)native_save_overwrite=1;
       else {
        native_save_overwrite=0;native_save_attempted=1u;
+       native_save_busy=1u;first_frame=1u;screen();
        if(native_save_preset_mode)native_patch_save(muted);
        else native_project_browser_save(muted);
+       native_save_busy=0u;
        if(native_store_status==ETCH_STORE_OK){
         native_page=ETCH_UI_PLAY;native_draw=0;
         native_saved_until=etch_ms+2300u;native_save_notice_pending=1u;native_saved_wave=0u;
@@ -2942,24 +3306,20 @@ void fm1_cstart(void){
      * remains fully reachable; ENV remains independent. */
     if(shortcut==ETCH_SHORTCUT_NONE && !(buttons&(1u<<8)) && (pressed&(1u<<2)) && native_page!=ETCH_UI_PROJECTS && native_page!=ETCH_UI_GROUPS &&
        !(native_page==ETCH_UI_SYSTEM && native_system_tab==1u && native_store_status==ETCH_STORE_FOREIGN)){
-     if(native_page==ETCH_UI_FX)native_page=ETCH_UI_FX_DRIVE;
-     else if(native_page==ETCH_UI_PREFX_A)native_page=ETCH_UI_PREFX_B;
-     else if(native_page==ETCH_UI_PREFX_B)native_page=ETCH_UI_FX;
-     else if(etch_ui_is_fx_editor(native_page))native_page=ETCH_UI_PREFX_A;
-     else native_page=ETCH_UI_FX;
+     native_page=etch_ui_workflow_fx(native_page,native_workflow);
     }
     if(select&&etch_ui_is_fx_editor(native_page)){
      native_page=etch_ui_fx_select(native_page,select);
      select=0;
     }
     /* SELECT cycles PLAY -> MORPH -> LIBRARY without taking over EDIT/SEQ. */
-    if(select&&etch_ui_is_home(native_page)){
-     native_page=etch_ui_home_turn(native_page,select>0?1:-1);
+    if(select&&etch_ui_home_workflow_page(native_page,native_workflow)){
+     native_page=etch_ui_home_workflow_turn(native_page,select>0?1:-1,native_workflow);
      native_wave_load_armed=0;native_wave_load_error=0;
      select=0;
     }
     if(pressed&(1u<<4))native_page=1;
-    if(pressed&(1u<<5))native_page=etch_ui_lfo_next(native_page,native_mono_mode);
+    if(pressed&(1u<<5))native_page=etch_ui_workflow_lfo(native_page,native_mono_mode,native_workflow);
     /* Preserve SEL's existing ETCH shortcut outside the PROJECTS browser.
      * The physical GLO key is button 7, not SEL (matrix button 3). */
     if((pressed&(1u<<3)) && native_page!=ETCH_UI_PROJECTS){
@@ -2978,10 +3338,10 @@ void fm1_cstart(void){
      alg=0;
     }
 
-    if((pressed&(1u<<10)) && !(buttons&(1u<<8)) && native_page!=ETCH_UI_PERFORMANCE){native_page=etch_ui_arp_next(native_page);if(native_page==22)native_arp_edit_step=0;}
+    if((pressed&(1u<<10)) && !(buttons&(1u<<8)) && native_page!=ETCH_UI_PERFORMANCE){native_page=etch_ui_workflow_arp(native_page,native_workflow);if(native_page==22)native_arp_edit_step=0;}
     if(pressed&(1u<<11)){native_guide_performance=0;
      native_seq_clear_armed=0;native_bake_confirm=0;
-     native_page=etch_ui_seq_next(native_page);
+     native_page=etch_ui_workflow_seq(native_page,native_workflow);
      if(native_page==20){
       native_hold_source=etch_seq_hold_owner(&native_pattern,native_seq_step,native_hold_pitch);
       if(native_hold_source==0xffffu)native_hold_source=etch_seq_hold_source_cycle(&native_pattern,native_seq_length,native_seq_step,native_hold_pitch,0xffffu,1);
@@ -2990,7 +3350,8 @@ void fm1_cstart(void){
     if(pressed&(1u<<7)){
      /* Real GLO button on the FM1; PRESETS is a rotary encoder. */
      native_wave_load_armed=0;
-     native_page=etch_ui_glo_route(native_page,native_guide_performance);
+     native_page=etch_ui_workflow_glo(native_page,native_workflow,native_guide_performance);
+     if(!native_workflow && native_page==ETCH_UI_SYSTEM)native_system_tab=7u;
      native_guide_performance=(uint8_t)(native_page==ETCH_UI_GUIDE);
     }
     if((pressed&(1u<<13))&&native_page==ETCH_UI_MOTION){
@@ -3032,9 +3393,38 @@ void fm1_cstart(void){
        for(uint8_t k=0;k<4u;k++)native_perf_set(native_preset_dsp.performance.target[k],v[k],&m,&d);
      }
     }
+    if(native_page!=ETCH_UI_SYSTEM || native_system_tab!=7u)native_strings_armed=0u;
     if(native_page==25){
      if(native_system_tab==0u&&(pressed&(1u<<13))){native_page=ETCH_UI_MOTION;first_frame=1;}
-     if(select)native_system_tab=etch_ui_system_tab(native_system_tab,select>0?1:-1);
+     if(select)native_system_tab=etch_ui_system_tab_workflow(native_system_tab,select>0?1:-1);
+     if(native_system_tab==7u){
+      if(dm<0)native_strings_armed=0u;
+      else if(dm>0){
+       if(!native_strings_armed)native_strings_armed=1u;
+       else if(!native_blend_audio_busy())native_strings_preview(&m,&d);
+      }
+      if(dd||up||down)native_strings_armed=0u;
+      if(dd)native_workflow=etch_ui_workflow_change(native_workflow,dd);
+      if(up)native_catalog_page=etch_ui_catalog_turn(native_catalog_page,up);
+      if(down && native_workflow && etch_ui_catalog_allowed(native_catalog_page,native_mono_mode)){
+       uint8_t target=native_catalog_page;
+       native_wave_load_armed=0u;native_save_confirm=0u;
+       native_patch_confirm=0u;native_fx_bake_confirm=0u;
+       native_seq_clear_armed=0u;native_bake_confirm=0u;
+       native_draw=etch_ui_catalog_needs_draw(target);
+       native_page=target;
+       if(target==ETCH_UI_PRESETS)native_presets_cursor=native_patch_slot;
+       if(target==ETCH_UI_PROJECTS){native_project_help=0u;
+        native_project_browser_refresh();native_project_armed=0u;}
+       if(target==ETCH_UI_NAME)native_wave_save_start();
+       if(target==ETCH_UI_PROJECT_SAVE)native_project_save_start();
+       if(target==ETCH_UI_PERFORMANCE)native_perf_assign_mode=0u;
+       if(target==ETCH_UI_GROUPS)native_group_capture_feedback=0u;
+       if(target==ETCH_UI_SYSTEM)native_system_tab=7u;
+       native_guide_performance=(uint8_t)(target==ETCH_UI_GUIDE);
+       first_frame=1u;
+      }
+     }
      if(native_system_tab==6 && dd)native_velocity_curve=(uint8_t)ui_bound((int32_t)native_velocity_curve+dd,0,2);
      if(native_system_tab==1 && (pressed&(1u<<13))){
       native_page=27;native_project_help=0u;native_project_browser=etch_store_project_selected();

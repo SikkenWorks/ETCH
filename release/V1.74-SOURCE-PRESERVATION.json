@@ -1,0 +1,10 @@
+{
+  "baseline": "V1.73",
+  "old_native_c_h": 107,
+  "identical": 105,
+  "changed": [
+    "firmware/fm1-native/bringup.c",
+    "firmware/fm1-native/native_fx.c"
+  ],
+  "missing": []
+}

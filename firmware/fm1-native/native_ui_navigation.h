@@ -178,3 +178,103 @@ static inline uint8_t etch_ui_fifths_move(uint8_t pitch,int32_t turns){
  int32_t at=(int32_t)etch_ui_fifths_index(pitch)+(turns%12);
  at=(at%12+12)%12;return etch_ui_fifths_pitch((uint8_t)at);
 }
+
+
+/* V1.71 user-facing workflow. SIMPLE changes page navigation only;
+ * existing DSP, patch serialization, USB, project storage and all 62
+ * editors remain unchanged and are still available in ADVANCED.
+ * The mode is runtime-only and defaults to SIMPLE on every boot. */
+enum etch_ui_workflow { ETCH_WORKFLOW_SIMPLE=0, ETCH_WORKFLOW_ADVANCED=1 };
+static inline uint8_t etch_ui_workflow_change(uint8_t workflow,int32_t turns){
+ if(!turns)return workflow?ETCH_WORKFLOW_ADVANCED:ETCH_WORKFLOW_SIMPLE;
+ return turns>0?ETCH_WORKFLOW_ADVANCED:ETCH_WORKFLOW_SIMPLE;
+}
+static inline uint8_t etch_ui_home_workflow_page(uint8_t page,uint8_t workflow){
+ if(workflow)return etch_ui_is_home(page);
+ return (uint8_t)(etch_ui_is_home(page)||page==ETCH_UI_FX);
+}
+static inline uint8_t etch_ui_home_workflow_turn(uint8_t page,int8_t dir,uint8_t workflow){
+ if(workflow)return etch_ui_home_turn(page,dir);
+ static const uint8_t pages[5]={ETCH_UI_PLAY,ETCH_UI_MORPH,ETCH_UI_FILTER,ETCH_UI_FX,ETCH_UI_LIBRARY};
+ for(uint8_t i=0;i<5u;i++)if(page==pages[i])
+  return (uint8_t)(!dir?page:pages[(i+(dir>0?1u:4u))%5u]);
+ return page;
+}
+static inline uint8_t etch_ui_workflow_fx(uint8_t page,uint8_t workflow){
+ if(!workflow)return ETCH_UI_FX;
+ if(page==ETCH_UI_FX)return ETCH_UI_FX_DRIVE;
+ if(page==ETCH_UI_PREFX_A)return ETCH_UI_PREFX_B;
+ if(page==ETCH_UI_PREFX_B)return ETCH_UI_FX;
+ if(etch_ui_is_fx_editor(page))return ETCH_UI_PREFX_A;
+ return ETCH_UI_FX;
+}
+static inline uint8_t etch_ui_workflow_lfo(uint8_t page,uint8_t mono,uint8_t workflow){
+ return workflow?etch_ui_lfo_next(page,mono):ETCH_UI_MOD;
+}
+static inline uint8_t etch_ui_workflow_seq(uint8_t page,uint8_t workflow){
+ if(workflow)return etch_ui_seq_next(page);
+ return page==ETCH_UI_SEQ?ETCH_UI_NOTES:ETCH_UI_SEQ;
+}
+static inline uint8_t etch_ui_workflow_arp(uint8_t page,uint8_t workflow){
+ return workflow?etch_ui_arp_next(page):ETCH_UI_ARP;
+}
+static inline uint8_t etch_ui_workflow_glo(uint8_t page,uint8_t workflow,uint8_t guide){
+ return workflow?etch_ui_glo_route(page,guide):(page==ETCH_UI_SYSTEM?ETCH_UI_PLAY:ETCH_UI_SYSTEM);
+}
+/* Existing 7 system views are preserved, the eighth is WORKFLOW. */
+static inline uint8_t etch_ui_system_tab_workflow(uint8_t old,int8_t direction){
+ if(!direction)return old%8u;
+ return (uint8_t)(((int32_t)(old%8u)+8+(direction>0?1:-1))%8);
+}
+/* The 106px header box is 13 monospace 8px glyphs.  Longer legacy titles
+ * get a short, unambiguous screen header; underlying page names are intact. */
+static inline const char *etch_ui_short_title(uint8_t page){
+ switch(page){
+  case ETCH_UI_FX_TAPE:return "TAPE FX";
+  case ETCH_UI_FX_ROTARY:return "ROTARY";
+  case ETCH_UI_FX_REVERSE:return "REV DELAY";
+  case ETCH_UI_FX_FOLDER:return "WAVEFOLDER";
+  case ETCH_UI_FX_COMP:return "COMPRESSOR";
+  case ETCH_UI_FX_EQ:return "CHANNEL EQ";
+  case ETCH_UI_C_FX:return "WAVE C FX";
+  case ETCH_UI_PROJECT_SAVE:return "PROJ SAVE";
+  default:return etch_ui_title(page);
+ }
+}
+/* Format a value for a 60px parameter cell; no glyph may bleed into
+ * a neighbouring cell. Oversized values are visibly marked instead of
+ * silently showing a misleading truncated number. */
+static inline void etch_ui_cell_number(uint32_t value,char out[11],uint8_t width){
+ char reverse[11];uint8_t n=0,i=0;
+ do{reverse[n++]=(char)('0'+value%10u);value/=10u;}while(value && n<10u);
+ if(!width){out[0]=0;return;}
+ if(n>width){
+  for(i=0;i+1u<width&&i<9u;i++)out[i]='9';
+  out[i++]='+';out[i]=0;return;
+ }
+ for(i=0;i<n;i++)out[i]=reverse[n-1u-i];
+ out[n]=0;
+}
+
+/* Keep the fourth knob strictly inside the right LCD edge.
+ * V1.70 erroneously passed right=241, so label_box discarded K4. */
+static inline uint32_t etch_ui_footer_right(uint8_t i){
+ uint32_t r=4u+((uint32_t)i+1u)*60u-3u;
+ return r>240u?240u:r;
+}
+
+/* V1.72: every existing page has a direct Advanced catalog route.
+ * No removal or renumbering of page IDs or serializer fields. */
+static inline uint8_t etch_ui_catalog_turn(uint8_t selected,int32_t delta){
+ int32_t next=((int32_t)(selected%ETCH_UI_PAGE_COUNT)+(delta%ETCH_UI_PAGE_COUNT))%ETCH_UI_PAGE_COUNT;
+ if(next<0)next+=ETCH_UI_PAGE_COUNT;
+ return (uint8_t)next;
+}
+static inline uint8_t etch_ui_catalog_allowed(uint8_t selected,uint8_t mono){
+ return (uint8_t)(selected<ETCH_UI_PAGE_COUNT && etch_ui_lfo_visible(selected,mono));
+}
+static inline uint8_t etch_ui_catalog_needs_draw(uint8_t selected){
+ return (uint8_t)(selected==ETCH_UI_TOOLS||selected==ETCH_UI_WFX1||
+                  selected==ETCH_UI_WFX2||selected==ETCH_UI_SCULPT);
+}
+/* Calling code must initialize page-specific state before entering a page. */

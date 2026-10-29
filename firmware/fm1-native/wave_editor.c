@@ -23,23 +23,45 @@ void etch_editor_move(struct etch_wave_editor *e,int32_t left,int32_t right,int3
  etch_editor_checkpoint(e);
  e->has_undo=1;e->points[e->wave][e->cursor]=next;e->dirty=1;++e->revision;
 }
+/* Undo and redo are a single reversible circular deque of 16 snapshots.
+ * This is called only from the main UI thread, never the audio ISR.
+ * Invariant: 0 <= undo_count + redo_count <= 16.
+ * Every swap exchanges all 3 x 128 exact signed 16-bit control points.
+ * Undo/redo retain all precision, and the 16-step user-facing depth is kept. */
+_Static_assert(sizeof(((struct etch_wave_editor*)0)->history) == 16u*3u*128u*sizeof(int16_t),
+               "16 complete reversible wave snapshots required");
+static void etch_editor_swap_snapshot(struct etch_wave_editor *e,uint8_t index){
+ for(uint32_t w=0;w<3u;w++)for(uint32_t i=0;i<128u;i++){
+  int16_t tmp=e->points[w][i];
+  e->points[w][i]=e->history[index][w][i];
+  e->history[index][w][i]=tmp;
+ }
+}
 void etch_editor_checkpoint(struct etch_wave_editor *e){
- for(uint32_t w=0;w<3;w++)for(uint32_t i=0;i<128;i++)e->history[e->undo_head][w][i]=e->points[w][i];
- e->undo_head=(e->undo_head+1)&15;if(e->undo_count<16)++e->undo_count;e->has_undo=1;e->redo_count=0;
+ for(uint32_t w=0;w<3u;w++)for(uint32_t i=0;i<128u;i++)
+  e->history[e->undo_head][w][i]=e->points[w][i];
+ e->undo_head=(uint8_t)((e->undo_head+1u)&15u);
+ if(e->undo_count<16u)++e->undo_count;
+ e->has_undo=1u;
+ e->redo_count=0u; /* new edit invalidates redo history */
 }
 void etch_editor_undo(struct etch_wave_editor *e){
  if(!e->undo_count)return;
- for(uint32_t w=0;w<3;w++)for(uint32_t i=0;i<128;i++)e->redo[e->redo_count][w][i]=e->points[w][i];
- ++e->redo_count;e->undo_head=(e->undo_head+15)&15;--e->undo_count;
- for(uint32_t w=0;w<3;w++)for(uint32_t i=0;i<128;i++)e->points[w][i]=e->history[e->undo_head][w][i];
- e->has_undo=e->undo_count!=0;e->dirty=1;++e->revision;
+ e->undo_head=(uint8_t)((e->undo_head+15u)&15u);
+ etch_editor_swap_snapshot(e,e->undo_head);
+ --e->undo_count;
+ ++e->redo_count;
+ e->has_undo=(uint8_t)(e->undo_count!=0u);
+ e->dirty=1u;++e->revision;
 }
 void etch_editor_redo(struct etch_wave_editor *e){
  if(!e->redo_count)return;
- for(uint32_t w=0;w<3;w++)for(uint32_t i=0;i<128;i++)e->history[e->undo_head][w][i]=e->points[w][i];
- e->undo_head=(e->undo_head+1)&15;++e->undo_count;--e->redo_count;
- for(uint32_t w=0;w<3;w++)for(uint32_t i=0;i<128;i++)e->points[w][i]=e->redo[e->redo_count][w][i];
- e->has_undo=1;e->dirty=1;++e->revision;
+ etch_editor_swap_snapshot(e,e->undo_head);
+ e->undo_head=(uint8_t)((e->undo_head+1u)&15u);
+ ++e->undo_count;
+ --e->redo_count;
+ e->has_undo=1u;
+ e->dirty=1u;++e->revision;
 }
 void etch_editor_compile_source(const int16_t points[3][128], const struct etch_wave_fx_params fx[3],struct etch_native_bank *out){
  static const uint8_t harmonics[6]={64,32,16,8,2,1};

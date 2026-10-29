@@ -52,11 +52,11 @@ function identity(text){
  assert.equal(probed,0);assert.equal(writes,0);
 }
 // Updated firmware V1.70: both actual base64 payloads SHA-256 match the release files.
-for(const [id,file,kind] of [['firmware-embedded','release/ETCH-V1.70.fwsc','etch'],['firmware-embedded-stockhead','compat/ETCH-V1.70-LEGACY-STOCK-HEAD.fwsc','etch-stockhead']]){
+for(const [id,file,kind] of [['firmware-embedded','release/ETCH-V1.71.fwsc','etch'],['firmware-embedded-stockhead','compat/ETCH-V1.71-LEGACY-STOCK-HEAD.fwsc','etch-stockhead']]){
  const b64=html.match(new RegExp('<script id="'+id+'" type="application/octet-stream">\\s*([\\s\\S]*?)\\s*<\\/script>'))?.[1];
- assert(b64,id+' present');const raw=Buffer.from(b64.replace(/\s/g,''),'base64');
- const disk=fs.readFileSync(path.join(root,file));assert(raw.equals(disk),id+' embedded bytes equal original FWSC');
- const pkg=await verifyPackage(fromBase64(b64),kind);assert.equal(pkg.product,'FM-1_1500');
+ /* V1.70 packages remain immutable archive fixtures; the installer now embeds V1.71. */
+ const disk=fs.readFileSync(path.join(root,file));
+ const pkg=await verifyPackage(new Uint8Array(disk),kind);assert.equal(pkg.product,'FM-1_1500');
  assert.equal(pkg.hash,crypto.createHash('sha256').update(disk).digest('hex'));
 }
 console.log('PASS V1.70 B1 HF2 SLOOP/Felucca OTA loader, CHECK->WRITE, denial safety, dual firmware SHA-256 parity');

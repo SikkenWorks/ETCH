@@ -1,0 +1,102 @@
+{
+  "passed": 16,
+  "total": 16,
+  "cases": [
+    {
+      "name": "audio",
+      "status": "PASS",
+      "seconds": 5.93,
+      "detail": "Native C core: silence, audible output, octave-safe release, voice bounds, max-depth stress and gain mute passed\n"
+    },
+    {
+      "name": "fx",
+      "status": "PASS",
+      "seconds": 1.9,
+      "detail": "Native FX: exact dry bypass, delay echoes, bounded feedback passed\n"
+    },
+    {
+      "name": "fx_pcm_v174",
+      "status": "PASS",
+      "seconds": 2.75,
+      "detail": "scene0=5af1e7ebab11c715\nscene1=e0635d464b8afaf7\nscene2=6583fb2ba6a44505\nscene3=f2049c34dc44e9e7\nPASS: four V1.73 PCM reference renders unchanged\n"
+    },
+    {
+      "name": "organic_smooth_v176",
+      "status": "PASS",
+      "seconds": 0.15,
+      "detail": "PASS V1.76 smooth organic: 2424 monotonic segments, zero endpoint jumps, zero-depth exact bypass, 2.5-9s cadence\n"
+    },
+    {
+      "name": "panel_midi",
+      "status": "PASS",
+      "seconds": 0.16,
+      "detail": "FM1 USB MIDI OUT: note on/off, octave retune, backpressure, disconnect, low octave PASS\n"
+    },
+    {
+      "name": "patch_swap",
+      "status": "PASS",
+      "seconds": 7.77,
+      "detail": "I03 transactional pattern prepare/commit, corrupt archive refusal, 8-voice nonstopping bank crossfade PASS\n"
+    },
+    {
+      "name": "performance",
+      "status": "PASS",
+      "seconds": 5.41,
+      "detail": "Native performance: ARP held-note ordering, automatic gate release, 16-step sequence and STOP passed\n"
+    },
+    {
+      "name": "poly",
+      "status": "PASS",
+      "seconds": 5.89,
+      "detail": "Native advanced: 256 poly steps, individual lengths, locks, keylock/chord, MIDI clock/start/stop pass\n"
+    },
+    {
+      "name": "project",
+      "status": "PASS",
+      "seconds": 4.13,
+      "detail": "V10 project: 256-step poly, lock/FX/harmony roundtrip, 16 fault cuts x2, CRC rollback, V2 upgrade, full-bank rejection PASS\n"
+    },
+    {
+      "name": "recovery_policy",
+      "status": "PASS",
+      "seconds": 0.11,
+      "detail": "PASS R01 V0.56: healthy-audio boot gate, late DMA failure latch, read-only SAFE, OTA permitted\n"
+    },
+    {
+      "name": "stage0_boot",
+      "status": "PASS",
+      "seconds": 0.13,
+      "detail": "PASS Stage0 RAM bootloop watchdog and late-fault loader handoff\n"
+    },
+    {
+      "name": "store",
+      "status": "PASS",
+      "seconds": 4.96,
+      "detail": "Native store: 64 slots, every write cut, CRC fallback, v1->v2 migration, 32 patch/name/sequence records passed\n"
+    },
+    {
+      "name": "usb_audio",
+      "status": "PASS",
+      "seconds": 0.19,
+      "detail": "USB Audio UAC1: descriptor and 44.1k PCM capture, ring and disconnect PASS\n"
+    },
+    {
+      "name": "usb_audio_48k",
+      "status": "PASS",
+      "seconds": 1.83,
+      "detail": "PASS USB 44100 Hz: packets=11998 frames=529303 underrun=0 overrun=0\nPASS USB 48000 Hz: packets=119998 frames=5762756 underrun=0 overrun=0\nPASS USB 44100 Hz: packets=11998 frames=529252 underrun=0 overrun=0\nPASS USB 48000 Hz: packets=119998 frames=5761607 underrun=0 overrun=0\nPASS USB 44100 Hz: packets=11998 frames=529303 underrun=0 overrun=0\nPASS U02 44.1/48/44.1/48/44.1 rate-switch, 2x120s drift soak, stereo and descriptors\n"
+    },
+    {
+      "name": "usb_audio_soak",
+      "status": "PASS",
+      "seconds": 0.15,
+      "detail": "diagnostic: good=59750 pkts=59998 underrun=0 overrun=0 fill=115\nPASS UAC 60s: pkts=59998 frames=2646946 adj_up=1047 adj_down=13 underruns=0 overruns=0, reconnect\n"
+    },
+    {
+      "name": "v175_shared_undo",
+      "status": "PASS",
+      "seconds": 1.09,
+      "detail": "PASS V1.75: 25032 V1.74-equivalent undo/redo operations, all 3 waves; 12,288 bytes saved\n"
+    }
+  ]
+}
