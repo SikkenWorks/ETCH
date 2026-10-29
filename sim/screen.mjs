@@ -64,7 +64,7 @@ export function drawScreen(g,{page,subpage={},dirty,cursor,points,bank,slots,par
   text(`POS ${String(waveSave.cursor+1).padStart(2,'0')}  CHAR ${waveSave.chars[waveSave.cursor]===' '?'<SPACE>':waveSave.chars[waveSave.cursor]}`,14,142,C.ink,12,'left','700');line(154);text('K1 SLOT  K2 POS',14,177,C.muted,11);text('K3 CHAR  K4 LEN',14,197,C.muted,11);text('SELECT POS',14,220,C.cyan,11);text('ALG CHAR  SAVE OK',226,238,C.accent,11,'right','700',150);return;
  }
 
- const title=page==='ENV'?(subpage.ENV?'ENV FILTER':'ENV AMP'):page==='MOD WAVE'?(subpage['MOD WAVE']?'MOD RATE':'MOD WAVE'):page==='MORPH'&&subpage.MORPH?'MORPH PHASE':page==='SEQ'?(subpage.SEQ===1?'SEQ STEP':subpage.SEQ===2?'SEQ HARMONY':subpage.SEQ===3?'WAVE SEQ':'SEQUENCER'):page;
+ const title=page==='PLAY'?'SOUND':page==='ENV'?(subpage.ENV?'ENV FILTER':'ENV AMP'):page==='MOD WAVE'?(subpage['MOD WAVE']?'MOD RATE':'MOD WAVE'):page==='MORPH'&&subpage.MORPH?'MORPH PHASE':page==='SEQ'?(subpage.SEQ===1?'SEQ STEP':subpage.SEQ===2?'SEQ HARMONY':subpage.SEQ===3?'WAVE SEQ':'SEQUENCER'):page;
  header(title);
 
  if(page==='SEQ'&&performance){
@@ -136,10 +136,13 @@ export function drawScreen(g,{page,subpage={},dirty,cursor,points,bank,slots,par
  trace(scopeDisplaySamples(result,{live:liveAudio}),C.ink,page==='PLAY'||page==='MORPH'?2.0:1.7,graph.top,graph.height);
 
  if(page==='PLAY'){
-  text(`${waveLabel(0)}  ·  ${waveLabel(1)}`,14,190,C.muted,9,'left','600');
-  text(waveLabel(2),14,205,C.magenta,9,'left','700');
-  text(`MORPH ${pct(params.morph)}   ETCH ${pct(params.depth)}`,14,221,C.ink,10,'left','700');
-  text(`CUT ${Math.round(params.cutoff)}Hz   SPACE ${pct(params.reverb)}`,14,237,C.accent,9,'left','700');
+  text('SOUND FIRST  ·  HOLD HOME: PRESETS',14,188,C.muted,10,'left','700',212);
+  const macros=[['MORPH',pct(params.morph)],['ETCH',pct(params.depth)],['TONE',`${Math.round(params.cutoff)}`],['SPACE',pct(params.reverb)]];
+  for(let i=0;i<4;i++){
+   const x=14+i*54;
+   text(macros[i][0],x,209,C.muted,10,'left','700',51);
+   text(macros[i][1],x,232,i===0?C.cyan:i===1?C.magenta:i===2?C.amber:C.accent,11,'left','700',51);
+  }
  }
  else if(page==='MORPH'){
   text(waveLabel(0),14,198,C.cyan,10,'left','700');

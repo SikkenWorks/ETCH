@@ -47,5 +47,38 @@ void etch_factory_seed(struct etch_wave_library *l){
   r->chorus=(p%3==1?4096:0);r->delay=(p%6==3?4096:0);r->reverb=(p%4==0?4096:2048);
   r->seq_length=16;r->arp_mode=0;r->tempo=120;
  }
+ /* V1.70: ready-to-play sound families instead of 32 anonymous ETCH nn
+  * patches.  These templates are constructed in RAM on factory initialization
+  * only; saved PJT31 projects and user presets are never migrated or reset. */
+ static const char *const starter_names[16]={
+  "WARM KEYS","GLASS PAD","DUST BASS","INK LEAD",
+  "SOFT PULSE","AIR CHOIR","LOFI BELLS","HOLLOW PAD",
+  "ORGAN KEYS","WIRE PLUCK","DEEP SPACE","SOFT EP",
+  "CUT BASS","SLOW WAVE","SCRATCH FX","MELLOW LEAD"
+ };
+ static const uint8_t waves[16][3]={
+  {0,5,8},{8,0,6},{1,7,0},{14,8,0},
+  {4,0,7},{5,0,8},{6,8,0},{7,2,0},
+  {5,0,6},{11,0,7},{8,7,0},{0,6,5},
+  {13,0,6},{2,8,0},{15,7,0},{0,9,6}
+ };
+ static const uint16_t cutoff[16]={7800,5600,2300,8400,5800,6100,6600,4300,
+                                     7500,6500,4900,6800,2100,5300,3900,7200};
+ static const uint16_t attacks[16]={8,850,4,8,13,300,3,700,12,3,1300,15,3,900,22,7};
+ static const uint16_t releases[16]={280,1850,180,220,360,1700,650,2200,
+                                      350,240,2600,570,200,2100,750,340};
+ for(uint8_t i=0u;i<16u;i++){
+  struct etch_native_patch *r=&l->patches[i];
+  name12(r->name,starter_names[i]);
+  r->slot_a=waves[i][0];r->slot_b=waves[i][1];r->slot_c=waves[i][2];
+  r->morph=(uint16_t)((i%4u)*8192u);
+  r->depth=(uint16_t)((i==14u||i==6u)?4100u:1200u);
+  r->attack_ms=attacks[i];r->decay_ms=230u;
+  r->sustain=25500u;r->release_ms=releases[i];
+  r->cutoff=cutoff[i];r->resonance=1400u;r->drive=0u;
+  r->chorus=(i==1u||i==5u||i==7u||i==10u||i==13u)?3400u:0u;
+  r->delay=(i==3u||i==6u||i==9u||i==14u)?2400u:0u;
+  r->reverb=(i==1u||i==5u||i==7u||i==10u||i==13u)?6300u:1800u;
+ }
  for(uint32_t i=0;i<64;i++)l->sequence[i]=255;
 }

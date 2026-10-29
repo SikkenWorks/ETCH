@@ -26,6 +26,7 @@
 #include "native_music_labels.h"
 #include "native_save_controls.h"
 #include "native_ui_scope_policy.h"
+#include "native_ui_refresh_v170.h"
 #include "native_led_policy.h"
 #include "native_fx_controls.h"
 #include "native_encoder_steps.h"
@@ -197,7 +198,7 @@ static volatile uint32_t native_nested_ticks, native_nested_count;
 #endif
 #define FELUCCA_OTA ETCH_NATIVE_OTA
 #define FELUCCA_ID "FM-1_1500"
-#define ETCH_UI_VERSION "V161"
+#define ETCH_UI_VERSION "V170"
 #define FELUCCA_OTA_DRYRUN 0
 #define RING_PUBLISH() __asm__ volatile("" ::: "memory")
 #include "usb.c"
@@ -237,6 +238,8 @@ static void text_etch(void){
  static const uint8_t glyph[4][7]={{31,16,16,30,16,16,31},{31,4,4,4,4,4,4},{15,16,16,16,16,16,15},{17,17,17,31,17,17,17}};
  for(uint32_t g=0;g<4;g++)for(uint32_t y=0;y<7;y++)for(uint32_t x=0;x<5;x++)if(glyph[g][y]&(16u>>x))lcd_fill(12+g*24+x*4,18+y*4,4,4,0xD7F0);
 }
+/* V1.70: per-element glyph clipping.  Every label is clipped to its own
+ * assigned box, not merely the edge of the LCD.  No new frame buffers. */
 static uint8_t etch_label_scale=1;
 static void label(const char *text,uint32_t x,uint32_t y,uint16_t color){
  static const char names[]="PLAYDRWBCSVEFIOKMNUT0123456789XGHZQJ-_#:+/%.<>";
@@ -285,6 +288,17 @@ static void label(const char *text,uint32_t x,uint32_t y,uint16_t color){
    lcd_fill(x+c*8u*etch_label_scale+col*etch_label_scale,y+row*etch_label_scale,
             etch_label_scale,etch_label_scale,color);
  }
+}
+/* A boxed text label.  The right edge is exclusive, so different columns
+ * and headers cannot write a glyph into their neighbours. */
+static void label_box(const char *text,uint32_t x,uint32_t y,uint16_t color,uint32_t right){
+ if(x>=right||right>240u)return;
+ uint32_t cap=(right-x)/(8u*etch_label_scale);
+ char clipped[30];
+ if(cap>=sizeof(clipped))cap=sizeof(clipped)-1u;
+ uint32_t i=0u;while(i<cap&&text[i]){clipped[i]=text[i];i++;}
+ clipped[i]=0;
+ label(clipped,x,y,color);
 }
 static void label_large(const char *text,uint32_t x,uint32_t y,uint16_t color){
  etch_label_scale=2u;label(text,x,y,color);etch_label_scale=1u;
@@ -1303,6 +1317,15 @@ static void parameters(void){
   values[2]=native_editor.cursor;
   values[3]=native_tool==12u?native_gen_mutate:1u;
  }
+ else if(native_page==ETCH_UI_PLAY){
+  /* A beginner-facing sound-design panel: four immediately audible macros.
+   * Values and encoder mappings are unchanged; 'TONE' means cutoff. */
+  names[0]="MORPH";names[1]="ETCH";names[2]="TONE";names[3]="SPACE";
+  values[0]=native_controls.morph*100u/32767u;
+  values[1]=native_controls.depth*100u/32767u;
+  values[2]=native_cutoff;
+  values[3]=native_reverb*100u/32767u;
+ }
  else{names[0]="MORPH";names[1]="DEPTH";names[2]="CUTOFF";names[3]="SPACE";values[0]=native_controls.morph*100u/32767u;values[1]=native_controls.depth*100u/32767u;values[2]=native_cutoff;values[3]=native_reverb*100u/32767u;}
  if(native_page==ETCH_UI_PREFX_A||native_page==ETCH_UI_PREFX_B){
   static const char *const types[]={"OFF","RING","DECIM","FOLD","TREM","LP"};
@@ -1318,7 +1341,7 @@ static void parameters(void){
   /* 8 glyphs x 8px cannot fit at x=184 (only 56px remain).
    * Reserve the rightmost 72px for the full NEW RIFF caption. */
   uint32_t knob_x=(native_page==ETCH_UI_ARP && native_arp_mode==7u && i==3u)?168u:4u+i*60u;
-  label(names[i],knob_x,198,0x7bef);
+  label_box(names[i],knob_x,198,0x7bef,4u+(i+1u)*60u-3u);
   if(i==0 && (native_page==ETCH_UI_GUIDE || native_page==ETCH_UI_HARM || native_page==ETCH_UI_FIFTHS))
    label(etch_note_name(native_harmony.root),4+i*60,214,0xffff);
   else if(i==1 && (native_page==ETCH_UI_GUIDE || native_page==ETCH_UI_HARM || native_page==ETCH_UI_FIFTHS))
@@ -1328,9 +1351,11 @@ static void parameters(void){
   else if(native_page==ETCH_UI_ARP && i==2 && native_arp_octaves>=5u)
    label(native_arp_octaves==6u?"-2":"-1",4+i*60,214,0xffff);
   else number(values[i],knob_x,214);
-  if(native_page==4||native_page==16||native_page==17||etch_ui_is_fx_editor(native_page)){
+  if(native_page==ETCH_UI_PLAY||native_page==4||native_page==16||native_page==17||etch_ui_is_fx_editor(native_page)){
    /* Direct numeric feedback AND a short horizontal value meter on FX pages. */
-   uint32_t percent=values[i]>100u?100u:values[i];
+   uint32_t percent=(native_page==ETCH_UI_PLAY && i==2u)?
+      (values[i]>20000u?100u:(values[i]*100u)/20000u):
+      (values[i]>100u?100u:values[i]);
    lcd_fill(4+i*60,233,(percent*54u)/100u,2,
             i==0?0x67ff:i==1?0xfde8:i==2?0xf95b:0x07e0);
   }
@@ -1365,9 +1390,9 @@ static void web_ui_primary(void){
   etch_scope_begin(0u,42u);
   lcd_fill(0,0,240,42,BG);
   label_large("ETCH",12,9,LIME);
-  const char *title=draw?"DRAW":page==ETCH_UI_MOD?"MOD WAVE":
+  const char *title=draw?"DRAW":page==ETCH_UI_PLAY?"SOUND":page==ETCH_UI_MOD?"MOD WAVE":
    page==ETCH_UI_FX_TAPE?"TAPE INSTAB.":etch_ui_title(page);
-  label(title,88,14,WHITE);
+  label_box(title,88,14,WHITE,194u);
   label(ETCH_UI_VERSION,196,12,0x7bef);
   lcd_fill(12,33,216,1,GRID);
   etch_scope_commit();
@@ -1574,9 +1599,13 @@ static void web_ui_primary(void){
    label(native_controls.mod_target?"K4 MORPH":"K4 PHASE",136,213,MAGENTA);
    label("SELECT MOD MODE",14,229,0x7bef);
   }else if(page==ETCH_UI_PLAY){
-   label("A",14,172,CYAN);number(native_morph_a+1,29,172);
-   label("B",91,172,AMBER);number(native_morph_b+1,106,172);
-   label("C",167,172,MAGENTA);number(native_library.selection[2]+1,182,172);
+   /* Sound first: current playable preset, simple next action, four macros.
+    * Advanced waveform identities remain on MORPH / MOD / LIBRARY. */
+   char short_name[13];
+   etch_presets_name_copy(short_name,native_library.patches[native_patch_slot].name);
+   label("SOUND",14,166,LIME);
+   label_box(short_name,70,166,WHITE,232u);
+   label("HOLD HOME: PRESETS",14,181,0x7bef);
    parameters();
   }else{parameters();}
   web_last_controls=hash;web_last_fault=native_tripped;
@@ -2908,14 +2937,16 @@ void fm1_cstart(void){
     }
     if(pressed&(1u<<2))native_page=0;
    }else if(!native_draw){
-    /* FX opens DRIVE; SELECT cycles the six synthesis effect editors.
-     * ADSR remains exclusively under the ENV button. */
+    /* V1.70: first FX press opens the musical four-macro overview.
+     * A second press enters the original advanced effect chain, which
+     * remains fully reachable; ENV remains independent. */
     if(shortcut==ETCH_SHORTCUT_NONE && !(buttons&(1u<<8)) && (pressed&(1u<<2)) && native_page!=ETCH_UI_PROJECTS && native_page!=ETCH_UI_GROUPS &&
        !(native_page==ETCH_UI_SYSTEM && native_system_tab==1u && native_store_status==ETCH_STORE_FOREIGN)){
-     if(native_page==ETCH_UI_PREFX_A)native_page=ETCH_UI_PREFX_B;
-     else if(native_page==ETCH_UI_PREFX_B)native_page=ETCH_UI_FX_DRIVE;
+     if(native_page==ETCH_UI_FX)native_page=ETCH_UI_FX_DRIVE;
+     else if(native_page==ETCH_UI_PREFX_A)native_page=ETCH_UI_PREFX_B;
+     else if(native_page==ETCH_UI_PREFX_B)native_page=ETCH_UI_FX;
      else if(etch_ui_is_fx_editor(native_page))native_page=ETCH_UI_PREFX_A;
-     else native_page=ETCH_UI_FX_DRIVE;
+     else native_page=ETCH_UI_FX;
     }
     if(select&&etch_ui_is_fx_editor(native_page)){
      native_page=etch_ui_fx_select(native_page,select);
@@ -3608,7 +3639,14 @@ void fm1_cstart(void){
    uint16_t visible_playhead=etch_seq_actual_step(native_seq_run,native_audio.perf_last_seq,native_audio.perf_played,native_audio.perf_current_step,native_seq_length,native_seq_step);
    uint8_t playhead_changed=(uint8_t)(native_seq_run && (etch_seq_is_web_page(native_page)||native_page==ETCH_UI_GRID) && visible_playhead!=last_painted_playhead);
    if(first_frame||pressed||buttons!=previous_buttons_snapshot||oct_action!=ETCH_OCT_NONE||notes_changed||(preset && !native_draw && native_page==ETCH_UI_PRESETS)||select||alg||dm||dd||up||down||(!native_draw&&web_primary_page()&&etch_scope_redraw_on_silence(native_scope_has_signal,web_last_signal))||((!native_draw&&web_primary_page()&&etch_scope_anim_needed(&web_scope_release,native_scope_held_note,native_scope_has_signal,web_last_signal))&&etch_ms-last_ui_paint_ms>=etch_ui_live_frame_interval(native_audio.voice_limit,(uint8_t)(native_missed_streak+(native_ui_pressure>=9u?1u:0u)+(native_ui_pressure>=20u?2u:0u)),native_tripped))||((playhead_changed||native_seq_run||fm1_in.notes)&&etch_ms-last_ui_paint_ms>=((native_audio.voice_limit<8u||native_missed_streak)?750u:(etch_seq_is_web_page(native_page)?40u:(native_page==ETCH_UI_GRID?60u:250u))))||(native_page==25&&native_system_tab>=4&&etch_ms-last_ui_paint_ms>=500u)||(native_bpm_overlay_until && (int32_t)(etch_ms-native_bpm_overlay_until)>=0 && (uint32_t)(etch_ms-native_bpm_overlay_until)<200u)||native_tripped!=native_last_tripped||page_before!=native_page||draw_before!=native_draw||native_save_notice_pending||(native_saved_until && (int32_t)(etch_ms-native_saved_until)>=0)){
-    screen();last_ui_paint_ms=etch_ms;last_painted_playhead=visible_playhead;
+    /* V1.70: heavy USB audio takes priority over animated LCD DMA.
+     * Never delay fault notices, page transitions or destructive-action feedback. */
+    uint8_t force_paint=(uint8_t)(first_frame||native_tripped!=native_last_tripped||
+       page_before!=native_page||draw_before!=native_draw||native_save_notice_pending);
+    if(etch_ui_refresh_budget(etch_ms,last_ui_paint_ms,force_paint,
+             native_ui_pressure,(uint8_t)(usb.config&&!usb.suspended),native_missed_streak)){
+     screen();last_ui_paint_ms=etch_ms;last_painted_playhead=visible_playhead;
+    }
    }
    native_last_tripped=native_tripped;
    if(native_saved_until && (int32_t)(etch_ms-native_saved_until)>=0){native_saved_until=0u;native_save_notice_pending=0u;}

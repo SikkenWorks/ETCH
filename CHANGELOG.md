@@ -6,6 +6,17 @@ This file contains product changes, fixes, optimizations and migration notes. Fo
 
 **Important terminology:** “built”, “host-tested”, “installer-validated” and “hardware-tested” are different milestones. Unless explicitly noted, the historical reports document software testing, **not** proof of a successful physical FM1 installation or independent recovery.
 
+## V1.70 · Sound-first UI / LCD Layout / Audio-priority Rendering — 29 October 2026
+
+- Redesigned the default PLAY panel as **SOUND**, retaining the large real-time waveform but showing the currently selected preset and only four directly usable sound controls: MORPH, ETCH, TONE (filter cutoff) and SPACE (reverb). Underlying encoder behavior and persisted parameters are unchanged.
+- FX now opens a practical four-effect overview on the **first press**, with DRIVE / CHORUS / DELAY / REVERB. Second press and existing advanced FX pages remain available. No effects, modifiers, editor pages or sequencer features were removed.
+- Added sixteen named, conservative **factory-only** starter preset recipes. They are seeded into a blank RAM factory bank, not applied as a storage migration and not written over user presets/projects. Existing 16 other patches remain present.
+- Added bounded header title boxes and four independent parameter-label boxes. Long captions no longer draw into another knob's allotted region. Simplified on-screen prompts and aligned simulator PLAY visual hierarchy. Static 240x240 main-page rectangle checks pass; exhaustive hardware screenshot parity of all 62 secondary page layouts is not claimed.
+- Throttles non-urgent LCD refresh when USB is connected, ISR pressure increases or audio deadlines are missed. Critical fault/page/change notifications repaint immediately; MIDI, DSP, project storage, USB/OTA callbacks are not throttled.
+- Native JieLi 44.1 and 48 kHz USB-audio builds and legacy no-UAC build compile; `.uac_ram` and DSP/stack/boot memory boundaries remain unchanged. No new static buffers were introduced; the DSP pool remains nearly full.
+- Preserves product/USB identity `FM-1_1500`, app-only OTA/recovery, trusted-loader validation, exact boot header, PJT31 project format, original licenses and source files. One official ETCH-V1.70.fwsc is produced; WebInstaller keeps its isolated legacy-header option.
+- Software-only tests are not physical FM1 verification. Long audio/USB soak and all historical UI screens still need on-device testing; do not interpret a successful cross-build as evidence of zero glitches on real hardware.
+
 ## V1.61 · USB Audio SRAM Allocation Fix (software-verified candidate) — 22 October 2026
 
 - Fixed the native `--storage --updater --usb-audio` **linker overflow (2,332 bytes)** without reducing any synth buffers, project slots, USB rings, sequencer capacity, FX line sizes, or oscilloscope resolution.

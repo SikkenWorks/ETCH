@@ -20,9 +20,9 @@ ETCH turns the **M-VAVE FM1** into a synthesizer built around waveforms you crea
 
 The entire instrument is designed for hands-on sound design, using the FM1's own screen, encoders and keyboard. It also supports external USB MIDI, saved sounds, pattern creation, effects, keyboard splits and live performance controls.
 
-**Current project:** V1.50 · Device identity `FM-1_1500` · Project format `PJT31` · GNU GPL-3.0-only.
+**Current release:** V1.70 · **Fixed package/USB identity `FM-1_1500`** · Project format `PJT31` · GNU GPL-3.0-only.
 
-> **Hardware status:** V1.50 cross-firmware outgoing OTA compatibility is verified in software tests, but direct Felucca 1.6/1.1.5 `.fwsc` package replay and real FM1 hardware transitions are **not yet verified**. V1.50 is an experimental firmware build. Native compilation and installer checks do not establish that a particular FM1 can safely install, boot or recover it. Save your data and use a tested recovery method before flashing. Cross-firmware installation requires cooperation from the firmware already on the FM1.
+> **Hardware status:** V1.70 is a **software-tested firmware candidate**, not a hardware-qualified OTA release. Real Felucca 1.6/1.1.5 `.fwsc` packages and an actual FM1 were not available for the V1.70 tests. The updater has been exercised with real ETCH release packages and synthetic compatible-loader variants only. Compiling, hashing or simulating a transition cannot prove device boot, flash preservation or recovery. Back up your data and use only a separately proven recovery method before flashing.
 
 ## How ETCH works
 
@@ -81,6 +81,18 @@ The three parts share **eight voices total**, not eight voices each. Each Group 
 
 ## Getting started
 
+### Make a usable sound quickly (V1.70)
+
+1. Turn MASTER down to a comfortable level. Play a key: the SOUND screen is the default.
+2. Turn **K1 MORPH** to blend two wave shapes. Turn **K2 ETCH** for character/modulation.
+3. Use **K3 TONE** to open/close the filter; use **K4 SPACE** for ambience.
+4. **Hold HOME** to browse saved presets. For new/erased factory banks, choose one of the 16 named starter sounds such as WARM KEYS, GLASS PAD, or DUST BASS. This does not replace existing user presets in an already initialized bank.
+5. Press **FX** once to see DRIVE / CHORUS / DELAY / REVERB together. Press FX again for advanced editors. Use **SELECT** on FX editors to browse; all effects remain present.
+6. To design a new waveform, press **EDIT**. To see A/B wave sources, turn **SELECT** from SOUND to MORPH, FILTER or LIBRARY. Keep complex editors optional until needed.
+7. **SAVE** deliberately when you like a result. Existing PJT31 presets/projects are unchanged by the UI upgrade.
+
+**Tip:** For an immediate musical sound, begin with a low ETCH depth, a moderately open TONE, and a small amount of SPACE. Increase modulation and DRIVE only after the dry sound is useful.
+
 1. Turn down the output volume before experimenting with new waves or DRIVE.
 2. Press **EDIT** to enter DRAW. Use **SELECT** to choose Wave A, B or C.
 3. Use **K1** to move along the waveform and **K2** to change its shape. Use **K3/K4** to select and adjust harmonics.
@@ -88,7 +100,7 @@ The three parts share **eight voices total**, not eight voices each. Each Group 
 5. Adjust the envelope, filter and effects; play the FM1 keyboard or a USB MIDI controller.
 6. **SAVE** the waveform, preset or project using the appropriate save context.
 
-The physical display is the authority for context-dependent controls. The tables below describe the implemented V1.50 layout, not the older concept mockups.
+The physical display is the authority for context-dependent controls. The tables below describe the implemented V1.70 layout, not the older concept mockups.
 
 ## Controls and shortcuts
 
@@ -228,31 +240,34 @@ All documented controls, shortcuts, modes and primary workflow are described in 
 
 ## Installation and recovery
 
-**Use the current [`WebInstaller.html`](WebInstaller.html), not an archived installer.** V1.50 includes two `.fwsc` variants in [`release/`](release/): an ETCH-header variant and an original V15-header variant. They contain the same newly compiled ETCH application, identified as `FM-1_1500`; the installer chooses a compatible candidate according to the firmware it detects.
+**The complete WebInstaller is [`WebInstaller.html`](WebInstaller.html).** V1.70 has **one public release**: [`release/ETCH-V1.70.fwsc`](release/ETCH-V1.70.fwsc), which includes 44.1/48 kHz USB audio. The WebInstaller retains a hidden [legacy stock-boothead ETCH variant](compat/ETCH-V1.70-LEGACY-STOCK-HEAD.fwsc) only for previously identified older installations. Both install **ETCH**, never official stock firmware. The identity remains exactly **`FM-1_1500`**, and the OTA loader, 16 KiB bootheader and project format PJT31 remain protected. On-device USB audio and cross-firmware restore are not yet validated.
 
-1. Back up projects and preserve your verified, working recovery firmware/procedure.
-2. Open the WebInstaller in desktop **Chrome or Edge** over HTTPS/localhost. Use a USB data cable and close other software using the FM1 MIDI port.
-3. Connect, check the **detected device ID**, leave the header choice on AUTO if it matches your known firmware family, and review the warnings.
-4. The current firmware must approve **CHECK** before any transfer. The installer then identifies the actual OTA loader before **WRITE**.
-5. Only a restart reporting **`FM-1_1500`** constitutes installer-verified completion. Save the diagnostic log if it stops at CHECK or LOADER.
+1. Back up projects, waveforms and calibration data. Keep your original firmware and a **tested**, independent recovery path available.
+2. In Chrome or Edge, open the WebInstaller over HTTPS/localhost, close other software using the FM1 MIDI port, and connect the FM1 using a data-capable USB cable.
+3. Confirm the detected running firmware and choose the compatible protected boothead. The running firmware must approve CHECK; an installer cannot bypass that.
+4. The device must stage and read back its known OTA loader, receive the host's literal `success` response, and restart into the loader. The installer verifies the loader identity before sending the firmware.
+5. When the loader reports WRITE completion and the FM1 reconnects, **confirm `V160` on the device display**. The SysEx firmware identity remains `FM-1_1500` across V1.50 and V1.60, so that identity alone cannot distinguish their software versions.
 
-The installer includes the B1 HF2-style handoff for known `ota-FM-1_9xx` and `ota-FM-1_015` loader families. **V1.50 native OTA** validates the destination FM1 app layout and chip key and stages ETCH’s pinned app-only loader instead of executing an unknown loader supplied by another custom-firmware package. The packaged boot header is not compared for app-only updates, because it is not overwritten. The official V15 full-flash restore remains exact-image pinned. A loader's MIDI port name alone is **not** proof of compatibility. No WebInstaller can force an unrelated running custom firmware or third-party updater to approve ETCH; never bypass an unknown loader's checks. Genuine stock V15 restoration requires the original verified vendor `.fwsc`, which is **not** bundled.
+The WebInstaller recognizes approved `ota-FM-1_9xx` and `ota-FM-1_015` handoff identities. The latter is the identity of the loader that V1.60 actually stages. MIDI port names by themselves are not trusted. Official V15 restoration remains an **entirely separate**, strictly pinned stock-image path and requires a genuine stock `.fwsc` from an authorized source. The stock-header ETCH variant is **not** a stock restore.
 
-> **Do not interpret an offline-valid `.fwsc` as a brick-proof firmware.** Physical installation, sustained FM1 DSP load, flash persistence and independent recovery have not been demonstrated for V1.50 in this repository's test environment.
+**Important:** the `.fwsc` files are structurally verified candidates, **not proven safe to flash on your FM1**. Hardware recovery and the complete cross-firmware transition have not been demonstrated in this release environment.
 
-### Switching from ETCH to other firmware
+### Switching from ETCH to compatible firmware
 
-V1.50 addresses the **outgoing** app-only OTA restrictions reported on GitHub: it checks the target FM1 chip key and application filesystem layout, stages ETCH's known app-only OTA loader, and leaves the already-installed protected bootloader area untouched. **It does not run an incoming unknown OTA executable.** Only the exact original official V15 package is permitted to perform a full-flash restore.
+The outgoing OTA path in `firmware/fm1-native/ota.c` no longer has a fixed *incoming* Felucca loader size or a single-binary SHA allowlist for app-only packages. It validates the UFW directory, every package payload CRC, the incoming two-level OTA header, the versioned `FELUCCA-LOADER-1` marker in **decoded** LZ4 data, the complete decoded loader CRC, chip key `0x980F`, XIP `0x02000120`, application offset `0x4000`, the full decrypted app-area CRC and `app.bin` CRC. It rejects unsupported structures, unknown families, corruption and flash-layout conflicts **before staging flash is erased**.
 
-To replay an original third-party package against the V1.50 native updater **without connecting hardware**, run:
+The incoming loader binary is checked but **never executed**. The running ETCH app stages only its SHA-256-pinned, 6,898-byte, app-only writer, under the existing `ota-FM-1_015` identity. The original protected boot region, project storage and unrelated flash areas remain outside its intended writes. The incoming `flash.bin` boot bytes are not required to match the installed bootloader, because app-only updates do not program them. Stock full-flash restore remains limited to the independently pinned V15 image and stock loader.
+
+To test an authentic third-party `.fwsc` with the actual native OTA code, without connecting a device:
 
 ```bash
 python tools/replay_external_fm1_ota.py --package /path/to/felucca-1.6.fwsc --version felucca-1.6
+python tests/test_v160_cross_loader.py
 ```
 
-For 1.1.5 use `--version unverified`, and independently verify the original file's provenance and checksum. **Neither original Felucca 1.6 nor 1.1.5 has been replayed in this release environment, and physical cross-firmware flashing has not been confirmed.** The staged loader's real identity is `ota-FM-1_015`; installers that insist on a different loader identity may still require the verified stock V15 bridge.
+The first command needs an actual, independently verified Felucca package. The second creates a **synthetic** variant of the existing ETCH loader with a different compressed length, then checks acceptance, staging and rejection paths. It is **not** evidence that every external Felucca build works. See `docs/V1.60-OTA-VALIDATION.md` for measured software results and the still-required physical tests.
 
-If you are **still running V1.38**, its old CHECK restrictions remain active until it is upgraded; installing the new WebInstaller alone cannot change V1.38's OTA policy. Where your currently installed ETCH release accepts it, use the V1.50 **V15-header** update first, or follow the official verified V15 restore route. Do not repeatedly flash if your updater reports an unrecognized loader.
+The old CHECK behaviour remains on devices running older ETCH versions until those devices are upgraded. A newly downloaded installer cannot rewrite the old running firmware's validation policy. Stop if the running firmware rejects a new package and use a previously verified update/recovery path, not repeated blind attempts.
 
 ## Source and development
 
