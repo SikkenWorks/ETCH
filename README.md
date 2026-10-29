@@ -14,25 +14,6 @@
 
 ---
 
-## V1.77 Quick start and 62-screen catalog
-
-1. Start in **SOUND**. SELECT cycles MORPH, FILTER, FX and LIBRARY in SIMPLE.
-2. Press **GLO**. On the WORKFLOW tab, turn **K2** to ADVANCED.
-3. Turn **K3** to browse **all 62 existing page IDs**. Turn **K4** to open the selected page. In POLY, mono-only sound editors show a clear requirement instead of silently switching mode.
-4. For strings, from the WORKFLOW tab turn **K1 twice** with no notes playing. The built-in **STRING ENS** audition loads a warm saw/organ waveform blend, long release, subdued modulation and animated stereo chorus. No user preset or project is automatically overwritten.
-5. **SAVE** the resulting patch explicitly into your chosen slot to keep it; use HOME to return to SOUND.
-
-> The string audition uses the existing ETCH audio engine and two-tap chorus. It aims for vintage ensemble character, **not a verified emulation** of the original Solina's divide-down generators and triple-chorus circuitry. Voice count remains the existing ETCH voice limit.
-
-## V1.71 Quick start (FM1 hardware)
-
-1. Start at **SOUND**: K1 MORPH, K2 ETCH (Wave C depth), K3 TONE (cutoff), K4 SPACE (reverb).
-2. Turn **SELECT** to visit MORPH, FILTER, the basic FX overview and WAVE LIBRARY, then back to SOUND. Long-press HOME opens preset browsing.
-3. Press **GLO** to open SYSTEM → WORKFLOW. Turn **K2** toward ADVANCED for the complete original FX, MOD, ARP, SEQ and editor page routes. Press GLO or HOME to return to SOUND.
-4. Return to SIMPLE with GLO → SYSTEM, select WORKFLOW with SELECT as needed, then turn K2 back.
-
-SIMPLE **does not edit or overwrite a patch** and is not saved to projects. No menus or DSP controls are deleted. The button layout follows the firmware's native panel mappings, subject to physical hardware verification.
-
 ## What is ETCH?
 
 ETCH turns the **M-VAVE FM1** into a synthesizer built around waveforms you create yourself. Instead of selecting a fixed FM algorithm, you draw a waveform, shape a second waveform, morph between them, and use a third waveform as a modulation source.
