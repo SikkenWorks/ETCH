@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#15121C">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="ETCH V1.86 for the M-VAVE FM1. Draw your waveforms, morph and modulate, and access the firmware WebInstaller, Cheat Sheet, Preset Manager and User Manual.">
+<link rel="icon" type="image/png" href="favicon.png">
+<title>ETCH // Draw. Morph. Modulate. // SikkenWorks</title>
+<style>
+:root{color-scheme:dark;--bg:#15121C;--panel:#25202D;--panel-deep:#1D1924;--ink:#F2E9D8;--sub:#A79AAE;--lime:#C7F36B;--coral:#FF7668;--lilac:#B39AFF;--blue:#82C8E8;--amber:#FFC16E;--red:#FF5263;--grid:#403749;--border:#4B4054;--shadow:#0B0A10}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:24px}
+body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.75 Consolas,'Lucida Console','Courier New',monospace;-webkit-font-smoothing:none}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;opacity:.19;background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:48px 48px;mask-image:linear-gradient(to bottom,black,transparent 90%)}
+a{color:inherit;text-decoration:none}
+a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--lime);outline-offset:4px}
+.shell{max-width:1580px;margin:0 auto;padding:30px 34px 72px;display:grid;grid-template-columns:230px minmax(0,1fr);gap:34px}
+.sidebar{min-width:0;position:sticky;top:25px;align-self:start;max-height:calc(100vh - 50px);overflow:auto;scrollbar-width:thin}
+.logo{display:flex;gap:9px;align-items:baseline;white-space:nowrap;font-weight:900;letter-spacing:.16em;font-size:35px;line-height:1.2}
+.logo small{font-size:11px;letter-spacing:.08em;color:var(--lime)}
+.brandline{font-size:10px;letter-spacing:.16em;color:var(--sub);margin:7px 0 32px}
+.side-label{color:var(--lilac);font-size:10px;font-weight:bold;letter-spacing:.16em;margin:0 12px 12px}
+.nav{display:flex;flex-direction:column;gap:4px}
+.nav-item{display:flex;align-items:center;gap:12px;padding:9px 10px;color:var(--sub);border:1px solid transparent;font-weight:bold;font-size:10px;letter-spacing:.05em;transition:.15s background,.15s color,.15s border-color}
+.nav-item:hover,.nav-item.active{color:var(--lime);background:rgba(199,243,107,.055);border-color:var(--grid)}
+.nav-diamond{height:7px;width:7px;border:1px solid currentColor;transform:rotate(45deg);flex:none}
+.nav-item.active .nav-diamond{background:var(--lime)}
+.side-bottom{font-size:10px;line-height:1.9;color:var(--sub);padding:18px 12px;border-top:1px solid var(--grid);margin-top:25px}
+.side-bottom a{color:var(--lilac)}.side-bottom a:hover{color:var(--lime)}
+.main{min-width:0}
+.topline{display:flex;align-items:center;justify-content:space-between;gap:14px;color:var(--sub);font-size:10px;letter-spacing:.13em;margin-bottom:19px}
+.status{display:inline-flex;align-items:center;gap:9px;color:var(--lime);white-space:nowrap}
+.status:before{content:"";width:7px;height:7px;background:var(--lime);box-shadow:0 0 13px #C7F36B77}
+.hero{position:relative;overflow:hidden;border:1px solid var(--border);background:linear-gradient(120deg,#2b2433,#211b29 60%,#17131e);box-shadow:7px 7px 0 var(--shadow)}
+.hero-top{padding:24px 31px 0;display:flex;align-items:center;justify-content:space-between;gap:18px;font-weight:bold;color:var(--lilac);font-size:10px;letter-spacing:.17em}
+.hero-top .rule{flex:1;height:1px;background:var(--border);max-width:190px}
+.hero-layout{display:grid;grid-template-columns:1.05fr .95fr;align-items:stretch;gap:23px;padding:14px 31px 28px}
+.hero h1{font-size:clamp(60px,8vw,115px);line-height:.95;letter-spacing:-.07em;margin:18px 0 15px;font-weight:900}
+.hero h1 span{color:var(--lime)}
+.tagline{font-size:clamp(13px,1.5vw,19px);font-weight:800;letter-spacing:.06em;color:var(--ink);margin-bottom:16px}
+.hero-copy{max-width:550px;color:#CFC2D7;font-size:12px;line-height:1.9;margin:0 0 23px}
+.hero-tags{display:flex;gap:8px;flex-wrap:wrap}
+.tag{font-size:9px;letter-spacing:.07em;padding:5px 8px;border:1px solid var(--border);color:var(--sub);font-weight:bold}
+.tag.color{color:var(--coral);border-color:#704E53}
+.osc{margin-top:18px;align-self:stretch;background:rgba(18,15,23,.58);border:1px solid var(--grid);padding:14px;display:flex;flex-direction:column;min-height:245px}
+.osc-head,.osc-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:9px;letter-spacing:.08em;color:var(--sub)}
+.osc-head b{color:var(--lime);font-weight:700}
+.osc svg{margin:13px 0;display:block;width:100%;height:100%;min-height:155px;flex:1}
+.osc-foot{justify-content:initial;flex-wrap:wrap;gap:15px}
+.osc-foot span{white-space:nowrap}
+.osc-foot .a{color:var(--coral)}.osc-foot .b{color:var(--lilac)}.osc-foot .mix{color:var(--lime)}
+.section-kicker{display:flex;align-items:center;gap:12px;color:var(--lilac);font-size:10px;letter-spacing:.14em;font-weight:bold;margin:38px 0 15px}
+.section-kicker:after{content:"";height:1px;flex:1;background:var(--grid)}
+.resource-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.resource{background:var(--panel);border:1px solid var(--border);padding:19px 20px 20px;min-width:0;box-shadow:4px 4px 0 rgba(0,0,0,.2);transition:background .16s,border-color .16s,transform .16s;display:flex;flex-direction:column;min-height:195px}
+.resource:hover{border-color:var(--lime);background:#2D2934;transform:translateY(-2px)}
+.res-top{display:flex;justify-content:space-between;gap:8px;font-size:10px;color:var(--lilac);letter-spacing:.1em;font-weight:bold}
+.res-index{color:var(--sub)}
+.resource h2{margin:24px 0 5px;font-size:19px;letter-spacing:-.035em;line-height:1.3}
+.resource p{color:var(--sub);font-size:11px;line-height:1.7;margin:0 0 14px}
+.res-open{margin-top:auto;color:var(--lime);font-size:10px;letter-spacing:.08em;font-weight:bold}
+.resource:nth-child(2) .res-top{color:var(--coral)}.resource:nth-child(3) .res-top{color:var(--blue)}.resource:nth-child(4) .res-top{color:var(--amber)}
+.specs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:25px}
+.spec{background:#1C1823;border:1px solid var(--grid);padding:13px 12px}.spec strong{display:block;font-size:23px;color:var(--lime);line-height:1.25}.spec span{display:block;margin-top:6px;color:var(--sub);font-size:9px;letter-spacing:.08em}
+.content-section{margin-top:28px;scroll-margin-top:16px;border:1px solid var(--border);background:#211C29;box-shadow:4px 4px 0 rgba(0,0,0,.14)}
+.content-section:first-of-type{margin-top:34px}
+.section-bar{padding:10px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:#272131;color:var(--lilac);font-size:9px;font-weight:bold;letter-spacing:.15em}
+.section-pip{display:block;width:7px;height:7px;border:1px solid var(--lilac);transform:rotate(45deg)}
+.section-inner{padding:20px 24px 24px;min-width:0;color:#DAD0DF;font-size:12px;line-height:1.85;overflow-wrap:anywhere}
+.section-inner h2{font-size:clamp(21px,2.5vw,29px);letter-spacing:-.045em;line-height:1.25;color:var(--ink);margin:4px 0 16px}
+.section-inner h3{font-size:16px;letter-spacing:-.01em;color:var(--lime);margin:26px 0 13px;scroll-margin-top:25px}
+.section-inner p{margin:0 0 15px}
+.section-inner p:last-child{margin-bottom:0}
+.section-inner strong{color:var(--ink)}
+.section-inner em{color:var(--lilac)}
+.section-inner a{color:var(--lime);text-decoration:underline;text-underline-offset:3px;text-decoration-color:#627A47;overflow-wrap:anywhere}
+.section-inner a:hover{color:var(--coral);text-decoration-color:var(--coral)}
+.section-inner ul,.section-inner ol{margin:7px 0 19px;padding-left:23px}
+.section-inner li{margin:7px 0;padding-left:5px}
+.section-inner li::marker{color:var(--coral)}
+.section-inner code{font-size:11px;color:var(--blue);background:#15121C;padding:2px 5px}
+.section-inner pre{border:1px solid var(--grid);background:#17141d;overflow-x:auto;padding:18px 16px;margin:14px 0 22px;max-width:100%;font-size:11px;line-height:1.75}
+.section-inner pre code{padding:0;background:transparent;color:var(--lime);white-space:pre}
+.table-scroll{width:100%;overflow-x:auto;margin:16px 0 21px;border:1px solid var(--grid)}
+.section-inner table{border-collapse:collapse;width:100%;min-width:470px;font-size:11px;line-height:1.6}
+.section-inner th{padding:12px 13px;text-align:left;color:var(--lime);background:#191520;font-weight:800;border-bottom:1px solid var(--border)}
+.section-inner td{padding:11px 13px;border-bottom:1px solid var(--grid);vertical-align:top}
+.section-inner tr:last-child td{border-bottom:0}
+.section-inner tbody tr:nth-child(even){background:rgba(255,255,255,.025)}
+.section-inner td code{word-break:break-word;white-space:normal}
+.section-inner .notice{border-left:3px solid var(--lime);padding:13px 15px;background:rgba(199,243,107,.05);margin-top:17px}
+.section-inner .notice-amber{border-left-color:var(--amber);background:rgba(255,193,110,.045)}
+.section-inner .notice-coral{border-left-color:var(--red);background:rgba(255,82,99,.07)}
+.finalfooter{display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap;border-top:1px solid var(--border);margin-top:43px;padding-top:22px;font-size:10px;color:var(--sub)}
+.finalfooter a{color:var(--lilac);margin-left:13px}.finalfooter a:hover{color:var(--lime)}
+@media(max-width:1060px){.shell{grid-template-columns:1fr;padding:20px 22px 60px;gap:13px}.sidebar{position:static;max-height:none;overflow:visible}.logo{font-size:29px}.brandline{margin-bottom:14px}.side-label,.side-bottom{display:none}.nav{flex-direction:row;gap:5px;overflow-x:auto;padding-bottom:9px}.nav-item{white-space:nowrap;padding:8px 10px}.hero-layout{grid-template-columns:1fr 1fr}}
+@media(max-width:740px){.shell{padding:14px 13px 45px}.hero-layout{grid-template-columns:1fr;padding:10px 18px 19px}.hero-top{padding:17px 18px 0}.hero h1{font-size:68px}.osc{margin-top:0;min-height:210px}.osc svg{max-height:190px}.resource-grid{gap:10px}.resource{padding:16px;min-height:205px}.resource h2{font-size:16px}.specs{grid-template-columns:repeat(2,minmax(0,1fr))}.section-inner{padding:16px}.section-bar{padding:9px 15px}.topline{font-size:9px}}
+@media(max-width:480px){.hero h1{font-size:59px}.resource-grid{grid-template-columns:1fr}.resource{min-height:0}.resource h2{margin-top:15px}.topline span:first-child{letter-spacing:.02em}.osc svg{min-height:135px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.resource,.nav-item{transition:none}}
+@media print{body{background:white;color:#111}body:before,.sidebar,.resource-grid,.osc,.section-kicker,.specs,.topline{display:none!important}.shell{display:block;padding:0}.hero,.content-section{background:white;color:black;box-shadow:none;break-inside:avoid}.hero h1,.section-inner h2,.section-inner strong{color:#111}.hero .tagline,.hero-copy,.section-inner{color:#111}.content-section{break-inside:auto}.section-inner th,.section-inner td,.section-inner h3,.section-bar,.section-inner a{color:#111;background:white}a{text-decoration:underline}}
+</style>
+</head>
+<body>
+<div class="shell" id="top">
+ <aside class="sidebar" aria-label="ETCH navigation">
+  <a class="logo" href="#top">ETCH <small>V1.86</small></a>
+  <div class="brandline">DRAW. MORPH. MODULATE.</div>
+  <div class="side-label">// NAVIGATE</div>
+  <nav class="nav" aria-label="Reference sections"><a class="nav-item" href="#what-is-etch" data-section="what-is-etch"><span class="nav-diamond" aria-hidden="true"></span>OVERVIEW</a>
+<a class="nav-item" href="#sound-engine" data-section="sound-engine"><span class="nav-diamond" aria-hidden="true"></span>SOUND ENGINE</a>
+<a class="nav-item" href="#getting-started" data-section="getting-started"><span class="nav-diamond" aria-hidden="true"></span>GETTING STARTED</a>
+<a class="nav-item" href="#controls-shortcuts" data-section="controls-shortcuts"><span class="nav-diamond" aria-hidden="true"></span>CONTROLS</a>
+<a class="nav-item" href="#draw-sculpt-play" data-section="draw-sculpt-play"><span class="nav-diamond" aria-hidden="true"></span>DRAW & SCULPT</a>
+<a class="nav-item" href="#sequencing-live-performance" data-section="sequencing-live-performance"><span class="nav-diamond" aria-hidden="true"></span>PERFORMANCE</a>
+<a class="nav-item" href="#presets-projects-backups" data-section="presets-projects-backups"><span class="nav-diamond" aria-hidden="true"></span>SAVE & BACKUP</a>
+<a class="nav-item" href="#installation-recovery" data-section="installation-recovery"><span class="nav-diamond" aria-hidden="true"></span>INSTALLATION</a>
+<a class="nav-item" href="#source-development" data-section="source-development"><span class="nav-diamond" aria-hidden="true"></span>SOURCE</a>
+<a class="nav-item" href="#credits-licensing" data-section="credits-licensing"><span class="nav-diamond" aria-hidden="true"></span>CREDITS / LICENSE</a></nav>
+  <div class="side-bottom">M-VAVE FM1 / PHOSPHOR UI<br>SIKKENWORKS<br>BORN OUT OF PASSION.<br><a href="https://github.com/SikkenWorks/ETCH" target="_blank" rel="noopener noreferrer">VIEW SOURCE ↗</a></div>
+ </aside>
+ <main class="main">
+  <div class="topline"><span>ETCH / M-VAVE FM1 / 2026</span><span class="status">DOCUMENTATION ONLINE</span></div>
+  <header class="hero">
+   <div class="hero-top"><span>SIKKENWORKS / SYNTHESIS</span><span class="rule"></span><span>V1.86</span></div>
+   <div class="hero-layout">
+    <div class="hero-description">
+     <h1>ETCH<span>.</span></h1>
+     <div class="tagline">DRAW. MORPH. MODULATE.</div>
+     <p class="hero-copy">An open-source waveform-sculpting synthesizer for the M-VAVE FM1. Draw your own waveforms, morph A and B into a new shape, and let Wave C modulate the result.</p>
+     <div class="hero-tags"><span class="tag color">FIRMWARE V1.86</span><span class="tag">FM-1_1500</span><span class="tag">PJT32</span><span class="tag">GPL-3.0-ONLY</span></div>
+    </div>
+    <div class="osc" role="img" aria-label="Oscilloscope drawing of Wave A, Wave B and their morphed result">
+     <div class="osc-head"><span>ETCH / OSCILLOSCOPE</span><b>WAVE A + B / MORPH</b></div>
+     <svg viewBox="0 0 650 270" preserveAspectRatio="none" aria-hidden="true">
+      <defs><pattern id="scopegrid" width="50" height="45" patternUnits="userSpaceOnUse"><path d="M50 0H0V45" fill="none" stroke="#51445B" stroke-width=".85"/></pattern></defs>
+      <rect x="1" y="1" width="648" height="268" fill="url(#scopegrid)" stroke="#51445B" stroke-width="1" />
+      <path d="M0 135H650" stroke="#C7F36B" stroke-width="1" opacity=".38"/>
+      <path d="M0 135L32 100L60 68L93 61L125 71L162 120L196 169L228 193L260 180L292 148L328 120L363 93L392 105L422 136L454 174L487 205L517 190L549 154L580 116L613 92L650 135" fill="none" stroke="#FF7668" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M0 135L24 135L51 113L79 61L107 43L133 67L163 130L193 141L224 160L252 209L288 222L317 185L352 135L385 128L420 134L458 185L489 199L526 184L560 124L598 95L625 116L650 135" fill="none" stroke="#B39AFF" stroke-width="2.8" stroke-linejoin="round"/>
+      <path d="M0 135L25 121L56 94L86 61L116 56L146 98L176 137L208 164L237 190L274 188L306 165L340 125L371 109L405 125L435 154L468 184L504 197L536 166L567 131L603 100L630 111L650 135" fill="none" stroke="#C7F36B" stroke-width="3.3" stroke-linejoin="round"/>
+     </svg>
+     <div class="osc-foot"><span class="a">● WAVE A</span><span class="b">● WAVE B</span><span class="mix">● MORPH RESULT</span></div>
+    </div>
+   </div>
+  </header>
+  <div class="section-kicker" id="tools">// ETCH TOOLS &amp; GUIDES</div>
+  <div class="resource-grid" aria-label="ETCH resource links">
+   <a class="resource" href="WebInstaller.html"><div class="res-top"><span>FIRMWARE / USB-MIDI</span><span class="res-index">01</span></div><h2>WEBINSTALLER</h2><p>Install ETCH with firmware verification, compatibility checks and explicit safety confirmation.</p><span class="res-open">OPEN WEBINSTALLER ↗</span></a>
+   <a class="resource" href="CHEAT-SHEET.html"><div class="res-top"><span>QUICK REFERENCE</span><span class="res-index">02</span></div><h2>CHEAT SHEET</h2><p>Searchable shortcuts, essential controls, wave editing and troubleshooting.</p><span class="res-open">OPEN CHEAT SHEET ↗</span></a>
+   <a class="resource" href="ETCH-Project-Preset-Manager.html"><div class="res-top"><span>BACKUP / RESTORE</span><span class="res-index">03</span></div><h2>PROJECT / PRESET MANAGER</h2><p>Read and export the active sound to .etchpreset, or audition a saved sound in RAM.</p><span class="res-open">OPEN PRESET MANAGER ↗</span></a>
+   <a class="resource" href="USER_MANUAL.md"><div class="res-top"><span>FULL DOCUMENTATION</span><span class="res-index">04</span></div><h2>USER MANUAL</h2><p>Complete operating guide, including the screen-by-screen K1–K4 parameter reference.</p><span class="res-open">READ USER MANUAL ↗</span></a>
+  </div>
+  <div class="specs" aria-label="ETCH storage capacity"><div class="spec"><strong>128</strong><span>POINTS / WAVE</span></div><div class="spec"><strong>64</strong><span>WAVE SLOTS</span></div><div class="spec"><strong>32</strong><span>PRESET SLOTS</span></div><div class="spec"><strong>04</strong><span>PROJECT SLOTS</span></div></div>
+  <div class="section-kicker">// ABOUT / FEATURES / OPERATION / SOURCES</div>
+  <section class="content-section" id="what-is-etch"><div class="section-bar"><span class="section-pip"></span><span class="section-type">// 01 / DOCUMENTATION</span></div><div class="section-inner"><h2>What is ETCH?</h2><p>ETCH turns your FM1 into a hands-on synthesizer built around <strong>waveforms you draw yourself</strong>. Shape Wave A and Wave B, morph between them, use Wave C to modulate the result, and explore a full set of filters, effects and performance tools.</p><p><strong>Firmware:</strong> V1.86 · <strong>M-VAVE FM1</strong> · <strong>Package/USB identity:</strong> <code>FM-1_1500</code> · <strong>Project format:</strong> <code>PJT32</code> · <strong>License:</strong> GPL-3.0-only.</p></div></section>
+<section class="content-section" id="sound-engine"><div class="section-bar"><span class="section-pip"></span><span class="section-type">// 02 / DOCUMENTATION</span></div><div class="section-inner"><h2>Sound engine</h2><pre><code class="language-text">Wave A ── [A inserts] ──┐
+                        ├─ MORPH ── FILTER / DRIVE ── WAVE AMP ── ADSR ── FX ── OUTPUT
+Wave B ── [B inserts] ──┘    ↑
+                             │
+Wave C ──────────────── PHASE / MORPH / FX MODULATION
+</code></pre><ul>
+<li><strong>DRAW:</strong> edit all <strong>128 points</strong> of Wave A, B or C directly on the FM1.</li>
+<li><strong>Three drawing brushes:</strong> <strong>DETAIL</strong> (5-point local brush), <strong>SOFT</strong> (17-point smooth brush), <strong>EDGE</strong> (single-point sharp brush). Select with the <strong>ALGORITHM</strong> encoder in DRAW.</li>
+<li><strong>MORPH:</strong> blend the <em>shape</em> of A and B, rather than merely crossfading two audio channels.</li>
+<li><strong>WAVE AMP:</strong> use A, B or their morphed wave to control volume at oscillator speed, with adjustable depth. ADSR remains independent.</li>
+<li><strong>Modulation:</strong> Wave C phase/morph/FX destinations, four-route Mod Matrix, EVOLUTION, ORGANIC analogue-style drift, LIVING, SPECTRAL and PATCH BLEND.</li>
+<li><strong>Effects:</strong> pre-morph Wave A/B inserts and global chorus, delay, reverb, drive, modulation and dynamics effects. <strong>FX BYPASS</strong> skips supported expensive processing while preserving values.</li>
+<li><strong>Performance:</strong> up to eight shared voices, ARP/RIFF, up to 256 sequencer steps, harmony tools, GROUPS keyboard splits, four performance macros and two scenes.</li>
+</ul><p><strong>Sound design tip:</strong> use EDGE at lower/mid pitches with the filter open to hear sharp harmonic differences. High notes use band-limited wavetables, so sharp shapes may sound closer together. SOFT gives smoother contours. The editor is polled every 25 ms; audible wavetable updates may trail the cursor briefly because compiling is throttled to protect audio. <strong>Keyboard auditioning does not edit wave points:</strong> brief K1–K4 encoder deltas around physical note-on/off are ignored in DRAW, then normal controls resume while the note is held.</p><h3 id="three-different-kinds-of-saved-data">Three different kinds of saved data</h3><div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Save type</th>
+<th>What it contains</th>
+<th style="text-align:right">Capacity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Waveform</strong></td>
+<td>Reusable, named 128-point single-cycle wave</td>
+<td style="text-align:right">64 slots</td>
+</tr>
+<tr>
+<td><strong>Preset</strong></td>
+<td>Playable sound, its waves and sound settings</td>
+<td style="text-align:right">32 slots</td>
+</tr>
+<tr>
+<td><strong>Project</strong></td>
+<td>Working state, patterns, GROUPS and performance data</td>
+<td style="text-align:right">4 slots</td>
+</tr>
+</tbody>
+</table></div><p class="notice">A computer <code>.etchpreset</code> is a <strong>sound snapshot</strong>, not a full project, sample or sequencer backup.</p></div></section>
+<section class="content-section" id="getting-started"><div class="section-bar"><span class="section-pip"></span><span class="section-type">// 03 / DOCUMENTATION</span></div><div class="section-inner"><h2>Getting started</h2><ol>
+<li>Turn down <strong>MASTER</strong> and start ETCH. After the VHS-style SIKKENWORKS intro, choose <strong>SIMPLE</strong> or <strong>ADVANCED</strong> using <strong>K1</strong> and <strong>SEL</strong>.</li>
+<li>Press <strong>HOME</strong> for <strong>SOUND</strong>. Try <strong>K1 MORPH</strong>, <strong>K2 ETCH</strong>, <strong>K3 TONE</strong> and <strong>K4 SPACE</strong>.</li>
+<li>Turn <strong>SELECT</strong> to <strong>MORPH</strong>. Use <strong>K1/K2</strong> to select Waves A/B and <strong>K3</strong> to morph between them. <strong>K4</strong> sets Wave C rate; <strong>ALGORITHM</strong> adjusts ETCH depth on this page.</li>
+<li>Press <strong>EDIT</strong>. Turn <strong>SELECT</strong> to choose A/B/C. Use <strong>K1</strong> for horizontal position and <strong>K2</strong> to raise/lower the waveform, and <strong>ALGORITHM</strong> for the brush. K3/K4 edit harmonics.</li>
+<li>Return to SOUND with <strong>HOME</strong>. Set FILTER, ENV and FX to taste, then <strong>save the waveform and preset separately</strong> if you want a reusable wave and a saved sound.</li>
+</ol><h3 id="simple-and-advanced">SIMPLE and ADVANCED</h3><div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Focus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>SIMPLE</strong></td>
+<td>SOUND, MORPH, FILTER, FX and LIBRARY for quick sound design</td>
+</tr>
+<tr>
+<td><strong>ADVANCED</strong></td>
+<td>Full editor navigation and the 64-page WORKFLOW catalog</td>
+</tr>
+</tbody>
+</table></div><p>To switch: <strong>GLO → SYSTEM / WORKFLOW → K2</strong>. In ADVANCED, the WORKFLOW catalog uses <strong>K3</strong> to select and <strong>K4</strong> to open a permitted page. Some CPU-heavy modulation pages require MONO mode. The header displays <code>V186S</code> or <code>V186A</code> according to the selected workflow.</p></div></section>
+<section class="content-section" id="controls-shortcuts"><div class="section-bar"><span class="section-pip"></span><span class="section-type">// 04 / DOCUMENTATION</span></div><div class="section-inner"><h2>Controls &amp; shortcuts</h2><p><strong>K1–K4</strong> always control the parameters displayed on the current page. <strong>SEL</strong> is a button; <strong>SELECT</strong> is a rotary encoder.</p><div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Controls</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Return to SOUND</td>
+<td>Short <strong>HOME</strong></td>
+</tr>
+<tr>
+<td>Browse saved presets</td>
+<td>Hold <strong>HOME</strong> ~1.5 s, then rotate <strong>PRESETS</strong></td>
+</tr>
+<tr>
+<td>Open PROJECTS</td>
+<td><strong>HOME + SAVE</strong></td>
+</tr>
+<tr>
+<td>Open GROUPS</td>
+<td><strong>HOME + FX</strong></td>
+</tr>
+<tr>
+<td>Open PERFORMANCE</td>
+<td><strong>HOME + ARP</strong></td>
+</tr>
+<tr>
+<td>Toggle MONO / POLY</td>
+<td><strong>OCT− + OCT+</strong> together</td>
+</tr>
+<tr>
+<td>Open FX BYPASS</td>
+<td>In ADVANCED, hold <strong>FX</strong> ~700 ms</td>
+</tr>
+<tr>
+<td>Start a flat waveform</td>
+<td>In DRAW, hold <strong>EDIT</strong> ~700 ms; YES/NO, default NO</td>
+</tr>
+<tr>
+<td>Undo / Redo</td>
+<td>In DRAW: <strong>ENV / LFO</strong></td>
+</tr>
+<tr>
+<td>Select brush</td>
+<td>In DRAW: rotate <strong>ALGORITHM</strong> for DETAIL / SOFT / EDGE</td>
+</tr>
+<tr>
+<td>Select wave</td>
+<td>In DRAW: rotate <strong>SELECT</strong> for A/B/C</td>
+</tr>
+<tr>
+<td>Change workflow</td>
+<td><strong>GLO → SYSTEM / WORKFLOW</strong>, then <strong>K2</strong></td>
+</tr>
+<tr>
+<td>Control BPM</td>
+<td>Rotate <strong>PRESETS</strong> outside the preset browser</td>
+</tr>
+<tr>
+<td>Generate RIFF</td>
+<td>ARP mode 7, turn <strong>K4</strong></td>
+</tr>
+<tr>
+<td>Restart a responsive AUDIO STOP</td>
+<td>Hold <strong>HOME + PLAY/STOP</strong> ~1 s</td>
+</tr>
+</tbody>
+</table></div><p><strong>Do not use double-HOME for PROJECTS.</strong> Use HOME + SAVE. The full <a href="USER_MANUAL.md">user manual</a> contains the screen-by-screen K1–K4 reference and the <a href="CHEAT-SHEET.html">interactive cheat sheet</a> provides searchable shortcuts.</p></div></section>
+<section class="content-section" id="draw-sculpt-play"><div class="section-bar"><span class="section-pip"></span><span class="section-type">// 05 / DOCUMENTATION</span></div><div class="section-inner"><h2>Draw, sculpt &amp; play</h2><p>In <strong>DRAW</strong>, K1 selects one of the 128 waveform points and K2 adjusts it vertically. DETAIL is for precise contours; SOFT produces rounded slopes; EDGE introduces sharp shapes and stronger harmonic contrasts. The editor uses the existing wavetable banks, recompiling only changed waves. Waveform edits still support <strong>16 shared Undo/Redo history snapshots</strong>.</p><p><strong>Flat line:</strong> hold EDIT, choose YES with K1, press SEL. Only the active wave becomes a zero line, and ENV can undo. Selecting NO or HOME cancels without touching it.</p><p><strong>Live effects vs waveform tools:</strong> WFX, SCULPT and tools alter the editable waveform when baked; Wave A/B inserts and global FX process playback without changing those saved points. Use <strong>DRAW → SAVE</strong> for a reusable wave, and normal <strong>SAVE → PRESET</strong> for a playable patch.</p><p><strong>WAVE AMP:</strong> in ADVANCED, use LFO navigation or WORKFLOW to open WAVE AMP. <strong>K1</strong> selects OFF/A/B/MORPH; <strong>K2</strong> sets depth. This is <em>audio-rate</em> volume modulation, not a one-shot volume envelope.</p><p><strong>FX BYPASS:</strong> hold FX in ADVANCED. <strong>K1</strong> selects an effect; <strong>K4 or SEL</strong> toggles ON/BYP; <strong>K2</strong> bypasses all; <strong>K3</strong> restores all. Bypass status is temporary in RAM and does not change saved effect settings.</p></div></section>
+<section class="content-section" id="sequencing-live-performance"><div class="section-bar"><span class="section-pip"></span><span class="section-type">// 06 / DOCUMENTATION</span></div><div class="section-inner"><h2>Sequencing &amp; live performance</h2><ul>
+<li><strong>ARP / RIFF:</strong> eight ARP modes including mode 7 RIFF, a scale-aware 16-step generator. In mode 7, turn K4 for another riff.</li>
+<li><strong>SEQ:</strong> up to 256 steps and eight note triggers per step; live REC, HOLD, GRID, LOCKS, BAKE and CLOCK editors. Six lock destinations: MORPH, ETCH, cutoff, chorus, delay, reverb.</li>
+<li><strong>GROUPS:</strong> HOME + FX opens two optional saved-preset keyboard zones alongside MAIN; all parts share the total eight-voice budget and post-mix effects.</li>
+<li><strong>PERFORMANCE:</strong> HOME + ARP opens four assignable macros and scene A/B capture/recall. Save a project to retain scenes.</li>
+<li><strong>MOTION:</strong> record a short performance of MORPH, ETCH, cutoff and SPACE controls.</li>
+<li><strong>USB MIDI:</strong> notes, clock and implemented expression handling. Booting while holding SEQ starts a MIDI-keyboard-only mode, with local synth audio disabled.</li>
+</ul></div></section>
+<section class="content-section" id="presets-projects-backups"><div class="section-bar"><span class="section-pip"></span><span class="section-type">// 07 / DOCUMENTATION</span></div><div class="section-inner"><h2>Presets, projects &amp; backups</h2><p><strong>To save a preset or project:</strong> press SAVE outside DRAW, use SELECT to choose the kind of save, then <strong>K1 slot</strong>, <strong>K2 name position</strong>, <strong>K3 character</strong> and <strong>K4 backspace</strong>. Confirm with SAVE. Wait for <strong>SAVING / VERIFYING</strong> and a clear success before powering off. If ETCH reports NOT SAVED, the current patch is still RAM-only.</p><p><strong>To save a wave:</strong> while in DRAW, press SAVE and use the same slot/name controls. <strong>To load a saved wave:</strong> LIBRARY → K1 slot → K2 A/B/C destination → REC twice.</p><p><strong>Computer backup:</strong> use the bundled <a href="ETCH-Project-Preset-Manager.html"><code>ETCH-Project-Preset-Manager.html</code></a> with Chrome/Edge and Web MIDI/SysEx to read the current sound from RAM, download <code>.etchpreset</code> or send one to RAM. It does not include entire projects or sequencer patterns and does not automatically write to flash. The current snapshot protocol supports WAVE AMP and <code>.etchpreset</code> V1/V2.</p><h3 id="storage-locked-foreign-data">STORAGE LOCKED / foreign data</h3><p>ETCH protects data belonging to other firmwares. If a first-boot prompt offers <strong>FORMAT FOR ETCH?</strong>, <strong>NO</strong> preserves it but leaves the affected storage locked. <strong>YES</strong>, SEL and an additional <strong>three-second SAVE hold</strong> may format only ETCH's designated region (<code>0xB4000–0xDBFFF</code>), destroying any previous data in those sectors. Do not choose YES without a backup of affected data. A valid ETCH project or flash read error should not trigger destructive takeover.</p><p class="notice notice-coral"><strong>If your sound is unsaved, do not reboot, format or update the firmware.</strong> Make a RAM-based <code>.etchpreset</code> backup first when the running firmware supports it.</p></div></section>
+<section class="content-section" id="installation-recovery"><div class="section-bar"><span class="section-pip"></span><span class="section-type">// 08 / DOCUMENTATION</span></div><div class="section-inner"><h2>Installation &amp; recovery</h2><ul>
+<li><strong>Current firmware:</strong> <a href="release/ETCH-V1.86.fwsc"><code>release/ETCH-V1.86.fwsc</code></a>, one regular public package, original identity <code>FM-1_1500</code>.</li>
+<li><strong>Installer:</strong> <a href="WebInstaller.html"><code>WebInstaller.html</code></a>, in the clean PHOSPHOR layout. Its critical checks and risk confirmation are still required even though long technical notes are tucked into a neutral expandable section.</li>
+<li><strong>Required browser:</strong> desktop Chrome/Edge, Web MIDI/SysEx permissions, proper USB data cable and exclusive access to the FM1 MIDI port.</li>
+<li><strong>Safety:</strong> keep a verified backup, trusted package checksums and an independently tested recovery procedure for your FM1. Device-side package validation, loader checks and post-update verification must succeed. Never bypass a failed CHECK.</li>
+<li><strong>Cross-firmware OTA:</strong> structurally compatible Felucca-family application-only updates are validated by the installed device-side loader/check path. Official stock restore uses a separately verified official package/loader. A successful USB transfer is <strong>not</strong> proof of guaranteed firmware switching or physical recovery.</li>
+</ul><p class="notice notice-amber"><strong>Status:</strong> V1.86 is software-built and host-tested, but long-term USB-audio reliability, listening tests, flash transitions and independent ROM recovery <strong>have not been fully qualified on physical FM1 hardware</strong>. Smooth note-on, wavetable-switch and voice-steal fades reduce some digital clicks; they cannot guarantee elimination of every audible or analogue startup pop.</p></div></section>
+<section class="content-section" id="source-development"><div class="section-bar"><span class="section-pip"></span><span class="section-type">// 09 / SOURCE &amp; ATTRIBUTION</span></div><div class="section-inner"><h2>Source &amp; development</h2><div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="firmware/fm1-native/"><code>firmware/fm1-native/</code></a></td>
+<td>Native FM1 firmware, audio, LCD, controls, MIDI, flash and OTA</td>
+</tr>
+<tr>
+<td><a href="engine/"><code>engine/</code></a></td>
+<td>Host-side synth engine</td>
+</tr>
+<tr>
+<td><a href="sim/"><code>sim/</code></a></td>
+<td>Browser simulator (not a replacement for native LCD capture)</td>
+</tr>
+<tr>
+<td><a href="WebInstaller.html"><code>WebInstaller.html</code></a></td>
+<td>Current Web MIDI update installer</td>
+</tr>
+<tr>
+<td><a href="ETCH-Project-Preset-Manager.html"><code>ETCH-Project-Preset-Manager.html</code></a></td>
+<td>RAM sound backup/import tool</td>
+</tr>
+<tr>
+<td><a href="release/"><code>release/</code></a></td>
+<td>Firmware packages</td>
+</tr>
+<tr>
+<td><a href="tools/"><code>tools/</code></a></td>
+<td>Build, pack and diagnostic scripts</td>
+</tr>
+<tr>
+<td><a href="tests/"><code>tests/</code></a></td>
+<td>Firmware and DSP regression tests</td>
+</tr>
+<tr>
+<td><a href="USER_MANUAL.md"><code>USER_MANUAL.md</code></a></td>
+<td>Full operating guide</td>
+</tr>
+<tr>
+<td><a href="CHEAT-SHEET.html"><code>CHEAT-SHEET.html</code></a></td>
+<td>Searchable offline quick reference</td>
+</tr>
+</tbody>
+</table></div><p>Building requires an independently obtained JieLi pi32v2 toolchain, Python 3 and the repository's build scripts. Source tests and a successful compile do <strong>not</strong> prove hardware flash or recovery safety. Follow the appropriate project scripts for the platform; never substitute unrelated stock boot data.</p></div></section>
+<section class="content-section" id="credits-licensing"><div class="section-bar"><span class="section-pip"></span><span class="section-type">// 10 / SOURCE &amp; ATTRIBUTION</span></div><div class="section-inner"><h2>Credits and licensing</h2><p>ETCH is an independent <strong>SikkenWorks</strong> project. The waveform-drawing, A/B shape-morphing and Wave C-centred instrument design, plus ETCH-specific synth, editing and performance work, are developed on top of existing FM1 community foundations.</p><h3 id="core-project-and-directly-derived-foundation">Core project and directly derived foundation</h3><div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Credit</th>
+<th>Contribution / relationship</th>
+<th>License / source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>SikkenWorks</strong></td>
+<td>ETCH concept, product design, synthesis workflow, interface and further development</td>
+<td><a href="https://github.com/SikkenWorks/ETCH">SikkenWorks / ETCH</a></td>
+</tr>
+<tr>
+<td><strong>Leo Kuroshita (@kurogedelic), Hügelton Instruments</strong></td>
+<td><strong>Felucca</strong>, the crucial FM1 foundation: boot/startup, hardware abstraction/drivers, interrupts, LCD, parts of audio and USB-MIDI/OTA transport. ETCH modifies/adapts portions of this foundation</td>
+<td><a href="https://github.com/hugelton/Felucca">Felucca</a> · <strong>GPL-3.0-only</strong></td>
+</tr>
+<tr>
+<td><strong>JieLi Technology</strong></td>
+<td>AC79/AC791 hardware platform, pi32v2 toolchain and original vendor SDK boot/configuration material in the FM1 firmware ecosystem; some protected package components are vendor-origin, not original ETCH code</td>
+<td><a href="https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK">JieLi AC79 SDK</a> · applicable vendor/Apache-2.0 notices</td>
+</tr>
+<tr>
+<td><strong>M-VAVE</strong></td>
+<td>Original FM1 hardware and stock firmware platform</td>
+<td>Original manufacturer; ETCH is <strong>not</strong> affiliated with M-VAVE</td>
+</tr>
+<tr>
+<td><strong>SikkenWorks B1 / user-supplied B1 V4.3 HF2 installer</strong></td>
+<td>Reference for the V1.48.4+ transition/reconnect handling on Felucca/SLOOP loader families</td>
+<td>B1 HF2 implementation adapted to the ETCH WebInstaller; upstream Felucca notices retained</td>
+</tr>
+</tbody>
+</table></div><p><strong>Felucca is not merely an inspiration:</strong> its GPL-covered firmware and updater infrastructure provide substantive foundations in ETCH. Retain its notices and corresponding source when redistributing a modified firmware or installer.</p><h3 id="additional-upstream-projects-and-attribution-inventory">Additional upstream projects and attribution inventory</h3><p>The upstream Felucca licensing inventory also records the following authors and projects. <strong>They are credited here for provenance, reference or inherited notices; this list does not claim that every listed synthesis engine or font binary is present or used directly in ETCH.</strong> Consult the source and license folders for actual inclusion.</p><div class="table-scroll"><table>
+<thead>
+<tr>
+<th>Project / author</th>
+<th>Upstream contribution or reference</th>
+<th>License where documented</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>X0X</strong>, charlesvestal</td>
+<td>Felucca browser-emulator design/implementation reference</td>
+<td>GPL-3.0 · <a href="https://github.com/charlesvestal/fm1-x0x">fm1-x0x</a></td>
+</tr>
+<tr>
+<td><strong>CrispyZebra</strong>, Hügelton Instruments</td>
+<td>PHASE-engine oscillator provenance in upstream Felucca</td>
+<td>GPL-3.0 · <a href="https://github.com/hugelton/CrispyZebra">CrispyZebra</a></td>
+</tr>
+<tr>
+<td><strong>DaisySP</strong>, Electrosmith, Corp / <strong>Emilie Gillet</strong></td>
+<td>Physical-model DSP in upstream Felucca</td>
+<td>MIT · <a href="https://github.com/electro-smith/DaisySP">DaisySP</a></td>
+</tr>
+<tr>
+<td><strong>Rings</strong>, Emilie Gillet</td>
+<td>Sympathetic strings in upstream Felucca</td>
+<td>MIT · <a href="https://github.com/pichenettes/eurorack">eurorack</a></td>
+</tr>
+<tr>
+<td><strong>msfa / Dexed</strong>, Google Inc. / <strong>Pascal Gauthier</strong></td>
+<td>FM synthesis core provenance in upstream Felucca (the msfa component, not necessarily Dexed in full)</td>
+<td>Apache-2.0 · <a href="https://github.com/asb2m10/dexed">Dexed</a></td>
+</tr>
+<tr>
+<td><strong>Fukiai</strong>, Hügelton Instruments</td>
+<td>Icon-font provenance in upstream Felucca</td>
+<td>MIT · <a href="https://github.com/hugelton/Fukiai">Fukiai</a></td>
+</tr>
+<tr>
+<td><strong>Inter Tight</strong>, The Inter Project Authors</td>
+<td>Typeface used in parts of the upstream UI pipeline</td>
+<td>SIL OFL 1.1 · <a href="https://github.com/rsms/inter-tight">Inter Tight</a></td>
+</tr>
+<tr>
+<td><strong>DotGothic16</strong>, The DotGothic16 Project Authors</td>
+<td>Typeface used in the upstream browser emulator</td>
+<td>SIL OFL 1.1 · <a href="https://github.com/fontworks-fonts/DotGothic16">DotGothic16</a></td>
+</tr>
+<tr>
+<td><strong>Versilian Studios / VCSL</strong></td>
+<td>CC0 sample provenance for Felucca's sampler-related engines</td>
+<td>CC0 1.0; see upstream Felucca inventory</td>
+</tr>
+<tr>
+<td><strong>Tony Gies / klattsch</strong>, plus <strong>Klatt</strong> and <strong>Hillenbrand et al.</strong></td>
+<td>Formant/vocal-synthesis design and data references recorded by Felucca; no klattsch code copied in Felucca according to its notes</td>
+<td>Reference credit · <a href="https://github.com/tgies/klattsch">klattsch</a></td>
+</tr>
+</tbody>
+</table></div><p><strong>License files retained in this project:</strong> <a href="LICENSE"><code>LICENSE</code></a> (GNU GPL v3), <a href="LICENSES/FELUCCA-LICENSING.txt"><code>LICENSES/FELUCCA-LICENSING.txt</code></a> (upstream provenance) and <a href="firmware/fm1-native/LICENSES/"><code>firmware/fm1-native/LICENSES/</code></a> (MIT, Apache-2.0 and SIL OFL notices). These copyright and license notices take precedence over this prose summary. No third-party font files are offered for download by this README.</p><p>ETCH is not officially endorsed by <strong>M-VAVE</strong>, <strong>JieLi Technology</strong>, <strong>Hügelton Instruments</strong> or the credited upstream projects.</p></div></section>
+  <footer class="finalfooter"><span>ETCH © SIKKENWORKS · BORN OUT OF PASSION.</span><span><a href="https://github.com/SikkenWorks/ETCH" target="_blank" rel="noopener noreferrer">GITHUB</a><a href="USER_MANUAL.md">USER MANUAL</a><a href="CHEAT-SHEET.html">CHEAT SHEET</a><a href="LICENSE">LICENSE</a><a href="#top">BACK TO TOP ↑</a></span></footer>
+ </main>
+</div>
+<script>
+'use strict';
+// Disable page text selection and right-click using JavaScript only.
+document.addEventListener('selectstart', function(event) { event.preventDefault(); });
+document.addEventListener('contextmenu', function(event) { event.preventDefault(); });
+document.addEventListener('keydown', function(event) { if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') event.preventDefault(); });
+
+// Highlight the current reference section without altering any navigation links.
+const sections = [...document.querySelectorAll('.content-section')];
+const links = [...document.querySelectorAll('.nav-item')];
+if ('IntersectionObserver' in window) {
+ const observer = new IntersectionObserver(entries => {
+  const shown = entries.filter(entry => entry.isIntersecting).sort((a,b)=>a.boundingClientRect.top-b.boundingClientRect.top);
+  if (shown.length) {
+   links.forEach(link => { const active = link.dataset.section === shown[0].target.id; link.classList.toggle('active',active); if (active) link.setAttribute('aria-current','location'); else link.removeAttribute('aria-current'); });
+  }
+ }, {rootMargin:'-10% 0px -65% 0px'});
+ sections.forEach(section=>observer.observe(section));
+}
+</script>
+</body>
+</html>
