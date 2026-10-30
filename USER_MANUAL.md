@@ -3,12 +3,12 @@
 **Draw. Morph. Modulate.**  
 **SikkenWorks · Born out of passion.**
 
-**Firmware:** ETCH V1.84 · **Instrument:** M-VAVE FM1  
+**Firmware:** ETCH V1.85 · **Instrument:** M-VAVE FM1  
 **Project:** [github.com/SikkenWorks/ETCH](https://github.com/SikkenWorks/ETCH)  
 **Firmware identity:** `FM-1_1500` · **Current project format:** `PJT32`
 
 > [!IMPORTANT]
-> **Experimental firmware.** V1.84 has passed software builds and host tests, but not a complete physical FM1 qualification. Firmware flashing and recovery are not guaranteed. Keep a verified backup and a proven independent recovery route before updating. **Never reboot, wipe or flash while an important sound exists only in RAM.**
+> **Experimental firmware.** V1.85 has passed software builds and host tests, but not a complete physical FM1 qualification. Firmware flashing and recovery are not guaranteed. Keep a verified backup and a proven independent recovery route before updating. **Never reboot, wipe or flash while an important sound exists only in RAM.**
 
 ## Contents
 
@@ -75,10 +75,10 @@ The screen always shows the function of **K1–K4** for the current page. **SEL*
 | **MASTER** | Physical output volume |
 | **K1–K4** | Edit the four on-screen parameters |
 | **SELECT encoder** | Browse pages, select waves, steps or editor tabs |
-| **ALGORITHM encoder** | Contextual editing; scenes or sequencer inspectors |
+| **ALGORITHM encoder** | Contextual editing; DRAW DETAIL/SOFT/EDGE brushes; scenes or sequencer inspectors |
 | **PRESETS encoder** | Change BPM in normal use; browse sounds inside PRESETS |
 | **HOME** | Return to SOUND / exit an editor |
-| **EDIT** | Enter or leave DRAW |
+| **EDIT** | Enter or leave DRAW; long hold asks before resetting current wave |
 | **ENV** | Open envelope; Undo during DRAW |
 | **LFO** | Cycle modulation editors; Redo during DRAW |
 | **FX** | Effects pages; waveform FX during DRAW |
@@ -135,8 +135,9 @@ Press **EDIT** to enter DRAW. Turn the **SELECT encoder** to choose **Wave A, B 
 
 | Control | DRAW function |
 |---|---|
-| **K1** | X position: move through the waveform |
-| **K2** | Y position: raise/lower the shape using the drawing brush |
+| **K1** | X position: select any of the 128 waveform points |
+| **K2** | Y position: raise/lower the selected point with the current brush |
+| **ALGORITHM encoder** | Switch DETAIL / SOFT / EDGE drawing brush |
 | **K3** | Choose harmonic / PART |
 | **K4** | Add or remove harmonic gain |
 | **ENV** | Undo |
@@ -147,7 +148,19 @@ Press **EDIT** to enter DRAW. Turn the **SELECT encoder** to choose **Wave A, B 
 
 DRAW previews the selected waveform on its own, without the complete morphed sound. The original patch settings return when you leave DRAW.
 
-### Start with a flat line (V1.82+)
+### Brush types and smoother drawing
+
+| Brush | Shape | Best for |
+|---|---|---|
+| **DETAIL** | Small five-point shaped brush | Fine tuning and localized harmonics |
+| **SOFT** | Broad 17-point smooth curve | Rounded waves, warm pads and gradual contours |
+| **EDGE** | One directly edited point | Sharp edges, overtone-rich waves and unusual timbres |
+
+Rotate the **ALGORITHM encoder** in DRAW to change brushes. All **128 waveform points** are available, rather than a reduced number of drawing positions. Horizontal and vertical editor input is checked every **25 ms**; audible waveform recompilation is throttled to roughly one update per **70 ms** during sustained edits to protect the sound engine. The on-screen cursor can therefore respond before you hear the newest edit. Pending edits are applied on leaving DRAW.
+
+**Why different waves can sound similar:** a broad brush rounds off distinct shapes, a closed filter masks upper harmonics, and high notes use band-limited wavetable levels. Try EDGE, an open filter, and middle/lower notes to compare shapes; then try SOFT for deliberately smoother timbres. ETCH recompiles only modified wave banks, while leaving the existing band-limited tables intact.
+
+### Start with a flat line
 
 1. While in **DRAW**, hold **EDIT** for about 700 ms.
 2. At **CLEAR CURRENT WAVE?**, turn **K1** to select **YES** or **NO**. NO is the default.
@@ -217,7 +230,7 @@ Four independent routes let one source change another parameter in real time:
 
 ## 6. WAVE AMP: a waveform controls volume
 
-**New in V1.84.** WAVE AMP turns an existing drawn wave into a **repeating, audio-rate volume shape**. Its timing is tied to each note's oscillator phase. It is not a slow envelope that runs once per keypress.
+**WAVE AMP** turns an existing drawn wave into a **repeating, audio-rate volume shape**. Its timing is tied to each note's oscillator phase. It is not a slow envelope that runs once per keypress.
 
 **Open:** ADVANCED → press **LFO** until **WAVE AMP**, or open it from the WORKFLOW screen catalog.
 
@@ -231,7 +244,7 @@ At **100% DEPTH**, the highest waveform level produces full volume and the lowes
 
 **Try this:** draw a rounded shape in Wave A, play a sustained note, set WAVE AMP SOURCE to A and increase DEPTH slowly. Compare A, B and MORPH. To return to the original sound, select **OFF** or set DEPTH to **0**.
 
-WAVE AMP uses the existing A/B oscillator values. DEPTH is shown as 0–100% but stored in 64 discrete levels. It does **not** require another waveform, oscillator or separate modulation buffer. The standard ADSR still works. Its SOURCE and DEPTH are saved in **PJT32** and supported by the V1.84 Preset Manager.
+WAVE AMP uses the existing A/B oscillator values. DEPTH is shown as 0–100% but stored in 64 discrete levels. It does **not** require another waveform, oscillator or separate modulation buffer. The standard ADSR still works. Its SOURCE and DEPTH are saved in **PJT32** and supported by the V1.85 Preset Manager.
 
 ---
 
@@ -244,7 +257,7 @@ WAVE AMP uses the existing A/B oscillator values. DEPTH is shown as 0–100% but
 | **ENV** | Attack (ms) | Decay (ms) | Sustain (%) | Release (ms) |
 | **FILTER** | Filter type | Cutoff | Resonance | Drive |
 
-Use a short attack for plucks and a longer attack for pads. ETCH V1.84 also uses a short, smooth note-on fade to reduce abrupt key transients. This is separate from the editable ADSR and is **not a guarantee that every analogue or audio click is eliminated**.
+Use a short attack for plucks and a longer attack for pads. ETCH uses a **256-sample smooth note-on fade** to reduce abrupt key transients, with rounded crossfades for wavetable changes and stolen voices. These transitions are separate from editable ADSR and do not require additional audio buffers. **Clicks and analogue startup/output pops are not guaranteed eliminated; physical listening tests remain necessary.**
 
 ### Global effects
 
@@ -401,15 +414,15 @@ If ETCH finds foreign/incompatible data in its dedicated storage area, it may sh
 
 If you have an unsaved sound and storage is locked, use the [Project and Preset Manager](#12-project-and-preset-manager) to make a RAM snapshot before doing anything destructive.
 
-### Version compatibility
+### Project compatibility
 
-V1.84 writes **PJT32** projects so that WAVE AMP source/depth can be retained. It can read earlier **PJT31** projects, but older ETCH firmware may **not** be able to read PJT32 files. Back up before downgrading. Storage formatting does not replace the need for a backup.
+ETCH writes **PJT32** projects, including WAVE AMP source/depth. It can read earlier **PJT31** projects, but older ETCH firmware may **not** be able to read PJT32 files. Back up before downgrading. Storage formatting does not replace the need for a backup.
 
 ---
 
 ## 12. Project and Preset Manager
 
-The **ETCH Project & Preset Manager V1.84** is a standalone browser tool for reading the **currently active sound directly from FM1 RAM**. It can save that sound as `.etchpreset` and load a saved sound back into RAM.
+The **ETCH Project & Preset Manager** is a standalone browser tool for reading the **currently active sound directly from FM1 RAM**. It can save that sound as `.etchpreset` and load a saved sound back into RAM.
 
 ### Back up an active sound
 
@@ -427,9 +440,9 @@ The **ETCH Project & Preset Manager V1.84** is a standalone browser tool for rea
 4. Click **Send to FM1 (RAM only)**.
 5. If you want the sound to survive power-off, perform a separate **verified SAVE** on the FM1 after importing.
 
-The format carries the **three waves and associated sound settings**, including WAVE AMP in V1.84. It does **not** contain every project, sample or sequencer pattern. `.etchpreset` V1 and V2 are supported by the updated Manager. The 1,044-byte live snapshot is protected by CRC32 and SHA-256 in the exported file.
+The format carries the **three waves and associated sound settings**, including WAVE AMP in the current version. It does **not** contain every project, sample or sequencer pattern. `.etchpreset` V1 and V2 are supported by the updated Manager. The 1,044-byte live snapshot is protected by CRC32 and SHA-256 in the exported file.
 
-**Important:** live reading needs firmware **V1.77 or later** with the snapshot protocol. An old V1.76 sound cannot be recovered by installing V1.84, because firmware flashing clears RAM. This webapp never writes FM1 flash or issues OTA commands.
+**Important:** live reading needs firmware **V1.77 or later** with the snapshot protocol. An old V1.76 sound cannot be recovered by installing V1.85, because firmware flashing clears RAM. This webapp never writes FM1 flash or issues OTA commands.
 
 ---
 
@@ -457,7 +470,7 @@ ETCH's public release uses a single regular `.fwsc` package with identity **`FM-
 **Before flashing:** keep a full data backup, verify the release and checksum, and make sure an independent restore route has been tested on your actual FM1. Use desktop Chrome/Edge, a proper USB cable and the correct MIDI input/output. Never force an update after a compatibility rejection. The official stock restore route requires genuine, independently verified stock firmware and its supported loader.
 
 > [!CAUTION]
-> A successful browser transfer is not proof that the FM1 boots or that recovery will work after a failed flash. **V1.84 has software validation, not an on-device cross-firmware or full recovery qualification.**
+> A successful browser transfer is not proof that the FM1 boots or that recovery will work after a failed flash. **V1.85 has software validation, not an on-device cross-firmware or full recovery qualification.**
 
 ---
 
@@ -469,8 +482,10 @@ ETCH's public release uses a single regular `.fwsc` package with identity **`FM-
 | **No save confirmation** | Look for SAVING / VERIFYING and a final success or failure indication. Do not power off on uncertainty. |
 | **A preset changed or vanished after reboot** | Confirm you saved a PRESET or PROJECT, not only a waveform. Verify storage was writable. |
 | **WAVE AMP has little effect** | Use a visibly varied wave, SOURCE A/B/MORPH and increase DEPTH. Check that it is not OFF. |
-| **WAVE AMP sounds harsh** | That can be normal at audio rate. Lower DEPTH or draw a smoother shape. |
-| **Key-on clicks / plops** | Lower output volume and effects; test a clean wave with short ADSR. The new smooth note-on curve does not prove analogue startup/output clicks are eliminated. |
+| **WAVE AMP sounds harsh** | That can be normal at audio rate. Lower DEPTH or use a rounded SOFT brush. |
+| **Drawing seems delayed** | The 25 ms input update and 70 ms wavetable compile limit are separate; audio may trail cursor motion briefly while drawing. |
+| **Different waves sound alike** | Try EDGE at mid/lower notes, open FILTER cutoff, lower wet FX and compare waves alone in DRAW. High-note band-limiting intentionally removes upper harmonics. |
+| **Key-on clicks / plops** | Test a clean wave at low output volume with low DRIVE/FX. Smooth note-on, wavetable and voice-steal fades reduce digital transients; analogue startup/output clicks may still occur. |
 | **No sound from Wave C** | Check its rate, target and DEPTH; MOD WAVE at zero depth is effectively bypassed. |
 | **An effect appears inactive** | Check FX BYPASS, wet MIX, insert TYPE and the effect's routing. |
 | **ORGANIC / LIVING / SPECTRAL missing** | Check **MONO** mode. These are intentionally unavailable in POLY. |
@@ -501,7 +516,7 @@ DRAW + FX:     WFX 1 → WFX 2 → SCULPT → TOOLS
 
 The **ADVANCED screen catalog** provides direct access to all **64 existing page IDs** even when a particular page is not in the short button cycle. A MONO-only page will tell you when MONO is required.
 
-### Complete V1.84 screen directory (64 pages)
+### Complete V1.85 screen directory (64 pages)
 
 | Category | Screens |
 |---|---|
@@ -518,12 +533,12 @@ The **ADVANCED screen catalog** provides direct access to all **64 existing page
 
 ## 16. Technical information and credits
 
-| Item | ETCH V1.84 |
+| Item | ETCH V1.85 |
 |---|---|
 | Hardware | M-VAVE FM1 / JieLi AC791N family |
 | Firmware / package identity | `FM-1_1500` |
 | Firmware label | `V184` with `S` or `A` workflow indication |
-| Waveform editing | Three 128-point editable waves; 64 library slots |
+| Waveform editing | Three 128-point editable waves; DETAIL / SOFT / EDGE; 64 library slots |
 | Named presets / projects | 32 / 4 slots |
 | Polyphony | Up to eight voices, with load-dependent safeguards |
 | Sequencer | Up to 256 steps; eight triggers per step |
@@ -531,6 +546,8 @@ The **ADVANCED screen catalog** provides direct access to all **64 existing page
 | Project codec | `PJT32`, with backward-reading support for `PJT31` |
 | Live sound snapshot | `.etchpreset` V1/V2; 1,044 bytes |
 | UI | 240 × 240 RGB565, PHOSPHOR colour palette |
+| DRAW update rhythm | 25 ms input checks; up to one wavetable compile per 70 ms during edits |
+| Audio transients | 256-sample smooth note-on fade; rounded wavetable/voice crossfades |
 | Safety status | Software-tested release candidate; not physically qualified |
 
 **Credits and licensing.** ETCH is developed by **SikkenWorks**. Its FM1 low-level foundation, including portions of startup, drivers, LCD, USB-MIDI and OTA, incorporates work derived from **Felucca** by **Leo Kuroshita / Hügelton Instruments**. Relevant GPL and upstream notices are retained; ETCH's repository includes **GPL-3.0-only** licensing and separate third-party licensing information. JieLi SDK/toolchain and vendor components have their own terms. See the project `LICENSE`, `LICENSES/` and repository credits for authoritative details.

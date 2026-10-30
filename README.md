@@ -4,11 +4,11 @@
 
 **DRAW · MORPH · MODULATE**
 
-*Open-source synthesizer firmware for the M-VAVE FM1*
+*An open-source waveform-sculpting synthesizer for the M-VAVE FM1.*
 
 **SikkenWorks** · Born out of passion.
 
-[**Getting started**](#getting-started) · [**Controls**](#controls-and-shortcuts) · [**Sound engine**](#how-etch-works) · [**Firmware installation**](#installation-and-recovery) · [**Credits**](#credits-and-licensing) · [**Changelog**](CHANGELOG.md)
+[Getting started](#getting-started) · [Controls](#controls--shortcuts) · [Sound engine](#sound-engine) · [Saving](#presets-projects--backups) · [Installing](#installation--recovery) · [User manual](USER_MANUAL.md) · [Cheat sheet](CHEAT-SHEET.html)
 
 </div>
 
@@ -16,282 +16,142 @@
 
 ## What is ETCH?
 
-ETCH turns the **M-VAVE FM1** into a synthesizer built around waveforms you create yourself. Instead of selecting a fixed FM algorithm, you draw a waveform, shape a second waveform, morph between them, and use a third waveform as a modulation source.
+ETCH turns your FM1 into a hands-on synthesizer built around **waveforms you draw yourself**. Shape Wave A and Wave B, morph between them, use Wave C to modulate the result, and explore a full set of filters, effects and performance tools.
 
-The entire instrument is designed for hands-on sound design, using the FM1's own screen, encoders and keyboard. It also supports external USB MIDI, saved sounds, pattern creation, effects, keyboard splits and live performance controls.
+**Firmware:** V1.85 · **M-VAVE FM1** · **Package/USB identity:** `FM-1_1500` · **Project format:** `PJT32` · **License:** GPL-3.0-only.
 
-**Current release:** V1.84 · **Fixed package/USB identity `FM-1_1500`** · Project format `PJT31` · GNU GPL-3.0-only.
-
-## How ETCH works
+## Sound engine
 
 ```text
-           DRAW / LOAD WAVE A ─┐
-                               ├── A/B MORPH ──┐
-           DRAW / LOAD WAVE B ─┘                │
-                                                ├── FILTER / AMP ── FX ── OUTPUT
-           DRAW / LOAD WAVE C ─── MODULATION ──┘
-
-    ENVELOPES · MOD MATRIX · LIVING WAVES · SEQUENCER · MIDI
+Wave A ── [A inserts] ──┐
+                        ├─ MORPH ── FILTER / DRIVE ── WAVE AMP ── ADSR ── FX ── OUTPUT
+Wave B ── [B inserts] ──┘    ↑
+                             │
+Wave C ──────────────── PHASE / MORPH / FX MODULATION
 ```
 
-**Wave A and Wave B** form the main playable sound. At 0% MORPH you hear A; at 100% you hear B; positions between create intermediate wave shapes. **Wave C** modifies that sound through its selected modulation route. All three can be drawn or loaded from the library.
+- **DRAW:** edit all **128 points** of Wave A, B or C directly on the FM1.
+- **Three drawing brushes:** **DETAIL** (5-point local brush), **SOFT** (17-point smooth brush), **EDGE** (single-point sharp brush). Select with the **ALGORITHM** encoder in DRAW.
+- **MORPH:** blend the *shape* of A and B, rather than merely crossfading two audio channels.
+- **WAVE AMP:** use A, B or their morphed wave to control volume at oscillator speed, with adjustable depth. ADSR remains independent.
+- **Modulation:** Wave C phase/morph/FX destinations, four-route Mod Matrix, EVOLUTION, ORGANIC analogue-style drift, LIVING, SPECTRAL and PATCH BLEND.
+- **Effects:** pre-morph Wave A/B inserts and global chorus, delay, reverb, drive, modulation and dynamics effects. **FX BYPASS** skips supported expensive processing while preserving values.
+- **Performance:** up to eight shared voices, ARP/RIFF, up to 256 sequencer steps, harmony tools, GROUPS keyboard splits, four performance macros and two scenes.
 
-A waveform, a preset and a project are different things:
+**Sound design tip:** use EDGE at lower/mid pitches with the filter open to hear sharp harmonic differences. High notes use band-limited wavetables, so sharp shapes may sound closer together. SOFT gives smoother contours. The editor is polled every 25 ms; audible wavetable updates may trail the cursor briefly because compiling is throttled to protect audio.
 
-| You save | Purpose | Available slots |
+### Three different kinds of saved data
+
+| Save type | What it contains | Capacity |
 |---|---|---:|
-| **Waveform** | A named, reusable single-cycle wave | 64 |
-| **Preset** | Wave choices and sound parameters | 32 |
-| **Project** | Working set, patterns, GROUPS, macros and scenes | 4 |
+| **Waveform** | Reusable, named 128-point single-cycle wave | 64 slots |
+| **Preset** | Playable sound, its waves and sound settings | 32 slots |
+| **Project** | Working state, patterns, GROUPS and performance data | 4 slots |
 
-Save a newly edited **waveform** to the library if you want to reuse it. Save a **preset** to keep a playable sound, and save a **project** to retain the wider working state. The latest project format is PJT31; older compatible projects can be read, but older firmware may not read projects saved in the new format.
-
-### The synthesizer
-
-| Area | What it does |
-|---|---|
-| **DRAW / LIBRARY** | Draw and edit 128-point waves; reuse named stored waveforms |
-| **MORPH / MOD WAVE** | Blend Wave A/B and apply Wave C modulation |
-| **SCULPT / WAVE FX** | Fold, bend, asymmetry, phase distortion, harmonic tilt and other waveform edits; preview before applying |
-| **FILTER / ENVELOPE** | Filter type, cutoff, resonance, drive, amp ADSR |
-| **MOD MATRIX** | Four routes from velocity, envelope, Wave C, Living, aftertouch or keytracking to morph, C depth, filter or SPACE; signed amount |
-| **LIVING / ORGANIC / EVOLUTION** | Evolving per-note character, phase/pitch variation and moving waveforms (availability depends on MONO/POLY mode) |
-| **FX** | Chorus, delay, reverb and additional filtering, modulation and distortion effects |
-| **ARP / RIFF LAB** | Arpeggiator and scale-aware 16-step riff generator |
-| **SEQ / WAVE SEQ** | Step sequencing, note editing, parameter locks and A/B morph choices per step |
-| **HARMONY** | Key, scale, chord tools, Circle of Fifths and note guidance |
-| **MOTION** | Record and replay movements of the four PLAY parameters |
-| **GROUPS** | One MAIN sound plus up to two additional saved presets in non-overlapping keyboard ranges |
-| **PERFORMANCE** | Four assignable macros and two scenes (A/B) saved with the project |
-
-### Multitimbral GROUPS
-
-GROUPS divides the keyboard into **MAIN**, **GROUP 1** and **GROUP 2**. Each enabled Group uses its chosen saved preset inside its assigned inclusive key range. Outside those ranges, MAIN continues to play. The end note must be higher than the start note, and enabled Groups cannot overlap.
-
-The three parts share **eight voices total**, not eight voices each. Each Group can use its own A/B/C waveforms, morph, envelopes and important sound parameters; **post-mix chorus, delay and reverb remain shared**. When GROUPS is enabled, the synth may bypass the ordinary mono restriction so the splits can play together.
-
-### Voices and musical control
-
-- New projects default to **MONO**. Press **OCT− + OCT+** together to toggle MONO/POLY. An existing saved project's voice mode is retained when loaded.
-- In **POLY**, the LFO cycle is deliberately limited to MOD, WAVE C FX and MOD MATRIX for realtime headroom. In **MONO**, the other advanced pages are available.
-- USB MIDI supports musical notes and implemented expression/clock functions. MIDI channel aftertouch can contribute to morph; actual behaviour depends on a connected MIDI controller that sends it.
-- The sequencer supports patterns up to **256 steps**, up to eight note triggers per step and six step-lock targets. WAVE SEQ currently switches among **Wave A / A+B mix / Wave B** from the active patch; it does **not** select arbitrary library slots per step.
+A computer `.etchpreset` is a **sound snapshot**, not a full project, sample or sequencer backup.
 
 ## Getting started
 
-### Make a usable sound quickly (V1.70)
+1. Turn down **MASTER** and start ETCH. After the VHS-style SIKKENWORKS intro, choose **SIMPLE** or **ADVANCED** using **K1** and **SEL**.
+2. Press **HOME** for **SOUND**. Try **K1 MORPH**, **K2 ETCH**, **K3 TONE** and **K4 SPACE**.
+3. Turn **SELECT** to **MORPH**. Use **K1/K2** to select Waves A/B and **K3** to morph between them. **K4** sets Wave C rate; **ALGORITHM** adjusts ETCH depth on this page.
+4. Press **EDIT**. Turn **SELECT** to choose A/B/C. Use **K1** for horizontal position and **K2** to raise/lower the waveform, and **ALGORITHM** for the brush. K3/K4 edit harmonics.
+5. Return to SOUND with **HOME**. Set FILTER, ENV and FX to taste, then **save the waveform and preset separately** if you want a reusable wave and a saved sound.
 
-1. Turn MASTER down to a comfortable level. Play a key: the SOUND screen is the default.
-2. Turn **K1 MORPH** to blend two wave shapes. Turn **K2 ETCH** for character/modulation.
-3. Use **K3 TONE** to open/close the filter; use **K4 SPACE** for ambience.
-4. **Hold HOME** to browse saved presets. For new/erased factory banks, choose one of the 16 named starter sounds such as WARM KEYS, GLASS PAD, or DUST BASS. This does not replace existing user presets in an already initialized bank.
-5. Press **FX** once to see DRIVE / CHORUS / DELAY / REVERB together. Press FX again for advanced editors. Use **SELECT** on FX editors to browse; all effects remain present.
-6. To design a new waveform, press **EDIT**. To see A/B wave sources, turn **SELECT** from SOUND to MORPH, FILTER or LIBRARY. Keep complex editors optional until needed.
-7. **SAVE** deliberately when you like a result. Existing PJT31 presets/projects are unchanged by the UI upgrade.
+### SIMPLE and ADVANCED
 
-**Tip:** For an immediate musical sound, begin with a low ETCH depth, a moderately open TONE, and a small amount of SPACE. Increase modulation and DRIVE only after the dry sound is useful.
-
-1. Turn down the output volume before experimenting with new waves or DRIVE.
-2. Press **EDIT** to enter DRAW. Use **SELECT** to choose Wave A, B or C.
-3. Use **K1** to move along the waveform and **K2** to change its shape. Use **K3/K4** to select and adjust harmonics.
-4. Press **HOME**, open **MORPH** with SELECT and blend A and B. Open MOD WAVE to bring in Wave C.
-5. Adjust the envelope, filter and effects; play the FM1 keyboard or a USB MIDI controller.
-6. **SAVE** the waveform, preset or project using the appropriate save context.
-
-The physical display is the authority for context-dependent controls. The tables below describe the implemented V1.70 layout, not the older concept mockups.
-
-## Controls and shortcuts
-
-### Physical controls
-
-| Control | Action |
+| Mode | Focus |
 |---|---|
-| **K1–K4** | Four page-specific parameters; labels change by screen |
-| **SELECT encoder** | Browse main pages, select wave A/B/C in DRAW, or change contextual tabs/steps |
-| **ALGORITHM encoder** | Contextual amount, scene selection or sequencer inspector navigation |
-| **PRESETS encoder** | Browse and load presets **inside the PRESETS browser only** |
-| **MASTER** | Physical master volume |
-| **HOME (tap)** | Return to PLAY / exit the current editor |
-| **HOME (hold ~1.5 s)** | Open the named PRESETS browser |
-| **EDIT** | Enter / leave waveform DRAW |
-| **ENV** | Envelope page; **Undo in DRAW** |
-| **LFO** | Cycle modulation pages; **Redo in DRAW** |
-| **FX** | Effects pages; WFX/SCULPT pages while drawing |
-| **ARP** | Cycle arpeggiator, ARP EDIT, CLOCK and RIFF LAB |
-| **SEQ** | Cycle SEQ, NOTES, HARMONY and WAVE SEQ |
-| **GLO** | Cycle GUIDE, FIFTHS and SYSTEM |
-| **SAVE** | Save flow; applies a preview in applicable edit screens |
-| **REC** | Contextual record/confirm function; used in several editors |
-| **PLAY/STOP** | Sequencer transport or contextual playback |
-| **SEL button** | Confirm/open a selected project or contextual selection (different from the SELECT encoder) |
-| **OCT− / OCT+** | Adjust keyboard octave |
+| **SIMPLE** | SOUND, MORPH, FILTER, FX and LIBRARY for quick sound design |
+| **ADVANCED** | Full editor navigation and the 64-page WORKFLOW catalog |
 
-### Shortcuts: normal use
+To switch: **GLO → SYSTEM / WORKFLOW → K2**. In ADVANCED, the WORKFLOW catalog uses **K3** to select and **K4** to open a permitted page. Some CPU-heavy modulation pages require MONO mode. The header displays `V185S` or `V185A` according to the selected workflow.
 
-| Action | Shortcut / path |
+## Controls & shortcuts
+
+**K1–K4** always control the parameters displayed on the current page. **SEL** is a button; **SELECT** is a rotary encoder.
+
+| Action | Controls |
 |---|---|
-| Return to PLAY | **HOME** |
-| PRESETS browser | **Hold HOME ~1.5 seconds**, then use **PRESETS** encoder |
-| PROJECTS | **HOME + SAVE** together |
-| Multitimbral GROUPS | **HOME + FX** together |
-| PERFORMANCE | **HOME + ARP** together |
-| PROJECT HELP | **PROJECTS → REC**; turn **K1** through chapters, **REC** to close |
+| Return to SOUND | Short **HOME** |
+| Browse saved presets | Hold **HOME** ~1.5 s, then rotate **PRESETS** |
+| Open PROJECTS | **HOME + SAVE** |
+| Open GROUPS | **HOME + FX** |
+| Open PERFORMANCE | **HOME + ARP** |
 | Toggle MONO / POLY | **OCT− + OCT+** together |
-| DRAW | **EDIT** |
-| DRAW Undo / Redo | **ENV / LFO** while drawing |
-| SCULPT | **EDIT → FX → FX → FX** (WFX1 → WFX2 → SCULPT) |
-| MOD MATRIX | Press **LFO** until MATRIX (MONO has more intermediate pages) |
-| PATCH BLEND | In MONO, **LFO** once more after MATRIX |
-| WAVE SEQ | **SEQ** four times starting outside the SEQ pages |
-| RIFF LAB | Press **ARP** repeatedly until RIFF LAB |
-| Sequencer inspectors | In SEQ context, rotate **ALGORITHM** for GRID / HOLD / LOCKS / BAKE / CLOCK |
-| Velocity curve | **GLO → SYSTEM**, SELECT to tab 7, **K2** for LINEAR / SOFT / HARD |
-| MOTION | **GLO → SYSTEM**, tab 1, then **REC** |
-| New RIFF | ARP mode **7**, turn **K4** (also in RIFF LAB) |
-| Toggle Evolution audition depth | **REC** on EVOLUTION |
-| Restart audio after AUDIO STOP | Hold **HOME + PLAY/STOP ~1 second**, if the firmware remains responsive |
+| Open FX BYPASS | In ADVANCED, hold **FX** ~700 ms |
+| Start a flat waveform | In DRAW, hold **EDIT** ~700 ms; YES/NO, default NO |
+| Undo / Redo | In DRAW: **ENV / LFO** |
+| Select brush | In DRAW: rotate **ALGORITHM** for DETAIL / SOFT / EDGE |
+| Select wave | In DRAW: rotate **SELECT** for A/B/C |
+| Change workflow | **GLO → SYSTEM / WORKFLOW**, then **K2** |
+| Control BPM | Rotate **PRESETS** outside the preset browser |
+| Generate RIFF | ARP mode 7, turn **K4** |
+| Restart a responsive AUDIO STOP | Hold **HOME + PLAY/STOP** ~1 s |
 
-**HOME double-tap is no longer the PROJECTS shortcut.** Use HOME + SAVE. A combo does not intentionally activate the standalone action of the second key.
+**Do not use double-HOME for PROJECTS.** Use HOME + SAVE. The full [user manual](USER_MANUAL.md) contains the screen-by-screen K1–K4 reference and the [interactive cheat sheet](CHEAT-SHEET.html) provides searchable shortcuts.
 
-### Startup shortcuts
+## Draw, sculpt & play
 
-| Hold while switching on | Function |
+In **DRAW**, K1 selects one of the 128 waveform points and K2 adjusts it vertically. DETAIL is for precise contours; SOFT produces rounded slopes; EDGE introduces sharp shapes and stronger harmonic contrasts. The editor uses the existing wavetable banks, recompiling only changed waves. Waveform edits still support **16 shared Undo/Redo history snapshots**.
+
+**Flat line:** hold EDIT, choose YES with K1, press SEL. Only the active wave becomes a zero line, and ENV can undo. Selecting NO or HOME cancels without touching it.
+
+**Live effects vs waveform tools:** WFX, SCULPT and tools alter the editable waveform when baked; Wave A/B inserts and global FX process playback without changing those saved points. Use **DRAW → SAVE** for a reusable wave, and normal **SAVE → PRESET** for a playable patch.
+
+**WAVE AMP:** in ADVANCED, use LFO navigation or WORKFLOW to open WAVE AMP. **K1** selects OFF/A/B/MORPH; **K2** sets depth. This is *audio-rate* volume modulation, not a one-shot volume envelope.
+
+**FX BYPASS:** hold FX in ADVANCED. **K1** selects an effect; **K4 or SEL** toggles ON/BYP; **K2** bypasses all; **K3** restores all. Bypass status is temporary in RAM and does not change saved effect settings.
+
+## Sequencing & live performance
+
+- **ARP / RIFF:** eight ARP modes including mode 7 RIFF, a scale-aware 16-step generator. In mode 7, turn K4 for another riff.
+- **SEQ:** up to 256 steps and eight note triggers per step; live REC, HOLD, GRID, LOCKS, BAKE and CLOCK editors. Six lock destinations: MORPH, ETCH, cutoff, chorus, delay, reverb.
+- **GROUPS:** HOME + FX opens two optional saved-preset keyboard zones alongside MAIN; all parts share the total eight-voice budget and post-mix effects.
+- **PERFORMANCE:** HOME + ARP opens four assignable macros and scene A/B capture/recall. Save a project to retain scenes.
+- **MOTION:** record a short performance of MORPH, ETCH, cutoff and SPACE controls.
+- **USB MIDI:** notes, clock and implemented expression handling. Booting while holding SEQ starts a MIDI-keyboard-only mode, with local synth audio disabled.
+
+## Presets, projects & backups
+
+**To save a preset or project:** press SAVE outside DRAW, use SELECT to choose the kind of save, then **K1 slot**, **K2 name position**, **K3 character** and **K4 backspace**. Confirm with SAVE. Wait for **SAVING / VERIFYING** and a clear success before powering off. If ETCH reports NOT SAVED, the current patch is still RAM-only.
+
+**To save a wave:** while in DRAW, press SAVE and use the same slot/name controls. **To load a saved wave:** LIBRARY → K1 slot → K2 A/B/C destination → REC twice.
+
+**Computer backup:** use the bundled [`ETCH-Project-Preset-Manager.html`](ETCH-Project-Preset-Manager.html) with Chrome/Edge and Web MIDI/SysEx to read the current sound from RAM, download `.etchpreset` or send one to RAM. It does not include entire projects or sequencer patterns and does not automatically write to flash. The current snapshot protocol supports WAVE AMP and `.etchpreset` V1/V2.
+
+### STORAGE LOCKED / foreign data
+
+ETCH protects data belonging to other firmwares. If a first-boot prompt offers **FORMAT FOR ETCH?**, **NO** preserves it but leaves the affected storage locked. **YES**, SEL and an additional **three-second SAVE hold** may format only ETCH's designated region (`0xB4000–0xDBFFF`), destroying any previous data in those sectors. Do not choose YES without a backup of affected data. A valid ETCH project or flash read error should not trigger destructive takeover.
+
+**If your sound is unsaved, do not reboot, format or update the firmware.** Make a RAM-based `.etchpreset` backup first when the running firmware supports it.
+
+## Installation & recovery
+
+- **Current firmware:** [`release/ETCH-V1.85.fwsc`](release/ETCH-V1.85.fwsc), one regular public package, original identity `FM-1_1500`.
+- **Installer:** [`WebInstaller.html`](WebInstaller.html), in the clean PHOSPHOR layout. Its critical checks and risk confirmation are still required even though long technical notes are tucked into a neutral expandable section.
+- **Required browser:** desktop Chrome/Edge, Web MIDI/SysEx permissions, proper USB data cable and exclusive access to the FM1 MIDI port.
+- **Safety:** keep a verified backup, trusted package checksums and an independently tested recovery procedure for your FM1. Device-side package validation, loader checks and post-update verification must succeed. Never bypass a failed CHECK.
+- **Cross-firmware OTA:** structurally compatible Felucca-family application-only updates are validated by the installed device-side loader/check path. Official stock restore uses a separately verified official package/loader. A successful USB transfer is **not** proof of guaranteed firmware switching or physical recovery.
+
+**Status:** V1.85 is software-built and host-tested, but long-term USB-audio reliability, listening tests, flash transitions and independent ROM recovery **have not been fully qualified on physical FM1 hardware**. Smooth note-on, wavetable-switch and voice-steal fades reduce some digital clicks; they cannot guarantee elimination of every audible or analogue startup pop.
+
+## Source & development
+
+| Path | Contents |
 |---|---|
-| **SEQ** | USB MIDI KEYBOARD MODE (FM1's 27 keys act as MIDI controller; no on-device synth audio in that mode) |
-| **REC** | Silent, read-only **application Safe Mode** |
-| **OCT−** | Request the chip/UBOOT loader entry path, where supported |
+| [`firmware/fm1-native/`](firmware/fm1-native/) | Native FM1 firmware, audio, LCD, controls, MIDI, flash and OTA |
+| [`engine/`](engine/) | Host-side synth engine |
+| [`sim/`](sim/) | Browser simulator (not a replacement for native LCD capture) |
+| [`WebInstaller.html`](WebInstaller.html) | Current Web MIDI update installer |
+| [`ETCH-Project-Preset-Manager.html`](ETCH-Project-Preset-Manager.html) | RAM sound backup/import tool |
+| [`release/`](release/) | Firmware packages |
+| [`tools/`](tools/) | Build, pack and diagnostic scripts |
+| [`tests/`](tests/) | Firmware and DSP regression tests |
+| [`USER_MANUAL.md`](USER_MANUAL.md) | Full operating guide |
+| [`CHEAT-SHEET.html`](CHEAT-SHEET.html) | Searchable offline quick reference |
 
-These are different modes. Neither application Safe Mode nor a responding USB port proves independent ROM-level recovery. In MIDI KEYBOARD MODE, OCT−/OCT+ shift the transmitted keyboard octave; restart without holding SEQ to leave it.
-
-### K1–K4 screen reference
-
-| Screen | K1 | K2 | K3 | K4 |
-|---|---|---|---|---|
-| **PLAY** | MORPH | ETCH / C depth | CUTOFF | SPACE |
-| **DRAW** | X position | Y brush | Partial 2–16 | Harmonic gain |
-| **MORPH** | Wave A | Wave B | Morph | Wave C rate |
-| **MOD WAVE** | Wave C | Depth | Rate | Phase / morph target |
-| **FILTER** | Type | Cutoff | Resonance | Drive |
-| **ENV** | Attack | Decay | Sustain | Release |
-| **WAVE A/B FX** | Slot | Type | Depth | Mix |
-| **EVOLUTION** | Depth | Rate | Shape | Sync |
-| **SCULPT** | FOLD / BEND / ASYM / PHASE / HARM | Depth | Pivot | Wave A/B/C |
-| **MOD MATRIX** | Route 1–4 | Source | Destination | Signed amount −100…+100 |
-| **GROUPS** | Group 1/2 | Preset | ON/OFF | Capture START then END |
-| **PERFORMANCE: LIVE** | Macro 1 | Macro 2 | Macro 3 | Macro 4 |
-| **PERFORMANCE: ASSIGN** | Target 1 | Target 2 | Target 3 | Target 4 |
-| **WAVE SEQ** | Step | A / MIX / B | Morph % | Lock ON/OFF |
-| **ARP / RIFF** | Mode | Rate | Octaves | BPM / generate RIFF in mode 7 |
-| **ARP EDIT** | Step | Note index | Rest | Length |
-| **SEQ** | Length | Rate | Swing | Gate |
-| **NOTES** | Voice / note | Velocity | Note length | Pitch |
-| **LOCKS** | Destination | Value | Enable | Step |
-| **HARM** | Key/root | Scale | Keylock | Chord |
-| **CLOCK** | Follow | Gate | Swing | Tempo |
-| **MOTION** | Morph | ETCH | Cutoff | Space |
-| **SAVE name editor** | Slot | Character position | Character | Backspace |
-
-### Editing and storing
-
-| Task | Procedure |
-|---|---|
-| **Save a waveform** | DRAW → SAVE; K1 slot, K2 name position, K3 character, K4 backspace; SAVE to confirm/overwrite when prompted |
-| **Undo / redo sculpting** | Apply sculpt with SAVE (one editor history checkpoint), then ENV / LFO in DRAW for undo / redo |
-| **Load a library wave** | LIBRARY → select slot and destination → **REC twice** to confirm |
-| **Set up GROUPS** | HOME+FX → K1 group, K2 preset, K3 ON; K4 then press the low and high keys on FM1 or USB MIDI; save PROJECT |
-| **Use PERFORMANCE scenes** | HOME+ARP → SELECT switches LIVE/ASSIGN; ALGORITHM selects A/B; REC captures; PLAY/STOP recalls; save PROJECT |
-| **Edit sequencer** | SEQ → SELECT step; when stopped, FM1 keys toggle notes; REC controls live recording |
-| **Clear a GRID step** | GRID → **REC twice** to arm then confirm, if allowed; destructive |
-| **Delete a project** | PROJECTS → guarded **REC + SAVE** repeated to confirm; destructive |
-| **Reset foreign ETCH storage** | SYSTEM/STORAGE → **FX + SAVE held ~5 s**; destructive to affected sectors; only after verified backup |
-
-### Important page cycles
-
-```text
-SELECT home:  PLAY → MORPH → FILTER → LIBRARY → PLAY
-GLO:          GUIDE → FIFTHS → SYSTEM → GUIDE
-ARP:          ARP → ARP EDIT → CLOCK → RIFF LAB → ARP
-SEQ:          SEQ → NOTES → HARMONY → WAVE SEQ → SEQ
-LFO (MONO):   MOD → WAVE C FX → EVOLUTION → ORGANIC
-              → SPECTRAL → LIVING → MATRIX → PATCH BLEND → MOD
-LFO (POLY):   MOD → WAVE C FX → MATRIX → MOD
-DRAW + FX:    WFX 1 → WFX 2 → SCULPT → editor tools
-```
-
-## Working with sounds and projects
-
-**Waveform library.** Draw or process a waveform, then save it in one of 64 slots. WFX can modify the editable shape; SCULPT displays an original/preview comparison before you apply a change. Applying an edit changes the in-memory shape and can be undone; you must still save the wave to retain it.
-
-**Presets.** Hold HOME, browse saved presets with the PRESETS encoder and load one. Saving a preset does not automatically create a new standalone wave-library entry.
-
-**GROUPS.** Prepare saved presets first. The MAIN preset plays outside enabled Group ranges. The group range endpoints are inclusive. Overlapping ranges or an END note below or equal to START are rejected. Save your project to preserve GROUPS.
-
-**Projects.** HOME+SAVE opens the PROJECTS browser. Project files include stored performance/sequence information, including GROUPS, macro assignments and both scenes. PROJECT HELP lives inside this menu and K1 scrolls through the chapters.
-
-**Mod Matrix.** On MATRIX, choose a route, source, destination and bipolar amount. Available sources: OFF, VELOCITY, ENVELOPE, WAVE C, LIVING, AFTERTOUCH, KEYTRACK. Available destinations: MORPH, C DEPTH, FILTER, SPACE. There are four routes, not eight.
-
-**Wave Sequencing.** Use SEQ → NOTES → HARMONY → WAVE SEQ to choose whether a step uses Wave A, a morph between A and B or Wave B. Morph-lock state is stored with the project; these are **not** independent library-wave selections per step.
-
-**Performance Mode.** Four macros can target MORPH, Wave C depth, CUTOFF, DRIVE or SPACE. Two scenes store their parameter values. Scene recall uses the existing parameter smoothing; it is not an automatic continuous A-to-B scene morph.
-
-All documented controls, shortcuts, modes and primary workflow are described in this README. For version-by-version development, fixes and releases, see [CHANGELOG.md](CHANGELOG.md).
-
-## Installation and recovery
-
-**The complete WebInstaller is [`WebInstaller.html`](WebInstaller.html).** V1.70 has **one public release**: [`release/ETCH-V1.70.fwsc`](release/ETCH-V1.70.fwsc), which includes 44.1/48 kHz USB audio. The WebInstaller retains a hidden [legacy stock-boothead ETCH variant](compat/ETCH-V1.70-LEGACY-STOCK-HEAD.fwsc) only for previously identified older installations. Both install **ETCH**, never official stock firmware. The identity remains exactly **`FM-1_1500`**, and the OTA loader, 16 KiB bootheader and project format PJT31 remain protected. On-device USB audio and cross-firmware restore are not yet validated.
-
-1. Back up projects, waveforms and calibration data. Keep your original firmware and a **tested**, independent recovery path available.
-2. In Chrome or Edge, open the WebInstaller over HTTPS/localhost, close other software using the FM1 MIDI port, and connect the FM1 using a data-capable USB cable.
-3. Confirm the detected running firmware and choose the compatible protected boothead. The running firmware must approve CHECK; an installer cannot bypass that.
-4. The device must stage and read back its known OTA loader, receive the host's literal `success` response, and restart into the loader. The installer verifies the loader identity before sending the firmware.
-5. When the loader reports WRITE completion and the FM1 reconnects, **confirm `V160` on the device display**. The SysEx firmware identity remains `FM-1_1500` across V1.50 and V1.60, so that identity alone cannot distinguish their software versions.
-
-The WebInstaller recognizes approved `ota-FM-1_9xx` and `ota-FM-1_015` handoff identities. The latter is the identity of the loader that V1.60 actually stages. MIDI port names by themselves are not trusted. Official V15 restoration remains an **entirely separate**, strictly pinned stock-image path and requires a genuine stock `.fwsc` from an authorized source. The stock-header ETCH variant is **not** a stock restore.
-
-**Important:** the `.fwsc` files are structurally verified candidates, **not proven safe to flash on your FM1**. Hardware recovery and the complete cross-firmware transition have not been demonstrated in this release environment.
-
-### Switching from ETCH to compatible firmware
-
-The outgoing OTA path in `firmware/fm1-native/ota.c` no longer has a fixed *incoming* Felucca loader size or a single-binary SHA allowlist for app-only packages. It validates the UFW directory, every package payload CRC, the incoming two-level OTA header, the versioned `FELUCCA-LOADER-1` marker in **decoded** LZ4 data, the complete decoded loader CRC, chip key `0x980F`, XIP `0x02000120`, application offset `0x4000`, the full decrypted app-area CRC and `app.bin` CRC. It rejects unsupported structures, unknown families, corruption and flash-layout conflicts **before staging flash is erased**.
-
-The incoming loader binary is checked but **never executed**. The running ETCH app stages only its SHA-256-pinned, 6,898-byte, app-only writer, under the existing `ota-FM-1_015` identity. The original protected boot region, project storage and unrelated flash areas remain outside its intended writes. The incoming `flash.bin` boot bytes are not required to match the installed bootloader, because app-only updates do not program them. Stock full-flash restore remains limited to the independently pinned V15 image and stock loader.
-
-To test an authentic third-party `.fwsc` with the actual native OTA code, without connecting a device:
-
-```bash
-python tools/replay_external_fm1_ota.py --package /path/to/felucca-1.6.fwsc --version felucca-1.6
-python tests/test_v160_cross_loader.py
-```
-
-The first command needs an actual, independently verified Felucca package. The second creates a **synthetic** variant of the existing ETCH loader with a different compressed length, then checks acceptance, staging and rejection paths. It is **not** evidence that every external Felucca build works. See `docs/V1.60-OTA-VALIDATION.md` for measured software results and the still-required physical tests.
-
-The old CHECK behaviour remains on devices running older ETCH versions until those devices are upgraded. A newly downloaded installer cannot rewrite the old running firmware's validation policy. Stop if the running firmware rejects a new package and use a previously verified update/recovery path, not repeated blind attempts.
-
-## Source and development
-
-| Location | Contents |
-|---|---|
-| [`firmware/fm1-native/`](firmware/fm1-native/) | Device-native firmware, DSP, LCD, input, USB, OTA and project storage |
-| [`engine/`](engine/) | Host-side engine and supporting logic |
-| [`sim/`](sim/) | Browser simulator (`sim/index.html`) |
-| [`WebInstaller.html`](WebInstaller.html) | Current USB MIDI OTA WebInstaller |
-| [`release/`](release/) | Firmware images and current release manifests |
-| [`tools/`](tools/) | Firmware packaging, build and validation tools |
-| [`tests/`](tests/) | DSP, UI, project-format and OTA regression tests |
-| [`.github/workflows/test.yml`](.github/workflows/test.yml) | Automated test workflow |
-| [`CHANGELOG.md`](CHANGELOG.md) | Development and release history |
-
-**Building** requires Python 3 and an independently obtained JieLi **pi32v2** toolchain. The vendor's original V15 `.fwsc` is a separate input where required; it is not bundled.
-
-```bash
-export JIELI_TOOLCHAIN=/path/to/jieli-toolchain
-python3 firmware/fm1-native/build.py --storage --updater
-npm test
-npm run test:ota1484
-npm run test:v149
-```
-
-See [`RELEASE-MANIFEST.json`](RELEASE-MANIFEST.json), `tools/build_v149_release.py` and the relevant build scripts in `tools/` for reproducible package generation. `npm test` validates source behaviour and installer data; it does **not** perform a physical flash.
+Building requires an independently obtained JieLi pi32v2 toolchain, Python 3 and the repository's build scripts. Source tests and a successful compile do **not** prove hardware flash or recovery safety. Follow the appropriate project scripts for the platform; never substitute unrelated stock boot data.
 
 ## Credits and licensing
 
@@ -334,10 +194,9 @@ ETCH is not officially endorsed by **M-VAVE**, **JieLi Technology**, **Hügelton
 
 <div align="center">
 
-**ETCH · SikkenWorks**
-
+**ETCH · SikkenWorks**  
 *Born out of passion.*
 
-[Source](https://github.com/SikkenWorks/ETCH) · [Documentation](README.md) · [Changelog](CHANGELOG.md) · [License](LICENSE)
+[Source](https://github.com/SikkenWorks/ETCH) · [User manual](USER_MANUAL.md) · [Cheat sheet](CHEAT-SHEET.html) · [License](LICENSE)
 
 </div>
