@@ -3,12 +3,12 @@
 **Draw. Morph. Modulate.**  
 **SikkenWorks · Born out of passion.**
 
-**Firmware:** ETCH V1.86 · **Instrument:** M-VAVE FM1  
+**Firmware:** ETCH V1.88 · **Instrument:** M-VAVE FM1  
 **Project:** [github.com/SikkenWorks/ETCH](https://github.com/SikkenWorks/ETCH)  
 **Firmware identity:** `FM-1_1500` · **Current project format:** `PJT32`
 
 > [!IMPORTANT]
-> **Experimental firmware.** V1.86 has passed software builds and host tests, but not a complete physical FM1 qualification. Firmware flashing and recovery are not guaranteed. Keep a verified backup and a proven independent recovery route before updating. **Never reboot, wipe or flash while an important sound exists only in RAM.**
+> **Experimental firmware.** V1.88 has passed software builds and host tests, but not a complete physical FM1 qualification. Firmware flashing and recovery are not guaranteed. Keep a verified backup and a proven independent recovery route before updating. **Never reboot, wipe or flash while an important sound exists only in RAM.**
 
 ## Contents
 
@@ -158,7 +158,7 @@ DRAW previews the selected waveform on its own, without the complete morphed sou
 | **SOFT** | Broad 17-point smooth curve | Rounded waves, warm pads and gradual contours |
 | **EDGE** | One directly edited point | Sharp edges, overtone-rich waves and unusual timbres |
 
-Rotate the **ALGORITHM encoder** in DRAW to change brushes. All **128 waveform points** are available, rather than a reduced number of drawing positions. Horizontal and vertical editor input is checked every **25 ms**; audible waveform recompilation is throttled to roughly one update per **70 ms** during sustained edits to protect the sound engine. The on-screen cursor can therefore respond before you hear the newest edit. Pending edits are applied on leaving DRAW.
+Rotate the **ALGORITHM encoder** in DRAW to change brushes. All **128 waveform points** are available, rather than a reduced number of drawing positions. Horizontal and vertical editor input is checked every **20 ms**. A changed wave requests compilation after **40 ms** in a healthy non-USB session, **55 ms** with active USB audio, **90 ms** under moderate DSP/deadline pressure, or **140 ms** under strong pressure. These are *minimum request intervals*, not guaranteed end-to-end audio latencies: a busy wavetable bank can delay publication. Merely moving K1 (cursor) or changing the brush does not trigger a rebuild; leaving DRAW requests pending work immediately. The on-screen cursor is rendered before expensive bank compilation, so visual updates do not first wait for wavetable synthesis; the latest audible edit can still arrive later.
 
 **Why different waves can sound similar:** a broad brush rounds off distinct shapes, a closed filter masks upper harmonics, and high notes use band-limited wavetable levels. Try EDGE, an open filter, and middle/lower notes to compare shapes; then try SOFT for deliberately smoother timbres. ETCH recompiles only modified wave banks, while leaving the existing band-limited tables intact.
 
@@ -175,9 +175,26 @@ This clears the working wave in RAM, **not** an entire project or the flash stor
 
 In DRAW, use **FX** to reach **WFX 1 → WFX 2 → SCULPT** and the tool workflow.
 
-- **TOOLS:** line, smooth, mirror, invert, normalize, flatten, random, sine, triangle, saw, square, phase rotate and Wave Genetics.
+- **TOOLS:** line, smooth, mirror, invert, normalize, flatten, random, sine, triangle, saw, square, phase rotate and Wave Genetics. **PHASE WARP** (tool 13) and **HALF SYMM** (tool 14) also work on any drawn wave.
 - **WFX 1/2:** waveform-level drive, bit reduction, chorus, delay, reverb, fold, smooth and mix. A confirmed **BAKE** applies the processing to editable wave points.
 - **SCULPT:** fold, bend, asymmetry, phase and harmonic shaping, with preview before applying.
+
+### Phase Warp and Half Symmetry (TOOLS)
+
+These transforms operate on the stored **128 editable points**, *not* on every audio sample. They do not add another oscillator, effect chain, wavetable bank or persistent data field.
+
+1. Press **EDIT** and choose your Wave A, B or C with **SELECT**.
+2. Press **FX** repeatedly to enter **TOOLS** after WFX 1, WFX 2 and SCULPT.
+3. Turn **K1** to choose **tool 13 PHASE WARP** or **tool 14 HALF SYMM**.
+4. Turn **K2 AMOUNT** left or right. **127 is neutral** on the displayed 0–254 scale, because the actual amount is signed −127…+127. Turn **K3 WAVE** to change A/B/C while on this tool screen.
+5. Compare the **CYAN original** and **AMBER preview**. Press **SAVE** to apply the current preview. Use **ENV (Undo)** and **LFO (Redo)** in DRAW if you want to compare or revert the edit.
+6. Save the resulting **waveform** to the library and your **preset** separately if you need both.
+
+**PHASE WARP** squeezes one part of the cycle while extending another; extreme settings push the half-cycle boundary towards 16 or 112 of 128 points. This can add obvious spectral character without changing pitch or allocating another voice.
+
+**HALF SYMM** changes the second 64 points in relation to the first half. Positive values blend it toward an inverted first half (**half-wave antisymmetry**, which suppresses even harmonics); negative values blend it toward a repeated first half (**period-halving**, which can emphasize octave/even-harmonic content). This is a musical wave-editing operation; resulting timbres depend on the original waveform. The band-limited six-level wavetable compiler still removes upper partials on high notes to avoid aliasing.
+
+**Safety:** applying these edits updates the in-memory wave and creates one Undo snapshot. Merely adjusting the preview does not change the wave. The project remains **PJT32** and `.etchpreset` V1/V2 remain compatible. The stored waveform values contain the result, not a new format or an extra effect setting.
 
 These edits change the **waveform shape**; they are not the same as the real-time FX chain. Undo/Redo keeps a shared history of up to 16 snapshots.
 
@@ -246,7 +263,7 @@ At **100% DEPTH**, the highest waveform level produces full volume and the lowes
 
 **Try this:** draw a rounded shape in Wave A, play a sustained note, set WAVE AMP SOURCE to A and increase DEPTH slowly. Compare A, B and MORPH. To return to the original sound, select **OFF** or set DEPTH to **0**.
 
-WAVE AMP uses the existing A/B oscillator values. DEPTH is shown as 0–100% but stored in 64 discrete levels. It does **not** require another waveform, oscillator or separate modulation buffer. The standard ADSR still works. Its SOURCE and DEPTH are saved in **PJT32** and supported by the V1.86 Preset Manager.
+WAVE AMP uses the existing A/B oscillator values. DEPTH is shown as 0–100% but stored in 64 discrete levels. It does **not** require another waveform, oscillator or separate modulation buffer. The standard ADSR still works. Its SOURCE and DEPTH are saved in **PJT32** and supported by the V1.88 Preset Manager.
 
 ---
 
@@ -444,7 +461,7 @@ The **ETCH Project & Preset Manager** is a standalone browser tool for reading t
 
 The format carries the **three waves and associated sound settings**, including WAVE AMP in the current version. It does **not** contain every project, sample or sequencer pattern. `.etchpreset` V1 and V2 are supported by the updated Manager. The 1,044-byte live snapshot is protected by CRC32 and SHA-256 in the exported file.
 
-**Important:** live reading needs firmware **V1.77 or later** with the snapshot protocol. An old V1.76 sound cannot be recovered by installing V1.86, because firmware flashing clears RAM. This webapp never writes FM1 flash or issues OTA commands.
+**Important:** live reading needs firmware **V1.77 or later** with the snapshot protocol. An old V1.76 sound cannot be recovered by installing V1.88, because firmware flashing clears RAM. This webapp never writes FM1 flash or issues OTA commands.
 
 ---
 
@@ -472,7 +489,7 @@ ETCH's public release uses a single regular `.fwsc` package with identity **`FM-
 **Before flashing:** keep a full data backup, verify the release and checksum, and make sure an independent restore route has been tested on your actual FM1. Use desktop Chrome/Edge, a proper USB cable and the correct MIDI input/output. Never force an update after a compatibility rejection. The official stock restore route requires genuine, independently verified stock firmware and its supported loader.
 
 > [!CAUTION]
-> A successful browser transfer is not proof that the FM1 boots or that recovery will work after a failed flash. **V1.86 has software validation, not an on-device cross-firmware or full recovery qualification.**
+> A successful browser transfer is not proof that the FM1 boots or that recovery will work after a failed flash. **V1.88 has software validation, not an on-device cross-firmware or full recovery qualification.**
 
 ---
 
@@ -485,9 +502,9 @@ ETCH's public release uses a single regular `.fwsc` package with identity **`FM-
 | **A preset changed or vanished after reboot** | Confirm you saved a PRESET or PROJECT, not only a waveform. Verify storage was writable. |
 | **WAVE AMP has little effect** | Use a visibly varied wave, SOURCE A/B/MORPH and increase DEPTH. Check that it is not OFF. |
 | **WAVE AMP sounds harsh** | That can be normal at audio rate. Lower DEPTH or use a rounded SOFT brush. |
-| **Drawing seems delayed** | The 25 ms input update and 70 ms wavetable compile limit are separate; audio may trail cursor motion briefly while drawing. |
+| **Drawing seems delayed** | DRAW input is checked every 20 ms while audible wave compilation requests are load-adaptive: 40/55/90/140 ms (depending on USB and DSP pressure). The screen and sound need not update simultaneously. |
 | **Different waves sound alike** | Try EDGE at mid/lower notes, open FILTER cutoff, lower wet FX and compare waves alone in DRAW. High-note band-limiting intentionally removes upper harmonics. |
-| **A keyboard note changes the DRAW waveform** | In V1.86, physical note-on/off is isolated from DRAW encoder edits. Only K1/K2 movement and explicit harmonic actions should change points. If this still occurs, record the pressed key, active brush and whether K2 moved; avoid saving the unintended edit and try ENV (Undo). |
+| **A keyboard note changes the DRAW waveform** | In V1.88, physical note-on/off is isolated from DRAW encoder edits. Only K1/K2 movement and explicit harmonic actions should change points. If this still occurs, record the pressed key, active brush and whether K2 moved; avoid saving the unintended edit and try ENV (Undo). |
 | **Key-on clicks / plops** | Test a clean wave at low output volume with low DRIVE/FX. Smooth note-on, wavetable and voice-steal fades reduce digital transients; analogue startup/output clicks may still occur. |
 | **No sound from Wave C** | Check its rate, target and DEPTH; MOD WAVE at zero depth is effectively bypassed. |
 | **An effect appears inactive** | Check FX BYPASS, wet MIX, insert TYPE and the effect's routing. |
@@ -519,7 +536,7 @@ DRAW + FX:     WFX 1 → WFX 2 → SCULPT → TOOLS
 
 The **ADVANCED screen catalog** provides direct access to all **64 existing page IDs** even when a particular page is not in the short button cycle. A MONO-only page will tell you when MONO is required.
 
-### Complete V1.86 screen directory (64 pages)
+### Complete V1.88 screen directory (64 pages)
 
 | Category | Screens |
 |---|---|
@@ -536,7 +553,7 @@ The **ADVANCED screen catalog** provides direct access to all **64 existing page
 
 ## 16. Technical information and credits
 
-| Item | ETCH V1.86 |
+| Item | ETCH V1.88 |
 |---|---|
 | Hardware | M-VAVE FM1 / JieLi AC791N family |
 | Firmware / package identity | `FM-1_1500` |
@@ -549,7 +566,7 @@ The **ADVANCED screen catalog** provides direct access to all **64 existing page
 | Project codec | `PJT32`, with backward-reading support for `PJT31` |
 | Live sound snapshot | `.etchpreset` V1/V2; 1,044 bytes |
 | UI | 240 × 240 RGB565, PHOSPHOR colour palette |
-| DRAW update rhythm | 25 ms input checks; up to one wavetable compile per 70 ms during edits |
+| DRAW update rhythm | 20 ms input checks; 40/55/90/140 ms minimum compilation request intervals depending on audio load |
 | Audio transients | 256-sample smooth note-on fade; rounded wavetable/voice crossfades |
 | Safety status | Software-tested release candidate; not physically qualified |
 

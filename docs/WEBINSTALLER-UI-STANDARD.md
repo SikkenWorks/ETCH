@@ -33,3 +33,9 @@
 6. Do not claim physical flash compatibility from these browser/source tests.
 
 The versioned `tools/embed_v185_installer.py` works with this clean template: it only refreshes base64 firmware payloads and corresponding hashes, and does not reintroduce the previous warning cards.
+
+## Version-consistency release gate (mandatory)
+
+- Every visible and dynamically generated version label, release title, diagnostic log header and post-OTA on-screen check must match the release manifest. **Embedded firmware alone is not sufficient**.
+- Verify the exact new version on the physical FM1 display. The unchanged USB product identity `FM-1_1500` cannot confirm the installed ETCH revision.
+- Run `python tools/check_webinstaller_ui.py` and `node tests/test_v186_installer.mjs` from the source root before shipping. Future versions must update the test to the current source revision.

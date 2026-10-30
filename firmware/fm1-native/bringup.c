@@ -20,6 +20,7 @@
 #include "native_home_shortcuts.h"
 #include "native_wave_seq.h"
 #include "native_sculpt.h"
+#include "native_wave_shape.h"
 #include "native_seq_parity.h"
 #include "native_flash_probe.h"
 #include "native_project_ui.h"
@@ -31,6 +32,7 @@
 #include "native_fx_controls.h"
 #include "native_encoder_steps.h"
 #include "native_draw_key_guard.h"
+#include "native_draw_scheduler.h"
 #include "native_advanced_controls_v130.h"
 #include "native_spectral_controls_v131.h"
 #include "native_live_controls_v117.h"
@@ -228,7 +230,7 @@ static volatile uint32_t native_nested_ticks, native_nested_count;
 #endif
 #define FELUCCA_OTA ETCH_NATIVE_OTA
 #define FELUCCA_ID "FM-1_1500"
-#define ETCH_UI_VERSION "V186"
+#define ETCH_UI_VERSION "V188"
 #define FELUCCA_OTA_DRYRUN 0
 #define RING_PUBLISH() __asm__ volatile("" ::: "memory")
 #include "usb.c"
@@ -1623,12 +1625,12 @@ static void parameters(void){
  else if(native_page==7){names[0]="PATCH";names[1]="MORPH";names[2]="DEPTH";names[3]="SPACE";values[0]=native_patch_slot;values[1]=native_controls.morph*100u/32767u;values[2]=native_controls.depth*100u/32767u;values[3]=native_reverb*100u/32767u;}
  else if(native_page==8||native_page==ETCH_UI_PROJECT_SAVE){names[0]="SLOT";names[1]="POS";names[2]="CHAR";names[3]="DEL";values[0]=(native_page==8?native_slot:native_project_browser)+1u;values[1]=native_name_pos+1u;values[2]=(uint8_t)native_selected_name()[native_name_pos];values[3]=0;}
  else if(native_page==9){
-  names[0]="TOOL";names[1]=native_tool==12u?"A/B MIX":"SPAN";
-  names[2]=native_tool==12u?"SEED":"CURSOR";
+  names[0]="TOOL";names[1]=native_tool==12u?"A/B MIX":native_tool>=13u?"AMOUNT":"SPAN";
+  names[2]=native_tool==12u?"SEED":native_tool>=13u?"WAVE":"CURSOR";
   names[3]=native_tool==12u?"MUTATE":"APPLY";
   values[0]=native_tool;
-  values[1]=native_tool==12u?(uint16_t)(native_tool_span+127)*100u/254u:(uint16_t)native_tool_span;
-  values[2]=native_editor.cursor;
+  values[1]=native_tool==12u?(uint16_t)(native_tool_span+127)*100u/254u:native_tool>=13u?(uint16_t)(native_tool_span+127):(uint16_t)native_tool_span;
+  values[2]=native_tool>=13u?(uint16_t)(native_editor.wave+1u):native_editor.cursor;
   values[3]=native_tool==12u?native_gen_mutate:1u;
  }
  else if(native_page==ETCH_UI_PLAY){
@@ -2569,7 +2571,7 @@ static void screen_render(void){
   if(native_recovery_reason==ETCH_RECOVERY_STORAGE_FAULT)label("STORE FAIL",90,68,0xF800);
   else if(native_recovery_reason==ETCH_RECOVERY_BOOT_LOOP)label("BOOT FAIL",90,68,0xF800);
   else if(native_recovery_reason==ETCH_RECOVERY_OTA_CLEANUP)label("OTA FAIL",90,68,0xF800);
-  else label("REC MODE",90,68,0xFFE0);}else if(native_page==8){label("NAME",12,68,0xFFFF);}else if(native_page==9){label(native_tool==12u?"GENETICS":"TOOLS",12,68,0xFFFF);}else if(native_draw){label(native_page==14?"WFX 1":native_page==15?"WFX 2":native_page==ETCH_UI_SCULPT?"SCULPT":"DRAW",12,68,0xFFFF);char wave[2]={(char)('A'+native_editor.wave),0};label(wave,80,68,0xFFE0);}else label_box(etch_ui_short_title(native_page),12,68,0xFFFF,108u);
+  else label("REC MODE",90,68,0xFFE0);}else if(native_page==8){label("NAME",12,68,0xFFFF);}else if(native_page==9){label(native_tool==12u?"GENETICS":native_tool==13u?"PHASE WARP":native_tool==14u?"HALF SYMM":"TOOLS",12,68,0xFFFF);}else if(native_draw){label(native_page==14?"WFX 1":native_page==15?"WFX 2":native_page==ETCH_UI_SCULPT?"SCULPT":"DRAW",12,68,0xFFFF);char wave[2]={(char)('A'+native_editor.wave),0};label(wave,80,68,0xFFE0);}else label_box(etch_ui_short_title(native_page),12,68,0xFFFF,108u);
  if(native_draw){
   char slot[4]={'S',(char)('0'+native_slot/10),(char)('0'+native_slot%10),0};label(slot,80,68,0xFFFF);
   const char *state=!ETCH_NATIVE_STORAGE?"RAM":native_save_confirm?"SURE":native_store_status==ETCH_STORE_OK?"OK":native_store_status==ETCH_STORE_EMPTY?"EMPTY":native_store_status==ETCH_STORE_FOREIGN?"LOCK":native_store_status==ETCH_STORE_FULL?"FULL":"FAIL";
@@ -2587,6 +2589,18 @@ static void screen_render(void){
  for(uint32_t x=0;x<240;x+=24)lcd_fill(x,scope_top,1,scope_bottom-scope_top,0x2124);
  for(uint32_t k=0;k<=4;k++)lcd_fill(0,scope_top+(scope_bottom-scope_top)*k/4,240,1,0x2124);
  int16_t shaped[128];
+ if(native_draw&&native_page==ETCH_UI_TOOLS && native_tool>=13u){
+  const int16_t *raw=native_editor.points[native_editor.wave];
+  etch_wave_shape_preview(raw,shaped,native_tool,native_tool_span);
+  uint32_t previous_raw=scope_mid,previous_wet=scope_mid;
+  for(uint32_t pixel=0u;pixel<240u;pixel++){
+   uint32_t n=pixel*128u/240u;
+   uint32_t yr=etch_ui_wave_display_y(raw[n],256u,scope_mid,scope_extent,scope_top+1u,scope_bottom-1u);
+   uint32_t yw=etch_ui_wave_display_y(shaped[n],256u,scope_mid,scope_extent,scope_top+1u,scope_bottom-1u);
+   etch_scope_stroke(pixel,previous_raw,yr,0x07ff);etch_scope_stroke(pixel,previous_wet,yw,0xfda0);
+   previous_raw=yr;previous_wet=yw;
+  }
+ }
  if(native_draw&&native_page==ETCH_UI_SCULPT){
   const int16_t *raw=native_editor.points[native_editor.wave];
   etch_sculpt_preview(raw,shaped,native_sculpt_mode,native_sculpt_amount,native_sculpt_pivot);
@@ -2930,6 +2944,11 @@ static void screen_render(void){
   label("K2 Y",116,201,0xf81f);number((uint32_t)((int32_t)native_editor.points[native_editor.wave][native_editor.cursor]+32768)/512,170,201);
   label("K3 PART",6,219,0x7bef);number(native_harmonic,83,219);
   label("K4 SHAPE",116,219,0xf81f);
+ }else if(native_draw&&native_page==ETCH_UI_TOOLS&&native_tool>=13u){
+  lcd_fill(0,196,240,40,0x0000);
+  label(native_tool==13u?"PHASE WARP":"HALF SYMM",8,199,0xfda0);
+  label("CYAN RAW / AMBER PREVIEW",8,216,0x07ff);
+  label("SAVE APPLY",147,199,0xffff);
  }else if(native_draw&&native_page==ETCH_UI_SCULPT){
   lcd_fill(0,196,240,40,0x0000);
   const char *modes[]={"FOLD","BEND","ASYM","PHASE","HARM"};
@@ -3255,7 +3274,7 @@ void fm1_cstart(void){
   }
   /* DRAW needs a lower input-to-display delay; the rest of ETCH retains
    * its proven 100 ms control cadence. This loop still prioritises audio. */
-  if(etch_ms-last>=(native_draw && native_page==ETCH_UI_PLAY?25u:100u)){
+  if(etch_ms-last>=(native_draw && native_page==ETCH_UI_PLAY?ETCH_DRAW_POLL_MS:100u)){
    last=etch_ms;
    if(safe){
     if(first_frame||etch_ms-last_ui_paint_ms>=1800u||fm1_in.buttons!=previous_buttons||fm1_in.notes!=last_seq_notes){screen();last_ui_paint_ms=etch_ms;}
@@ -3577,7 +3596,7 @@ void fm1_cstart(void){
     if(pressed&(1u<<2))native_page=native_page==14?15:ETCH_UI_SCULPT;
     if(pressed&(1u<<6)){native_fx_bake_confirm=0;native_page=0;}
    }else if(native_page==9){
-    native_tool=(uint8_t)ui_bound((int32_t)native_tool+dm,0,12);
+    native_tool=(uint8_t)ui_bound((int32_t)native_tool+dm,0,14);
     native_tool_span=(int16_t)ui_bound(native_tool_span+dd,-127,127);
     if(native_tool==12u){
      native_editor.cursor=(uint8_t)ui_bound((int32_t)native_editor.cursor+up,0,127);
@@ -3588,7 +3607,8 @@ void fm1_cstart(void){
       native_page=0;native_draw=1u;first_frame=1;
      }
     }else{
-     native_editor.cursor=(uint8_t)ui_bound((int32_t)native_editor.cursor+up-down,0,127);
+     if(native_tool>=13u)etch_editor_select(&native_editor,up-down);
+     else native_editor.cursor=(uint8_t)ui_bound((int32_t)native_editor.cursor+up-down,0,127);
      if(pressed&(1u<<9))etch_editor_tool(&native_editor,native_tool,native_tool_span);
     }
     if(pressed&(1u<<2))native_page=0;
@@ -4311,12 +4331,6 @@ void fm1_cstart(void){
      native_blend_pending=0u;
      native_patch_blend_apply(&m,&d);
    }
-   /* Drawing remains responsive at 25 ms while expensive background
-    * wavetable synthesis runs at <= 14 Hz. The latest edited points are
-    * always compiled; leaving DRAW publishes immediately. */
-   if(!native_draw || (uint32_t)(etch_ms-last_wave_compile_ms)>=70u){
-    native_compile_edit();last_wave_compile_ms=etch_ms;
-   }
    int32_t octave=native_controls.octave;
    enum etch_octave_action oct_action=etch_octave_scan(&native_octave_chord,buttons);
    if(oct_action==ETCH_OCT_MINUS)--octave;
@@ -4373,6 +4387,22 @@ void fm1_cstart(void){
              native_ui_pressure,(uint8_t)(usb.config&&!usb.suspended),native_missed_streak)){
      screen();last_ui_paint_ms=etch_ms;last_painted_playhead=visible_playhead;
     }
+   }
+   /* V1.87: draw the latest cursor/wave points before expensive bank
+    * compilation. This ensures a freshly moved K1/K2 cursor is painted
+    * without first waiting for a 6-level wavetable synthesis pass.
+    * The three-bank audio ownership and IRQ-safe publication are unchanged. */
+   /* V1.87: decouple DRAW input (20 ms) from audible bank compilation.
+    * A real point change is published at 40 ms when ALNK is healthy;
+    * USB / high wall-time pressure explicitly slow background synthesis.
+    * Mouse-like cursor motion and brush changes do not waste CPU cycles.
+    * Exiting DRAW retains the original immediate compile request.
+    * All work remains main-thread, never in the PCM interrupt. */
+   if(etch_draw_compile_due(etch_ms,last_wave_compile_ms,
+         (uint8_t)(native_draw && native_page==ETCH_UI_PLAY),
+         native_editor.dirty,native_ui_pressure,native_missed_streak,
+         (uint8_t)(usb.config&&!usb.suspended))){
+    native_compile_edit();last_wave_compile_ms=etch_ms;
    }
    native_last_tripped=native_tripped;
    if(native_saved_until && (int32_t)(etch_ms-native_saved_until)>=0){native_saved_until=0u;native_save_notice_pending=0u;}

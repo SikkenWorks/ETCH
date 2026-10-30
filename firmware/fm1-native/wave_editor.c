@@ -4,6 +4,7 @@
 #include "wave_editor.h"
 #include "native_tables.h"
 #include "native_sculpt.h"
+#include "native_wave_shape.h"
 static int32_t bounded(int32_t n,int32_t lo,int32_t hi){return n<lo?lo:n>hi?hi:n;}
 void etch_editor_init(struct etch_wave_editor *e){
  for(uint32_t w=0;w<3;w++)for(uint32_t i=0;i<128;i++)e->points[w][i]=etch_tables[w][0][i*4];
@@ -107,7 +108,7 @@ void etch_editor_compile(const struct etch_wave_editor *e,struct etch_native_ban
 
 /* Tools act on editable points, checkpoint exactly once and rebuild outside IRQ. */
 void etch_editor_tool(struct etch_wave_editor *e,uint8_t tool,int32_t parameter){
- if(!e||tool>11)return;
+ if(!e||tool>ETCH_WAVE_TOOL_HALF_SYMM || tool==12u)return;
  int16_t tmp[128];int16_t *wave=e->points[e->wave];
  for(uint32_t i=0;i<128;i++)tmp[i]=wave[i];
  int32_t pos=bounded(e->cursor,0,127),end=bounded(pos+parameter,0,127);
@@ -129,6 +130,8 @@ void etch_editor_tool(struct etch_wave_editor *e,uint8_t tool,int32_t parameter)
  else if(tool==9){for(uint32_t i=0;i<128;i++)tmp[i]=(int16_t)((int32_t)i*453-29000);}
  else if(tool==10){for(uint32_t i=0;i<128;i++)tmp[i]=i<64?29000:-29000;}
  else if(tool==11){int32_t d=parameter%128;if(d<0)d+=128;for(uint32_t i=0;i<128;i++)tmp[i]=wave[(i+d)&127];}
+ else if(tool==ETCH_WAVE_TOOL_PHASE_WARP||tool==ETCH_WAVE_TOOL_HALF_SYMM)
+  etch_wave_shape_preview(wave,tmp,tool,(int16_t)parameter);
  uint8_t different=0;for(uint32_t i=0;i<128;i++)if(tmp[i]!=wave[i]){different=1;break;}if(!different)return;
  etch_editor_checkpoint(e);for(uint32_t i=0;i<128;i++)wave[i]=tmp[i];
  e->dirty=1;++e->revision;

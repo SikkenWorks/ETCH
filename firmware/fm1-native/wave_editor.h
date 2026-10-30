@@ -33,7 +33,8 @@ void etch_editor_checkpoint(struct etch_wave_editor *e);
 void etch_editor_redo(struct etch_wave_editor *e);
 
 /* Tool 0=line,1=smooth,2=mirror,3=invert,4=normalize,5=flatten,
- * 6=random,7=sine,8=triangle,9=saw,10=square,11=rotate. */
+ * 6=random,7=sine,8=triangle,9=saw,10=square,11=rotate;
+ * 12=genetics (separate flow),13=phase warp,14=half-cycle symmetry. */
 void etch_editor_tool(struct etch_wave_editor *e,uint8_t tool,int32_t parameter);
 void etch_editor_bake_fx(struct etch_wave_editor *e);
 
