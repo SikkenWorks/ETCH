@@ -31,7 +31,7 @@ int main(void){
  assert(etch_ui_wave_load_click(&armed,&page,24,1)==2&&armed==0);
  assert(etch_ui_draw_cursor_x(0)==0);
  assert(etch_ui_draw_cursor_x(4)==8);
- assert(etch_ui_draw_cursor_x(124)==239);
+ assert(etch_ui_draw_cursor_x(124)==233); /* V1.85: full 128-point cursor */
  assert(etch_ui_draw_cursor_x(127)==239);
  assert(etch_ui_draw_cursor_x(125)<=239);
  assert(etch_ui_text_capacity(0,0)==30);

@@ -63,12 +63,13 @@ void etch_editor_redo(struct etch_wave_editor *e){
  e->has_undo=1u;
  e->dirty=1u;++e->revision;
 }
-void etch_editor_compile_source(const int16_t points[3][128], const struct etch_wave_fx_params fx[3],struct etch_native_bank *out){
+void etch_editor_compile_wave_source(const int16_t points[3][128], const struct etch_wave_fx_params fx[3],struct etch_native_bank *out,uint8_t w){
+ if(w>=3u)return;
  static const uint8_t harmonics[6]={64,32,16,8,2,1};
  int32_t cosine[65],sine[65],scratch[512];
  int16_t shaped[128];
  /* The sine reference has Q15 amplitude 29000; divide by that exact scale. */
- for(uint32_t w=0;w<3;w++){
+ {
   etch_wave_fx_apply(points[w],&fx[w],shaped);
   for(uint32_t h=1;h<=64;h++){
    int64_t c=0,s=0;
@@ -94,6 +95,10 @@ void etch_editor_compile_source(const int16_t points[3][128], const struct etch_
    for(uint32_t n=0;n<512;n++)out->table[w][l][n]=(int16_t)bounded((int32_t)((int64_t)scratch[n]*29000/peak),-29000,29000);
   }
  }
+}
+
+void etch_editor_compile_source(const int16_t points[3][128], const struct etch_wave_fx_params fx[3],struct etch_native_bank *out){
+ for(uint8_t w=0u;w<3u;w++)etch_editor_compile_wave_source(points,fx,out,w);
 }
 
 void etch_editor_compile(const struct etch_wave_editor *e,struct etch_native_bank *out){
@@ -139,30 +144,41 @@ void etch_editor_bake_fx(struct etch_wave_editor *e){
  e->dirty=1;++e->revision;
 }
 
-/* K1 counterclockwise/clockwise = LEFT/RIGHT. K2 = DOWN/UP.
- * Preserve 128-sample patch format and all synthesis resolution while showing
- * only 32 manipulable anchors. Only 1 undo checkpoint per edit command. */
+/* V1.85: all 128 sample positions are editable, with three genuinely
+ * different, low-cost brushes. Avoid the old 32-position/17-tap-only
+ * smoothing that made unrelated wave drawings sound similar.
+ * 0 DETAIL: 5-point local sculpt; 1 SOFT: 17-point rounded contour;
+ * 2 EDGE: 1-point sharp corner for rich high-harmonic timbres.
+ * This is a UI-thread operation. No audio-ISR work or new stored fields. */
+void etch_editor_move_xy128(struct etch_wave_editor *e,int32_t xturns,int32_t yturns,uint8_t brush){
+ if(!e)return;
+ int32_t pos=bounded((int32_t)e->cursor+bounded(xturns,-127,127),0,127);
+ e->cursor=(uint8_t)pos;
+ if(!yturns)return;
+ brush=brush>2u?0u:brush;
+ int32_t delta=bounded(yturns,-32,32)*(brush==0u?1280:brush==1u?2304:2048);
+ int32_t current=e->points[e->wave][e->cursor];
+ int32_t desired=bounded(current+delta,-32768,32767);
+ delta=desired-current;
+ if(!delta)return;
+ etch_editor_checkpoint(e);
+ int16_t *wave=e->points[e->wave];
+ int32_t radius=brush==0u?2:brush==1u?8:0;
+ for(int32_t i=-radius;i<=radius;i++){
+  uint32_t at=(uint32_t)((pos+i+128)&127);
+  int32_t weight=(radius+1)-(i<0?-i:i);
+  int32_t change=delta*weight/(radius+1);
+  wave[at]=(int16_t)bounded((int32_t)wave[at]+change,-32768,32767);
+ }
+ e->dirty=1u;++e->revision;
+}
+/* Legacy host/editor callers keep the V1.75 wide brush behaviour. */
 void etch_editor_move_xy32(struct etch_wave_editor *e,int32_t xturns,int32_t yturns){
  if(!e)return;
- int32_t grip=(int32_t)e->cursor/4;
- grip=bounded(grip+bounded(xturns,-32,32),0,31);
- e->cursor=(uint8_t)(grip*4);
- if(!yturns)return;
- int32_t current=e->points[e->wave][e->cursor];
- /* Stronger, still bounded: one detent sculpts a useful part of the cycle.
-  * The original narrow 7-tap / 1024-step brush barely changed timbre. */
- int32_t edited=bounded(current+bounded(yturns,-32,32)*2560,-32768,32767);
- if(edited==current)return;
- etch_editor_checkpoint(e);
- int32_t diff=edited-current;
- /* A 17-point weighted brush produces an audible contour change while
-  * keeping adjacent points continuous. Wrap at the single-cycle boundary. */
- for(int32_t offset=-8;offset<=8;offset++){
-  uint32_t ix=(uint32_t)((e->cursor+offset+128)%128);
-  int32_t level=(int32_t)e->points[e->wave][ix]+diff*(9-(offset<0?-offset:offset))/9;
-  e->points[e->wave][ix]=(int16_t)bounded(level,-32768,32767);
- }
- e->dirty=1;++e->revision;
+ int32_t old=(int32_t)e->cursor/4;
+ int32_t next=bounded(old+bounded(xturns,-32,32),0,31);
+ e->cursor=(uint8_t)(next*4);
+ etch_editor_move_xy128(e,0,yturns,1u);
 }
 
 /* K3 chooses partial 2..16; K4 adds or subtracts harmonic energy from the

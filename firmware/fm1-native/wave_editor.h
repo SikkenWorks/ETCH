@@ -22,6 +22,8 @@ void etch_editor_move(struct etch_wave_editor *e,int32_t left,int32_t right,int3
 void etch_editor_select(struct etch_wave_editor *e,int32_t delta);
 void etch_editor_undo(struct etch_wave_editor *e);
 void etch_editor_compile(const struct etch_wave_editor *e,struct etch_native_bank *out);
+/* Per-wave recompute, producing bytes identical to a full compile. */
+void etch_editor_compile_wave_source(const int16_t points[3][128],const struct etch_wave_fx_params fx[3],struct etch_native_bank *out,uint8_t w);
 /* Group renderer: compile stored preset waves to an existing 18 KiB mip bank.
  * Main-loop only. Never allocate a fourth runtime bank. */
 void etch_editor_compile_source(const int16_t points[3][128],
@@ -37,6 +39,7 @@ void etch_editor_bake_fx(struct etch_wave_editor *e);
 
 /* 32 intuitive editable grips mapped to the existing 128-point wave storage. */
 void etch_editor_move_xy32(struct etch_wave_editor *e,int32_t xturns,int32_t yturns);
+void etch_editor_move_xy128(struct etch_wave_editor *e,int32_t xturns,int32_t yturns,uint8_t brush);
 
 /* Editable harmonic sculpt: K3 selects 2..16 and K4 applies +/- gain. */
 void etch_editor_add_partial(struct etch_wave_editor *e,uint8_t harmonic,int32_t turns);

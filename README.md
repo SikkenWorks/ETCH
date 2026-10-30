@@ -18,7 +18,7 @@
 
 ETCH turns your FM1 into a hands-on synthesizer built around **waveforms you draw yourself**. Shape Wave A and Wave B, morph between them, use Wave C to modulate the result, and explore a full set of filters, effects and performance tools.
 
-**Firmware:** V1.85 · **M-VAVE FM1** · **Package/USB identity:** `FM-1_1500` · **Project format:** `PJT32` · **License:** GPL-3.0-only.
+**Firmware:** V1.86 · **M-VAVE FM1** · **Package/USB identity:** `FM-1_1500` · **Project format:** `PJT32` · **License:** GPL-3.0-only.
 
 ## Sound engine
 
@@ -38,7 +38,7 @@ Wave C ──────────────── PHASE / MORPH / FX MODUL
 - **Effects:** pre-morph Wave A/B inserts and global chorus, delay, reverb, drive, modulation and dynamics effects. **FX BYPASS** skips supported expensive processing while preserving values.
 - **Performance:** up to eight shared voices, ARP/RIFF, up to 256 sequencer steps, harmony tools, GROUPS keyboard splits, four performance macros and two scenes.
 
-**Sound design tip:** use EDGE at lower/mid pitches with the filter open to hear sharp harmonic differences. High notes use band-limited wavetables, so sharp shapes may sound closer together. SOFT gives smoother contours. The editor is polled every 25 ms; audible wavetable updates may trail the cursor briefly because compiling is throttled to protect audio.
+**Sound design tip:** use EDGE at lower/mid pitches with the filter open to hear sharp harmonic differences. High notes use band-limited wavetables, so sharp shapes may sound closer together. SOFT gives smoother contours. The editor is polled every 25 ms; audible wavetable updates may trail the cursor briefly because compiling is throttled to protect audio. **Keyboard auditioning does not edit wave points:** brief K1–K4 encoder deltas around physical note-on/off are ignored in DRAW, then normal controls resume while the note is held.
 
 ### Three different kinds of saved data
 
@@ -65,7 +65,7 @@ A computer `.etchpreset` is a **sound snapshot**, not a full project, sample or 
 | **SIMPLE** | SOUND, MORPH, FILTER, FX and LIBRARY for quick sound design |
 | **ADVANCED** | Full editor navigation and the 64-page WORKFLOW catalog |
 
-To switch: **GLO → SYSTEM / WORKFLOW → K2**. In ADVANCED, the WORKFLOW catalog uses **K3** to select and **K4** to open a permitted page. Some CPU-heavy modulation pages require MONO mode. The header displays `V185S` or `V185A` according to the selected workflow.
+To switch: **GLO → SYSTEM / WORKFLOW → K2**. In ADVANCED, the WORKFLOW catalog uses **K3** to select and **K4** to open a permitted page. Some CPU-heavy modulation pages require MONO mode. The header displays `V186S` or `V186A` according to the selected workflow.
 
 ## Controls & shortcuts
 
@@ -128,13 +128,13 @@ ETCH protects data belonging to other firmwares. If a first-boot prompt offers *
 
 ## Installation & recovery
 
-- **Current firmware:** [`release/ETCH-V1.85.fwsc`](release/ETCH-V1.85.fwsc), one regular public package, original identity `FM-1_1500`.
+- **Current firmware:** [`release/ETCH-V1.86.fwsc`](release/ETCH-V1.86.fwsc), one regular public package, original identity `FM-1_1500`.
 - **Installer:** [`WebInstaller.html`](WebInstaller.html), in the clean PHOSPHOR layout. Its critical checks and risk confirmation are still required even though long technical notes are tucked into a neutral expandable section.
 - **Required browser:** desktop Chrome/Edge, Web MIDI/SysEx permissions, proper USB data cable and exclusive access to the FM1 MIDI port.
 - **Safety:** keep a verified backup, trusted package checksums and an independently tested recovery procedure for your FM1. Device-side package validation, loader checks and post-update verification must succeed. Never bypass a failed CHECK.
 - **Cross-firmware OTA:** structurally compatible Felucca-family application-only updates are validated by the installed device-side loader/check path. Official stock restore uses a separately verified official package/loader. A successful USB transfer is **not** proof of guaranteed firmware switching or physical recovery.
 
-**Status:** V1.85 is software-built and host-tested, but long-term USB-audio reliability, listening tests, flash transitions and independent ROM recovery **have not been fully qualified on physical FM1 hardware**. Smooth note-on, wavetable-switch and voice-steal fades reduce some digital clicks; they cannot guarantee elimination of every audible or analogue startup pop.
+**Status:** V1.86 is software-built and host-tested, but long-term USB-audio reliability, listening tests, flash transitions and independent ROM recovery **have not been fully qualified on physical FM1 hardware**. Smooth note-on, wavetable-switch and voice-steal fades reduce some digital clicks; they cannot guarantee elimination of every audible or analogue startup pop.
 
 ## Source & development
 

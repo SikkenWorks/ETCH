@@ -4,11 +4,10 @@
  */
 #pragma once
 #include <stdint.h>
-/* 32 encoder anchors span the whole physical 240px screen. */
+/* V1.85 maps each of the 128 editable samples to its native pixel
+ * position. No quantisation to 32 grips, and no extra UI buffer. */
 static inline uint32_t etch_ui_draw_cursor_x(uint8_t raw_cursor){
- uint32_t grip=(uint32_t)raw_cursor/4u;
- if(grip>31u)grip=31u;
- return (grip*239u+15u)/31u;
+ return ((uint32_t)raw_cursor*239u+63u)/127u;
 }
 
 

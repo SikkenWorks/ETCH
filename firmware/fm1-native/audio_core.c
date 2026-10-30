@@ -885,6 +885,9 @@ static void render_internal(struct etch_native_audio *s,const struct etch_native
   }else if(preview_selected && preview_mix<32767u){
    uint32_t next=preview_mix+256u;preview_mix=(uint16_t)(next>32767u?32767u:next);
   }
+  /* Compute one smooth old-bank coefficient per PCM frame, not per voice.
+   * The 256-frame handoff and per-voice DSP work remain unchanged. */
+  uint16_t old_bank_mix=etch_transition_old_mix_q8(s->bank_fade,256u);
   int32_t sum=0,preview_sum=0;uint32_t voices_sounding=0u;
   uint8_t matrix_global_done=0u;uint16_t matrix_reverb=locked.reverb;
   for(uint32_t i=0;i<limit;i++){
@@ -969,11 +972,11 @@ static void render_internal(struct etch_native_audio *s,const struct etch_native
    int32_t solo=preview_mix?preview_carrier(v,c,s->bank,v->p,v->q,organic_incs[i],organic_modincs[i],preview_selected,&carrier_mip[i],&mod_mip[i]):0;
    if(s->bank_fade && preview_mix && s->old_bank){
     int32_t older=preview_carrier(v,c,s->old_bank,v->p,v->q,organic_incs[i],organic_modincs[i],preview_selected,&carrier_mip[i],&mod_mip[i]);
-    solo+=(int32_t)(((int64_t)(older-solo)*s->bank_fade)/256);
+    solo+=(int32_t)(((int64_t)(older-solo)*old_bank_mix)/256);
    }
    if(s->bank_fade && !group_patch && preview_mix<32767u){
     int32_t old=carrier(v,0,s->old_bank,v->p,v->q,organic_incs[i],organic_modincs[i],voice_morph,voice_depth,c->mod_target,voice_evo,evolving?e->mode:0u,&carrier_mip[i],&mod_mip[i],0u,0u,0);
-    sample+=(int32_t)(((int64_t)(old-sample)*s->bank_fade)/256);
+    sample+=(int32_t)(((int64_t)(old-sample)*old_bank_mix)/256);
    }
    /* One LIVING pass per active voice. V1.31 applied the fundamental
     * reconstruction in every carrier() invocation, including old-bank
@@ -1016,7 +1019,11 @@ static void render_internal(struct etch_native_audio *s,const struct etch_native
     sample=etch_attack_apply(sample,v->attack_fade);
     --v->attack_fade;
    }
-   if(v->fade){sample+=(int32_t)(((int64_t)v->tail*v->fade)/ETCH_TRANSITION_SAMPLES);--v->fade;}
+   if(v->fade){
+    uint16_t old_tail_mix=etch_transition_old_mix_q8(v->fade,ETCH_TRANSITION_SAMPLES);
+    sample+=(int32_t)(((int64_t)v->tail*old_tail_mix)/256);
+    --v->fade;
+   }
    v->last=preview_mix?solo:sample;sum+=sample;preview_sum+=solo;v->p+=organic_incs[i];v->q+=organic_modincs[i];
    if(!v->env&&!v->held&&!v->fade)v->active=0;
   }

@@ -30,6 +30,7 @@
 #include "native_led_policy.h"
 #include "native_fx_controls.h"
 #include "native_encoder_steps.h"
+#include "native_draw_key_guard.h"
 #include "native_advanced_controls_v130.h"
 #include "native_spectral_controls_v131.h"
 #include "native_live_controls_v117.h"
@@ -227,7 +228,7 @@ static volatile uint32_t native_nested_ticks, native_nested_count;
 #endif
 #define FELUCCA_OTA ETCH_NATIVE_OTA
 #define FELUCCA_ID "FM-1_1500"
-#define ETCH_UI_VERSION "V184"
+#define ETCH_UI_VERSION "V186"
 #define FELUCCA_OTA_DRYRUN 0
 #define RING_PUBLISH() __asm__ volatile("" ::: "memory")
 #include "usb.c"
@@ -546,6 +547,8 @@ static uint32_t native_edit_hold_since __attribute__((section(".pool")));
 static uint8_t native_edit_hold_consumed __attribute__((section(".pool")));
 static uint8_t native_flat_prompt __attribute__((section(".pool")));
 static uint8_t native_flat_yes __attribute__((section(".pool")));
+/* Keyboard-triggered phantom encoder steps must never change DRAW data. */
+static struct etch_draw_key_guard native_draw_key_guard __attribute__((section(".pool")));
 
 static uint16_t native_hold_source=0xffffu;
 static uint8_t native_seq_clear_armed;static uint16_t native_seq_clear_step;
@@ -1799,9 +1802,7 @@ static void web_ui_primary(void){
   etch_scope_stroke(x,x==14u?y:old,y,WHITE);old=y;
  }
  if(draw){
-  uint32_t grip=native_editor.cursor/4u;
-  if(grip>31u)grip=31u;
-  uint32_t cx=14u+(grip*212u+15u)/31u;
+  uint32_t cx=14u+((uint32_t)native_editor.cursor*212u+63u)/127u;
   lcd_fill(cx,top,1,bottom-top+1,LIME);
   uint32_t cy=etch_ui_wave_display_y(native_editor.points[native_editor.wave][native_editor.cursor],g,mid,extent,top+1,bottom-1);
   lcd_fill(cx>14u?cx-1u:cx,cy>top+1?cy-1:cy,3,3,LIME);
@@ -1874,10 +1875,11 @@ static void web_ui_primary(void){
   if(draw){
    label(native_editor.wave==0?"WAVE A":native_editor.wave==1?"WAVE B":"WAVE C",14,174,CYAN);
    label("SLOT",129,174,0x7bef);number(native_slot+1,174,174);
-   label("POINT",14,192,0x7bef);number(native_editor.cursor/4u+1,69,192);
+   label("POINT",14,192,0x7bef);number(native_editor.cursor+1u,69,192);
    label("VALUE",130,192,0x7bef);
    number(((int32_t)native_editor.points[native_editor.wave][native_editor.cursor]+32768)/512,183,192);
    label("K1 X K2 Y",14,213,LIME);
+   label(native_draw_brush==0u?"DETAIL":native_draw_brush==1u?"SOFT":"EDGE",158u,213u,AMBER);
    label("K3 PART",14,228,0x7bef);number(native_harmonic,104,228);
    label("K4 HARM GAIN",138,228,MAGENTA);
   }else if(page==ETCH_UI_MORPH){
@@ -2924,7 +2926,7 @@ static void screen_render(void){
   uint32_t cx=etch_ui_draw_cursor_x(native_editor.cursor);
   lcd_fill(cx,scope_top,cx==239u?1u:2u,scope_bottom-scope_top,0xFFE0);
   lcd_fill(0,196,240,40,0x0000);
-  label("K1 X",6,201,0x07ff);number(native_editor.cursor/4u+1u,56,201);
+  label("K1 X",6,201,0x07ff);number(native_editor.cursor+1u,56,201);
   label("K2 Y",116,201,0xf81f);number((uint32_t)((int32_t)native_editor.points[native_editor.wave][native_editor.cursor]+32768)/512,170,201);
   label("K3 PART",6,219,0x7bef);number(native_harmonic,83,219);
   label("K4 SHAPE",116,219,0xf81f);
@@ -3107,7 +3109,7 @@ void fm1_cstart(void){
  int32_t pot=fm1_adc_read(FM1_ADC_MASTER);
  if(pot>=0)native_controls.gain=(uint16_t)(pot*32767/1023);
  if(!muted&&!native_keyboard_mode&&etch_recovery_may_run_audio(native_recovery_reason)){fm1_irq_off();native_start();fm1_irq_enable_all();}
- uint32_t last=0,held=0,previous_buttons=fm1_in.buttons,last_seq_notes=fm1_in.notes,last_ui_paint_ms=0;
+ uint32_t last=0,held=0,previous_buttons=fm1_in.buttons,last_seq_notes=fm1_in.notes,last_ui_paint_ms=0,last_wave_compile_ms=0;
  struct etch_home_shortcuts native_shortcuts={0};
  uint32_t native_audio_rearm_held=0, native_auto_fault_at=0,last_gain_sample_ms=0;
  uint8_t native_auto_restarts=0, native_last_tripped=0;
@@ -3251,7 +3253,9 @@ void fm1_cstart(void){
        native_tripped)){
    screen();last_ui_paint_ms=etch_ms;
   }
-  if(etch_ms-last>=100){
+  /* DRAW needs a lower input-to-display delay; the rest of ETCH retains
+   * its proven 100 ms control cadence. This loop still prioritises audio. */
+  if(etch_ms-last>=(native_draw && native_page==ETCH_UI_PLAY?25u:100u)){
    last=etch_ms;
    if(safe){
     if(first_frame||etch_ms-last_ui_paint_ms>=1800u||fm1_in.buttons!=previous_buttons||fm1_in.notes!=last_seq_notes){screen();last_ui_paint_ms=etch_ms;}
@@ -4271,11 +4275,27 @@ void fm1_cstart(void){
     /* PATCH button pressed again opens the patch name editor; GLO is SYSTEM. */
    }else{
     /* Wave editor: SEL loads; FX opens tools; GLO opens waveform naming. */
+    /* A physical piano-key transition can register a spurious quadrature
+     * detent on the shared FM1 scan matrix. Previously DRAW accepted that
+     * delta as K2 Y/K4 PART, creating an unintended second edit when a
+     * player auditioned the wave. Isolate the 25ms UI draw controls from
+     * note-on/off edges (65ms total), but keep actual notes and audio live.
+     * After that short transition, encoder editing while notes are held
+     * works as before. Never queue or replay suppressed encoder deltas. */
+    if(!draw_before || page_before!=ETCH_UI_PLAY){
+     etch_draw_key_guard_reset(&native_draw_key_guard,fm1_in.notes);
+     (void)fm1_input_note_edges();
+     dm=dd=up=down=select=alg=0;
+    }else if(etch_draw_key_guard_tick(&native_draw_key_guard,fm1_in.notes,
+                                    fm1_input_note_edges(),etch_ms)){
+     dm=dd=up=down=select=alg=0;
+    }
     /* Storage claiming is available only through the visible SYSTEM warning. */
     if(pressed&(1u<<2)){native_page=14;native_fx_bake_confirm=0;}
     else if((pressed&(1u<<7))&&native_store_status!=ETCH_STORE_FOREIGN){native_name_kind=0;native_name_pos=0;native_page=8;}
     else {if(select||dm||dd||up||down)native_save_confirm=0;etch_editor_select(&native_editor,select);
-     etch_editor_move_xy32(&native_editor,dm,dd);
+     if(alg)native_draw_brush=(uint8_t)ui_bound((int32_t)native_draw_brush+alg,0,2);
+     etch_editor_move_xy128(&native_editor,dm,dd,native_draw_brush);
      native_harmonic=(uint8_t)ui_bound((int32_t)native_harmonic+up,2,16);
      if(down)etch_editor_add_partial(&native_editor,native_harmonic,down);
      if(pressed&(1u<<4))etch_editor_undo(&native_editor);if(pressed&(1u<<5))etch_editor_redo(&native_editor);
@@ -4291,7 +4311,12 @@ void fm1_cstart(void){
      native_blend_pending=0u;
      native_patch_blend_apply(&m,&d);
    }
-   native_compile_edit();
+   /* Drawing remains responsive at 25 ms while expensive background
+    * wavetable synthesis runs at <= 14 Hz. The latest edited points are
+    * always compiled; leaving DRAW publishes immediately. */
+   if(!native_draw || (uint32_t)(etch_ms-last_wave_compile_ms)>=70u){
+    native_compile_edit();last_wave_compile_ms=etch_ms;
+   }
    int32_t octave=native_controls.octave;
    enum etch_octave_action oct_action=etch_octave_scan(&native_octave_chord,buttons);
    if(oct_action==ETCH_OCT_MINUS)--octave;

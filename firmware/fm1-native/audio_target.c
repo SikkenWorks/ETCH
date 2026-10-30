@@ -108,6 +108,8 @@ static void native_output_poll(void){
 /* Three bank buffers are owned by audio_core; referenced by the UI compiler. */
 static struct etch_wave_editor native_editor __attribute__((section(".pool")));
 static uint8_t native_draw;
+/* UI-only V1.85 brush selection; never read in the audio callback. */
+static uint8_t native_draw_brush;
 /* SPECTRAL rebuilds are not realtime. Keep the edited points pending until
  * no voices remain; a bank swap transiently doubles oscillator work. */
 static uint8_t native_spectral_bank_pending;
@@ -118,6 +120,29 @@ static uint8_t native_blend_audio_busy(void);
  * The output is muted while changing the bank contents, preventing half-
  * compiled tables from being audible (including any incoming MIDI notes). */
 static uint8_t native_groups_compiled;
+/* V1.85: cache the source state for the published (non-GROUPS) wavetable.
+ * Compare exact 128-point waves and FX before recomputing. ~816 bytes
+ * in the existing DSP pool, versus wasting 2/3 of the compilation work
+ * every time the user edits one wave. No fourth runtime wavetable. */
+static int16_t native_last_compiled_points[3][128] __attribute__((section(".pool")));
+static struct etch_wave_fx_params native_last_compiled_fx[3] __attribute__((section(".pool")));
+static uint8_t native_last_compiled_valid __attribute__((section(".pool")));
+static uint8_t native_wave_matches_published(uint8_t w){
+ if(!native_last_compiled_valid)return 0u;
+ for(uint32_t n=0u;n<128u;n++)
+  if(native_editor.points[w][n]!=native_last_compiled_points[w][n])return 0u;
+ const uint16_t *a=(const uint16_t *)&native_editor.fx[w];
+ const uint16_t *b=(const uint16_t *)&native_last_compiled_fx[w];
+ for(uint32_t n=0u;n<sizeof(native_editor.fx[w])/2u;n++)if(a[n]!=b[n])return 0u;
+ return 1u;
+}
+static void native_wave_publish_cache(void){
+ for(uint32_t w=0u;w<3u;w++){
+  for(uint32_t n=0u;n<128u;n++)native_last_compiled_points[w][n]=native_editor.points[w][n];
+  native_last_compiled_fx[w]=native_editor.fx[w];
+ }
+ native_last_compiled_valid=1u;
+}
 static uint8_t native_groups_enabled_now(void);
 static void native_compile_group_bank(uint8_t index);
 static void native_compile_edit(void){
@@ -128,6 +153,7 @@ static void native_compile_edit(void){
  /* All three banks are needed while grouped. Wait for complete note tails.
   * When leaving group mode, also wait for old Group-owned voices. */
  if(grouped || native_groups_compiled){
+  native_last_compiled_valid=0u;
   if(native_blend_audio_busy())return;
   fm1_irq_off();
   native_controls.bank=0;native_audio.bank=0;native_audio.old_bank=0;native_audio.bank_fade=0;
@@ -149,7 +175,19 @@ static void native_compile_edit(void){
  const struct etch_native_bank *current,*old,*published;
  fm1_irq_off();current=native_audio.bank;old=native_audio.old_bank;published=native_controls.bank;fm1_irq_enable_all();
  for(uint32_t i=0;i<3;i++)if(&native_banks[i]!=current&&&native_banks[i]!=old&&&native_banks[i]!=published){
-  etch_editor_compile(&native_editor,&native_banks[i]);
+  uint8_t changed[3];uint8_t total=0u;
+  for(uint8_t w=0u;w<3u;w++){changed[w]=(uint8_t)!native_wave_matches_published(w);total+=changed[w];}
+  /* The published bank is immutable during the compilation and PCM ISR.
+   * Copy unchanged 6x512-point tables, compile only changed waves, then
+   * atomically publish the completed idle bank after all writes finish. */
+  if(total<3u && published && native_last_compiled_valid){
+   for(uint8_t w=0u;w<3u;w++){
+    if(changed[w])etch_editor_compile_wave_source(native_editor.points,native_editor.fx,&native_banks[i],w);
+    else for(uint32_t l=0u;l<6u;l++)for(uint32_t n=0u;n<512u;n++)
+     native_banks[i].table[w][l][n]=published->table[w][l][n];
+   }
+  }else etch_editor_compile(&native_editor,&native_banks[i]);
+  native_wave_publish_cache();
   fm1_irq_off();native_controls.bank=&native_banks[i];fm1_irq_enable_all();
   native_editor.dirty=0;native_spectral_bank_pending=0u;break;
  }

@@ -1,3 +1,33 @@
+## V1.86 — DRAW keyboard isolation
+
+- Guarded waveform-editor encoder deltas for 65 ms around physical keyboard note transitions.
+- Corrected unintended waveform edits when auditioning notes after drawing.
+- Preserved live note-on/off audio, held-note drawing, 128-point brushes and Undo/Redo.
+- Added a host regression covering note press, release, quick taps and control recovery.
+- Source and OTA package identity unchanged (`FM-1_1500`); no physical FM1 test performed.
+
+## V1.85 WebInstaller UI refresh (no firmware change)
+
+- Removed the three old yellow warning cards from the visible installation workflow. Their necessary safety information is retained in one unobtrusive expandable **Safety & compatibility** section, with a separate mandatory, visible risk acknowledgement.
+- Applied the ETCH PHOSPHOR palette and improved desktop/mobile spacing. Updated previously stale installer title/version/feature text. Consolidated duplicated text-selection/right-click JavaScript handlers into a single script.
+- No changes to embedded firmware bytes, USB-MIDI updater protocol, validation, cross-firmware handling, checksum checks, OTA/bootloader/recovery logic, or hardware firmware identification.
+- Added `docs/WEBINSTALLER-UI-STANDARD.md` and `tools/check_webinstaller_ui.py` as future-release style and integrity guards.
+
+# ETCH V1.85 — DRAW & Timbre Update
+
+- Fixed 100 ms DRAW encoder cadence: reduced to 25 ms while in the waveform editor.
+- Full 128-point cursor editing instead of 32 quantised grips. 128-point storage and project schema unchanged.
+- ALGORITHM encoder selects DETAIL / SOFT / EDGE brushes; the screen displays the current brush.
+- New per-wave compiler path: unchanged wavetable levels are copied, changed waves recompiled. Full-output equivalence tested.
+- Reduced redundant wavetable recompilation during continuous editing (70 ms compile budget in DRAW).
+- Smoother rounded wavetable bank handoff and stolen-note tails. Existing 256-sample note-on fade retained.
+- Existing 64 pages, SIMPLE / ADVANCED, WAVE AMP, FX BYPASS, patches, projects, MIDI, USB and sequencer retained.
+- Native 48 kHz JieLi build leaves 8,980 bytes free in the dedicated DSP pool and 1,588 bytes free in USB scratch RAM.
+- `FM-1_1500`, boot header, OTA loader and PJT32 preserved.
+- Experimental firmware: no hardware listening, stress or flashing validation.
+
+---
+
 ## V1.84 — WAVE AMP / Note-On / VHS 2.0
 
 - New per-voice phase-locked WAVE AMP with Wave A/B/MORPH sources and depth; no extra oscillator or wavetable buffers.

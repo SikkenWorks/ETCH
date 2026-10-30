@@ -3,12 +3,12 @@
 **Draw. Morph. Modulate.**  
 **SikkenWorks · Born out of passion.**
 
-**Firmware:** ETCH V1.85 · **Instrument:** M-VAVE FM1  
+**Firmware:** ETCH V1.86 · **Instrument:** M-VAVE FM1  
 **Project:** [github.com/SikkenWorks/ETCH](https://github.com/SikkenWorks/ETCH)  
 **Firmware identity:** `FM-1_1500` · **Current project format:** `PJT32`
 
 > [!IMPORTANT]
-> **Experimental firmware.** V1.85 has passed software builds and host tests, but not a complete physical FM1 qualification. Firmware flashing and recovery are not guaranteed. Keep a verified backup and a proven independent recovery route before updating. **Never reboot, wipe or flash while an important sound exists only in RAM.**
+> **Experimental firmware.** V1.86 has passed software builds and host tests, but not a complete physical FM1 qualification. Firmware flashing and recovery are not guaranteed. Keep a verified backup and a proven independent recovery route before updating. **Never reboot, wipe or flash while an important sound exists only in RAM.**
 
 ## Contents
 
@@ -148,6 +148,8 @@ Press **EDIT** to enter DRAW. Turn the **SELECT encoder** to choose **Wave A, B 
 
 DRAW previews the selected waveform on its own, without the complete morphed sound. The original patch settings return when you leave DRAW.
 
+**Audition while drawing:** pressing or releasing a keyboard note plays the sound; it must **not** paint, move the cursor or change a harmonic. To protect against stray encoder events from the shared input matrix, DRAW ignores encoder movement for approximately **65 ms** following a physical note transition. You can continue drawing while holding a note once this brief period has passed. If you turn a knob at the exact moment you play a key, that knob movement may be ignored. The waveform, Undo history and saved preset remain unchanged by the keypress itself.
+
 ### Brush types and smoother drawing
 
 | Brush | Shape | Best for |
@@ -244,7 +246,7 @@ At **100% DEPTH**, the highest waveform level produces full volume and the lowes
 
 **Try this:** draw a rounded shape in Wave A, play a sustained note, set WAVE AMP SOURCE to A and increase DEPTH slowly. Compare A, B and MORPH. To return to the original sound, select **OFF** or set DEPTH to **0**.
 
-WAVE AMP uses the existing A/B oscillator values. DEPTH is shown as 0–100% but stored in 64 discrete levels. It does **not** require another waveform, oscillator or separate modulation buffer. The standard ADSR still works. Its SOURCE and DEPTH are saved in **PJT32** and supported by the V1.85 Preset Manager.
+WAVE AMP uses the existing A/B oscillator values. DEPTH is shown as 0–100% but stored in 64 discrete levels. It does **not** require another waveform, oscillator or separate modulation buffer. The standard ADSR still works. Its SOURCE and DEPTH are saved in **PJT32** and supported by the V1.86 Preset Manager.
 
 ---
 
@@ -442,7 +444,7 @@ The **ETCH Project & Preset Manager** is a standalone browser tool for reading t
 
 The format carries the **three waves and associated sound settings**, including WAVE AMP in the current version. It does **not** contain every project, sample or sequencer pattern. `.etchpreset` V1 and V2 are supported by the updated Manager. The 1,044-byte live snapshot is protected by CRC32 and SHA-256 in the exported file.
 
-**Important:** live reading needs firmware **V1.77 or later** with the snapshot protocol. An old V1.76 sound cannot be recovered by installing V1.85, because firmware flashing clears RAM. This webapp never writes FM1 flash or issues OTA commands.
+**Important:** live reading needs firmware **V1.77 or later** with the snapshot protocol. An old V1.76 sound cannot be recovered by installing V1.86, because firmware flashing clears RAM. This webapp never writes FM1 flash or issues OTA commands.
 
 ---
 
@@ -470,7 +472,7 @@ ETCH's public release uses a single regular `.fwsc` package with identity **`FM-
 **Before flashing:** keep a full data backup, verify the release and checksum, and make sure an independent restore route has been tested on your actual FM1. Use desktop Chrome/Edge, a proper USB cable and the correct MIDI input/output. Never force an update after a compatibility rejection. The official stock restore route requires genuine, independently verified stock firmware and its supported loader.
 
 > [!CAUTION]
-> A successful browser transfer is not proof that the FM1 boots or that recovery will work after a failed flash. **V1.85 has software validation, not an on-device cross-firmware or full recovery qualification.**
+> A successful browser transfer is not proof that the FM1 boots or that recovery will work after a failed flash. **V1.86 has software validation, not an on-device cross-firmware or full recovery qualification.**
 
 ---
 
@@ -485,6 +487,7 @@ ETCH's public release uses a single regular `.fwsc` package with identity **`FM-
 | **WAVE AMP sounds harsh** | That can be normal at audio rate. Lower DEPTH or use a rounded SOFT brush. |
 | **Drawing seems delayed** | The 25 ms input update and 70 ms wavetable compile limit are separate; audio may trail cursor motion briefly while drawing. |
 | **Different waves sound alike** | Try EDGE at mid/lower notes, open FILTER cutoff, lower wet FX and compare waves alone in DRAW. High-note band-limiting intentionally removes upper harmonics. |
+| **A keyboard note changes the DRAW waveform** | In V1.86, physical note-on/off is isolated from DRAW encoder edits. Only K1/K2 movement and explicit harmonic actions should change points. If this still occurs, record the pressed key, active brush and whether K2 moved; avoid saving the unintended edit and try ENV (Undo). |
 | **Key-on clicks / plops** | Test a clean wave at low output volume with low DRIVE/FX. Smooth note-on, wavetable and voice-steal fades reduce digital transients; analogue startup/output clicks may still occur. |
 | **No sound from Wave C** | Check its rate, target and DEPTH; MOD WAVE at zero depth is effectively bypassed. |
 | **An effect appears inactive** | Check FX BYPASS, wet MIX, insert TYPE and the effect's routing. |
@@ -516,7 +519,7 @@ DRAW + FX:     WFX 1 → WFX 2 → SCULPT → TOOLS
 
 The **ADVANCED screen catalog** provides direct access to all **64 existing page IDs** even when a particular page is not in the short button cycle. A MONO-only page will tell you when MONO is required.
 
-### Complete V1.85 screen directory (64 pages)
+### Complete V1.86 screen directory (64 pages)
 
 | Category | Screens |
 |---|---|
@@ -533,7 +536,7 @@ The **ADVANCED screen catalog** provides direct access to all **64 existing page
 
 ## 16. Technical information and credits
 
-| Item | ETCH V1.85 |
+| Item | ETCH V1.86 |
 |---|---|
 | Hardware | M-VAVE FM1 / JieLi AC791N family |
 | Firmware / package identity | `FM-1_1500` |
