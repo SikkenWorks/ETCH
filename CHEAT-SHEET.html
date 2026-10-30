@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#15121C">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="ETCH V1.84 essential controls, shortcuts, wave editing, sound design, presets and troubleshooting. Offline reference for the M-VAVE FM1.">
+<title>ETCH // V1.84 CHEAT SHEET</title>
+<style>
+:root { --bg:#15121C;--panel:#25202D;--ink:#F2E9D8;--sub:#A79AAE;--lime:#C7F36B;--coral:#FF7668;--lilac:#B39AFF;--blue:#82C8E8;--amber:#FFC16E;--muted:#77717E;--red:#FF5263;--grid:#403749;--border:#4b4054;--shadow:#0b0a10; }
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:30px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Consolas,'Lucida Console','Courier New',monospace;font-size:14px;line-height:1.6;-webkit-font-smoothing:none}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.19;z-index:-1;background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:48px 48px;mask-image:linear-gradient(to bottom,black,transparent 85%)}
+a{color:inherit;text-decoration:none}
+button,input{font:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--lime);outline-offset:4px}
+button:disabled{cursor:default;opacity:.5}
+.shell{max-width:1570px;margin:0 auto;padding:32px 34px 90px;display:grid;grid-template-columns:230px minmax(0,1fr);gap:38px}
+.side{min-width:0;position:sticky;top:28px;align-self:start;max-height:calc(100vh - 56px);overflow:auto;scrollbar-width:thin}
+.brand{display:flex;gap:9px;align-items:baseline;margin:2px 0 8px;white-space:nowrap}
+.brand .etch{font-size:35px;line-height:1;font-weight:900;letter-spacing:.19em;color:var(--ink)}
+.brand .ver{color:var(--lime);font-size:11px;letter-spacing:.12em}
+.side-sub{font-size:10px;letter-spacing:.18em;color:var(--sub);margin-bottom:38px}
+.side-label,.eyebrow{font-size:10px;letter-spacing:.18em;color:var(--lilac);font-weight:700}
+.side-label{padding:0 12px;margin-bottom:12px}
+.nav{display:flex;flex-direction:column;gap:4px}
+.nav-link{display:flex;align-items:center;gap:13px;padding:11px 12px;color:var(--sub);border:1px solid transparent;font-size:11px;font-weight:700;letter-spacing:.065em;transition:color .15s,border-color .15s,background .15s}
+.nav-link:hover,.nav-link.current{color:var(--lime);background:rgba(199,243,107,.055);border-color:var(--grid)}
+.nav-dot{width:7px;height:7px;border:1px solid currentColor;transform:rotate(45deg);flex:none}
+.nav-link.current .nav-dot{background:var(--lime)}
+.side-foot{margin-top:36px;padding:16px;border-top:1px solid var(--grid);font-size:10px;color:var(--muted);line-height:1.8}
+.main{min-width:0}
+.topline{display:flex;justify-content:space-between;align-items:center;color:var(--sub);font-size:10px;letter-spacing:.13em;margin-bottom:28px;gap:12px}
+.status{display:inline-flex;gap:9px;align-items:center;color:var(--lime)}
+.status:before{content:"";width:7px;height:7px;background:var(--lime);box-shadow:0 0 12px rgba(199,243,107,.5)}
+.hero{border:1px solid var(--border);padding:30px 36px 34px;background:linear-gradient(130deg,#292333 0%,#211c29 54%,#17131e 100%);position:relative;overflow:hidden;box-shadow:8px 8px 0 var(--shadow)}
+.hero:before{content:"";position:absolute;top:0;right:0;width:36%;height:100%;background:linear-gradient(90deg,transparent,rgba(179,154,255,.06));pointer-events:none}
+.hero-top{display:flex;align-items:center;justify-content:space-between;gap:14px;color:var(--lilac);font-size:11px;letter-spacing:.14em;font-weight:bold}
+.hero-top .line{height:1px;background:var(--border);flex:1;max-width:300px}
+.hero h1{margin:26px 0 12px;font-size:clamp(37px,5vw,70px);line-height:1.06;letter-spacing:-.06em;font-weight:900;color:var(--ink)}
+.hero h1 span{color:var(--lime)}
+.hero p{margin:0;max-width:650px;color:#c6bac9;line-height:1.75;font-size:13px}
+.hero-bottom{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:26px}
+.tag{font-size:10px;padding:6px 9px;border:1px solid var(--border);color:var(--sub);font-weight:700;letter-spacing:.07em}
+.tag:nth-child(2){border-color:#66544f;color:var(--coral)}
+.wave{margin-top:25px;width:100%;height:92px;display:block;overflow:visible}
+.wave .grid-line{stroke:#5b4b64;stroke-width:.8;opacity:.62}
+.wave .wave-a{stroke:var(--coral);fill:none;stroke-width:2.4;stroke-linejoin:round}
+.wave .wave-b{stroke:var(--lilac);fill:none;stroke-width:2.4;stroke-linejoin:round}
+.wave .center-line{stroke:var(--lime);stroke-width:.75;opacity:.55}
+.tools{margin:28px 0 12px;display:flex;gap:10px;flex-wrap:wrap;align-items:stretch}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.search-wrap{flex:1 1 270px;min-width:200px;position:relative}
+.search-wrap:before{content:"⌕";position:absolute;left:15px;top:50%;transform:translateY(-51%);color:var(--lime);font-size:24px;pointer-events:none}
+.search{width:100%;height:46px;outline:0;border:1px solid var(--border);background:var(--panel);color:var(--ink);padding:0 49px;font-size:12px;border-radius:0}
+.search::placeholder{color:#8a7e93}
+.search::-webkit-search-cancel-button{display:none}
+.clear{position:absolute;right:7px;top:7px;width:32px;height:32px;border:0;background:transparent;color:var(--sub);font-size:16px}
+.clear:hover{color:var(--lime)}
+.print-btn{border:1px solid var(--border);background:var(--panel);color:var(--ink);padding:0 17px;height:46px;font-size:11px;font-weight:bold;letter-spacing:.04em}
+.print-btn:hover{border-color:var(--lime);color:var(--lime)}
+.filters{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+.chip{background:transparent;border:1px solid var(--grid);padding:8px 11px;color:var(--sub);font-size:10px;font-weight:bold;letter-spacing:.04em}
+.chip:hover{color:var(--ink);border-color:var(--lilac)}
+.chip[aria-pressed="true"]{background:var(--lime);border-color:var(--lime);color:var(--bg)}
+.results{display:flex;justify-content:space-between;gap:10px;margin:17px 0 32px;color:var(--muted);font-size:10px;letter-spacing:.12em}
+.section{margin-bottom:50px;scroll-margin-top:30px}
+.section[hidden],.card[hidden]{display:none!important}
+.section-title{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:17px}
+.section-title h2{font-size:22px;letter-spacing:.025em;margin:5px 0 3px;line-height:1.25}
+.section-title p{color:var(--sub);font-size:11px;margin:0}
+.section-count{color:var(--muted);font-size:10px;letter-spacing:.1em;white-space:nowrap}
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+.card{position:relative;background:var(--panel);border:1px solid var(--border);padding:20px 22px 22px;min-width:0;box-shadow:4px 4px 0 rgba(0,0,0,.24)}
+.card:before{content:"";position:absolute;top:-1px;left:-1px;width:36px;border-top:2px solid var(--coral)}
+.section:nth-of-type(3n+1) .card:before{border-color:var(--lilac)}
+.section:nth-of-type(3n+2) .card:before{border-color:var(--lime)}
+.card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.card-index{color:var(--lilac);font-size:10px;letter-spacing:.1em;font-weight:bold}
+.card-pip{width:6px;height:6px;background:var(--grid)}
+.card h3{font-size:16px;line-height:1.45;letter-spacing:-.025em;margin:0 0 11px;color:var(--ink)}
+.card-content{font-size:11.5px;line-height:1.72;color:#d5ccdc;overflow-wrap:anywhere}
+.card-content p{margin:0 0 12px}
+.card-content p:last-child{margin-bottom:0}
+.card-content b,.card-content strong{color:var(--ink);font-weight:800}
+.card-content em{color:var(--lilac)}
+.card-content ol,.card-content ul{margin:3px 0 12px 18px;padding:0}
+.card-content li{padding-left:3px;margin:0 0 6px}
+.card-content li::marker{color:var(--coral);font-weight:bold}
+.card-content .subnote{color:var(--sub);font-size:10.7px}
+kbd{display:inline-block;background:#17131d;color:var(--lime);border:1px solid #66556c;border-bottom:2px solid #62566c;padding:1px 5px;font-size:10px;line-height:1.5;white-space:nowrap;font-weight:bold}
+code{font-size:11px;color:var(--blue)}
+.signal{font-size:10px;letter-spacing:.03em;background:#18141f;border-left:2px solid var(--lime);padding:11px 9px;color:var(--ink);text-align:center;white-space:normal}
+.signal span{color:var(--coral)}
+.triple,.knobs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:8px 0 14px}
+.triple>div,.knobs>div{background:#19151f;border:1px solid var(--grid);padding:9px 6px;text-align:center;min-width:0}
+.triple strong,.knobs strong{display:block;font-size:10px;color:var(--lime);letter-spacing:.025em;overflow-wrap:anywhere}
+.triple small,.knobs small{display:block;font-size:9px;color:var(--sub);margin-top:3px}
+.knobs{grid-template-columns:repeat(4,minmax(0,1fr))}
+.knobs span{display:block;font-size:9px;color:var(--coral);margin-bottom:4px}
+.shortcut{border-bottom:1px solid var(--grid);padding:8px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.shortcut:first-child{padding-top:0}
+.shortcut:last-child{border:0;padding-bottom:0}
+.shortcut>span{max-width:54%;color:#cfc2d6}
+.shortcut>b{font-size:10px;text-align:right;font-weight:normal;color:var(--lime)}
+.mini-table{margin:3px 0 12px;border:1px solid var(--grid)}
+.mini-table>div{display:grid;grid-template-columns:minmax(60px,90px) minmax(0,1fr);gap:12px;padding:8px 10px;border-bottom:1px solid var(--grid);align-items:start}
+.mini-table>div:last-child{border:0}
+.mini-table b{font-size:10px;color:var(--lime)}
+.mini-table span{color:#cfc4d5;font-size:10.5px}
+.warning{padding:10px 12px;border-left:3px solid var(--red);background:rgba(255,82,99,.09);color:#ffd2d5}
+.swatches{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.swatches span{display:inline-flex;align-items:center;gap:6px;font-size:9px;color:var(--sub);border:1px solid var(--grid);padding:5px 7px}
+.swatches span:before{content:"";background:var(--sw);width:10px;height:10px;display:block}
+.no-results{border:1px dashed var(--border);text-align:center;padding:46px 20px;color:var(--sub);margin:20px 0 60px}
+.no-results[hidden]{display:none}
+.no-results strong{display:block;color:var(--ink);font-size:15px;margin-bottom:8px}
+footer{padding:30px 0;border-top:1px solid var(--border);color:var(--muted);font-size:10px;line-height:1.8;display:flex;flex-wrap:wrap;justify-content:space-between;gap:15px}
+footer a{color:var(--lilac)}
+footer a:hover{color:var(--lime)}
+@media(min-width:1400px){.cards{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:1000px){.shell{grid-template-columns:1fr;padding:20px 20px 65px;gap:12px}.side{position:static;max-height:none;overflow:visible}.brand .etch{font-size:29px}.side-sub{margin-bottom:13px}.side-label,.side-foot{display:none}.nav{flex-direction:row;overflow:auto;padding-bottom:8px;gap:7px;scrollbar-width:thin}.nav-link{white-space:nowrap;padding:8px 10px}.hero{padding:25px}.topline{margin-bottom:15px}}
+@media(max-width:640px){.shell{padding:14px 12px 50px}.cards{grid-template-columns:1fr}.hero{padding:19px 17px;box-shadow:4px 4px 0 var(--shadow)}.hero h1{font-size:38px;margin-top:21px}.wave{height:65px;margin-top:16px}.topline{font-size:9px}.section-title h2{font-size:19px}.section-title p{font-size:10px}.section-count{display:none}.card{padding:18px 17px}.filters{gap:5px}.chip{padding:7px 8px;font-size:9px}.tools{margin-top:21px}.hero-bottom{gap:6px}.tag{font-size:9px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.nav-link{transition:none}}
+@media print{@page{size:A4;margin:12mm}html{scroll-behavior:auto}body{background:white;color:#15121C;font-size:10px}body:before,.side,.tools,.filters,.results,.topline,.wave,.print-btn,.no-results{display:none!important}.shell{display:block;padding:0;max-width:none}.hero{background:white;color:black;box-shadow:none;border:1px solid #444;padding:12px;margin-bottom:14px}.hero h1{font-size:29px;color:black;margin:5px 0}.hero h1 span{color:#444}.hero p,.hero-top,.tag{color:black}.card{background:white;color:black;box-shadow:none;border:1px solid #999;break-inside:avoid;padding:11px}.card-content,.card h3,.card-content b,.card-content strong,.section-title p,.subnote{color:#111!important}.section{break-inside:auto;margin-bottom:20px}.section-title h2{color:#111}.cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.knobs>div,.triple>div,.mini-table,.signal{background:white;color:#111;border-color:#888}.knobs strong,.triple strong,.mini-table b,kbd{color:#111!important}kbd{border:1px solid #888;background:white}.shortcut>b,.card-index{color:#333}.card[hidden],.section[hidden]{display:block!important}footer{color:#333}}
+</style>
+</head>
+<body>
+<div class="shell">
+<aside class="side" aria-label="Section navigation">
+  <a class="brand" href="#top"><span class="etch">ETCH</span><span class="ver">V1.84</span></a>
+  <div class="side-sub">DRAW. MORPH. MODULATE.</div>
+  <div class="side-label">// INDEX</div>
+  <nav class="nav" aria-label="Cheat sheet sections"><a href="#start" class="nav-link" data-link="start"><span class="nav-dot"></span>START HERE</a><a href="#shortcuts" class="nav-link" data-link="shortcuts"><span class="nav-dot"></span>SHORTCUTS</a><a href="#sound" class="nav-link" data-link="sound"><span class="nav-dot"></span>SOUND DESIGN</a><a href="#editing" class="nav-link" data-link="editing"><span class="nav-dot"></span>DRAW & EDIT</a><a href="#rhythm" class="nav-link" data-link="rhythm"><span class="nav-dot"></span>PLAY & PERFORM</a><a href="#saving" class="nav-link" data-link="saving"><span class="nav-dot"></span>SAVE & RECOVER</a><a href="#help" class="nav-link" data-link="help"><span class="nav-dot"></span>IF SOMETHING GOES WRONG</a></nav>
+  <div class="side-foot">M-VAVE FM1 / PHOSPHOR UI<br>SIKKENWORKS<br>BORN OUT OF PASSION.</div>
+</aside>
+<main class="main" id="top">
+ <div class="topline"><span>ETCH / QUICK REFERENCE / 2026</span><span class="status">OFFLINE READY</span></div>
+ <header class="hero">
+   <div class="hero-top"><span>SIKKENWORKS / FIELD GUIDE</span><span class="line"></span><span>V184 A/S</span></div>
+   <h1>THE <span>CHEAT</span><br>SHEET<span>.</span></h1>
+   <p>Everything you actually need while making music on ETCH. Shortcuts, wave editing, live FX, saving, recovery and fast answers. Built for the M-VAVE FM1 running ETCH V1.84.</p>
+   <div class="hero-bottom"><span class="tag">64 SCREENS</span><span class="tag">3 DRAWABLE WAVES</span><span class="tag">PJT32</span><span class="tag">NO INTERNET REQUIRED</span></div>
+   <svg class="wave" viewBox="0 0 840 95" preserveAspectRatio="none" role="img" aria-label="Decorative ETCH waveform motif">
+      <path class="grid-line" d="M0 24H840 M0 48H840 M0 72H840 M105 0V95 M210 0V95 M315 0V95 M420 0V95 M525 0V95 M630 0V95 M735 0V95" />
+      <path class="center-line" d="M0 48H840" />
+      <path class="wave-a" d="M0 48L44 36L86 22L120 11L163 9L204 28L239 44L285 66L318 83L347 82L398 62L441 39L480 19L518 15L553 31L602 56L645 76L687 76L735 54L783 29L840 48" />
+      <path class="wave-b" d="M0 48L19 46L42 40L61 17L89 12L124 13L151 40L183 47L224 54L257 68L285 82L321 84L358 84L388 76L423 48L456 28L491 23L523 33L563 49L601 57L648 64L681 81L722 84L762 83L803 50L840 48" />
+   </svg>
+ </header>
+ <div class="tools" role="search">
+  <div class="search-wrap"><label class="sr-only" for="search">Search cheat sheet</label><input id="search" class="search" type="search" placeholder="SEARCH / e.g. WAVE AMP, SAVE, FX, MIDI" autocomplete="off" spellcheck="false"><button class="clear" id="clear-search" type="button" aria-label="Clear search">×</button></div>
+  <button type="button" id="print" class="print-btn">PRINT / PDF ↗</button>
+ </div>
+ <div class="filters" role="group" aria-label="Filter by category"><button type="button" class="chip" data-filter="all" aria-pressed="true">ALL</button><button type="button" class="chip" data-filter="start" aria-pressed="false">START HERE</button><button type="button" class="chip" data-filter="shortcuts" aria-pressed="false">SHORTCUTS</button><button type="button" class="chip" data-filter="sound" aria-pressed="false">SOUND DESIGN</button><button type="button" class="chip" data-filter="editing" aria-pressed="false">DRAW & EDIT</button><button type="button" class="chip" data-filter="rhythm" aria-pressed="false">PLAY & PERFORM</button><button type="button" class="chip" data-filter="saving" aria-pressed="false">SAVE & RECOVER</button><button type="button" class="chip" data-filter="help" aria-pressed="false">IF SOMETHING GOES WRONG</button></div>
+ <div class="results"><span id="results" role="status" aria-live="polite">LOADING CARDS...</span><span>TIP: PRESS / TO SEARCH</span></div>
+ <div class="no-results" id="no-results" hidden><strong>NO MATCHES FOUND</strong>Try another phrase or select ALL.</div>
+ <section class="section" id="start" data-section="start" aria-labelledby="heading-start">
+<div class="section-title"><div><div class="eyebrow">// START</div><h2 id="heading-start">START HERE</h2><p>The shortest route from power-on to a usable sound.</p></div><span class="section-count">04 CARDS</span></div>
+<div class="cards">
+<article class="card" data-search="START HERE The ETCH concept 01 / FOUNDATION core architecture wave audio shape morph modulation" aria-label="The ETCH concept"><div class="card-top"><span class="card-index">01 / FOUNDATION</span><span class="card-pip" aria-hidden="true"></span></div><h3>The ETCH concept</h3><div class="card-content"><p><b>WAVE A + WAVE B</b> create one carrier shape. <b>MORPH</b> moves between them. <b>WAVE C</b> modulates phase, morph or FX. <b>WAVE AMP</b> can turn a wave into audio-rate volume movement.</p><div class="signal">A + B <span>→</span> MORPH <span>→</span> FILTER / FX <span>→</span> AUDIO</div></div></article>
+<article class="card" data-search="START HERE Startup &amp; workflow 02 / NAVIGATION boot workflow simple advanced navigation screens" aria-label="Startup &amp; workflow"><div class="card-top"><span class="card-index">02 / NAVIGATION</span><span class="card-pip" aria-hidden="true"></span></div><h3>Startup & workflow</h3><div class="card-content"><ol><li>Wait for the VHS intro and the SIKKENWORKS title.</li><li>Choose <b>SIMPLE</b> or <b>ADVANCED</b> with <kbd>K1</kbd>, confirm with <kbd>SEL</kbd>.</li><li>Change later via <kbd>GLO</kbd> → <b>WORKFLOW</b> → <kbd>K2</kbd>.</li></ol><p class="subnote"><b>SIMPLE</b> has five core pages. <b>ADVANCED</b> gives access to all 64 screen IDs via the WORKFLOW catalog: <kbd>K3</kbd> select, <kbd>K4</kbd> open.</p></div></article>
+<article class="card" data-search="START HERE First sound in 60 seconds 03 / QUICK START first sound beginner sound morph tone space filter" aria-label="First sound in 60 seconds"><div class="card-top"><span class="card-index">03 / QUICK START</span><span class="card-pip" aria-hidden="true"></span></div><h3>First sound in 60 seconds</h3><div class="card-content"><ol><li>Lower <b>MASTER</b>, play a key and raise it gradually.</li><li><kbd>HOME</kbd> → SOUND: turn <kbd>K1</kbd> MORPH, <kbd>K2</kbd> ETCH, <kbd>K3</kbd> TONE and <kbd>K4</kbd> SPACE.</li><li><b>MORPH</b> → select Wave A/B and blend them.</li><li><b>FILTER</b> → refine cutoff and resonance.</li><li>Save a named <b>PRESET</b> and wait for a success message.</li></ol></div></article>
+<article class="card" data-search="START HERE Three things to save 04 / REMEMBER save storage wave preset project backup capacities" aria-label="Three things to save"><div class="card-top"><span class="card-index">04 / REMEMBER</span><span class="card-pip" aria-hidden="true"></span></div><h3>Three things to save</h3><div class="card-content"><div class="triple"><div><strong>WAVE</strong><small>64 slots</small></div><div><strong>PRESET</strong><small>32 slots</small></div><div><strong>PROJECT</strong><small>4 slots</small></div></div><p>A <b>wave</b> is a reusable drawn shape. A <b>preset</b> is a complete sound. A <b>project</b> includes working/performance/sequence data. A <code>.etchpreset</code> backs up the active <em>sound</em>, not a whole project.</p></div></article>
+</div></section>
+<section class="section" id="shortcuts" data-section="shortcuts" aria-labelledby="heading-shortcuts">
+<div class="section-title"><div><div class="eyebrow">// SHORTCUTS</div><h2 id="heading-shortcuts">SHORTCUTS</h2><p>The button combinations worth memorising.</p></div><span class="section-count">04 CARDS</span></div>
+<div class="cards">
+<article class="card" data-search="SHORTCUTS Daily navigation 01 / BUTTONS home preset mono poly octave shortcut bpm" aria-label="Daily navigation"><div class="card-top"><span class="card-index">01 / BUTTONS</span><span class="card-pip" aria-hidden="true"></span></div><h3>Daily navigation</h3><div class="card-content"><div class="shortcut"><span>Back to SOUND</span><b><kbd>HOME</kbd></b></div><div class="shortcut"><span>Named presets</span><b>Hold <kbd>HOME</kbd> 1.5 s</b></div><div class="shortcut"><span>Change octave</span><b><kbd>OCT−</kbd> / <kbd>OCT+</kbd></b></div><div class="shortcut"><span>MONO ↔ POLY</span><b><kbd>OCT−</kbd> + <kbd>OCT+</kbd></b></div><div class="shortcut"><span>BPM in normal use</span><b><kbd>PRESETS</kbd> knob</b></div></div></article>
+<article class="card" data-search="SHORTCUTS Hidden combinations 02 / COMBINATIONS key combos home save groups performance fx bypass edit hold" aria-label="Hidden combinations"><div class="card-top"><span class="card-index">02 / COMBINATIONS</span><span class="card-pip" aria-hidden="true"></span></div><h3>Hidden combinations</h3><div class="card-content"><div class="shortcut"><span>Projects</span><b><kbd>HOME</kbd> + <kbd>SAVE</kbd></b></div><div class="shortcut"><span>GROUPS / keyboard splits</span><b><kbd>HOME</kbd> + <kbd>FX</kbd></b></div><div class="shortcut"><span>PERFORMANCE macros</span><b><kbd>HOME</kbd> + <kbd>ARP</kbd></b></div><div class="shortcut"><span>FX BYPASS (ADV)</span><b>Hold <kbd>FX</kbd> 700 ms</b></div><div class="shortcut"><span>Flat wave (DRAW)</span><b>Hold <kbd>EDIT</kbd> 700 ms</b></div></div></article>
+<article class="card" data-search="SHORTCUTS Inside DRAW 03 / EDITOR KEYS draw undo redo waveform edit buttons" aria-label="Inside DRAW"><div class="card-top"><span class="card-index">03 / EDITOR KEYS</span><span class="card-pip" aria-hidden="true"></span></div><h3>Inside DRAW</h3><div class="card-content"><div class="shortcut"><span>Undo / Redo</span><b><kbd>ENV</kbd> / <kbd>LFO</kbd></b></div><div class="shortcut"><span>Switch A / B / C</span><b><kbd>SELECT</kbd> encoder</b></div><div class="shortcut"><span>Waveform processing</span><b><kbd>FX</kbd></b></div><div class="shortcut"><span>Store edited wave</span><b><kbd>SAVE</kbd></b></div><div class="shortcut"><span>Leave editor</span><b><kbd>HOME</kbd> or short <kbd>EDIT</kbd></b></div></div></article>
+<article class="card" data-search="SHORTCUTS Emergency &amp; special boot 04 / BOOT KEYS safe boot midi keyboard loader recovery PC6" aria-label="Emergency &amp; special boot"><div class="card-top"><span class="card-index">04 / BOOT KEYS</span><span class="card-pip" aria-hidden="true"></span></div><h3>Emergency & special boot</h3><div class="card-content"><div class="shortcut"><span>USB MIDI keyboard mode</span><b>Hold <kbd>SEQ</kbd> at boot</b></div><div class="shortcut"><span>Silent application safe mode</span><b>Hold <kbd>REC</kbd> at boot</b></div><div class="shortcut"><span>Request loader route</span><b>Hold <kbd>OCT−</kbd> at boot</b></div><div class="shortcut"><span>PC6 analogue mute diagnostic</span><b>Hold <kbd>GLO</kbd> at boot</b></div><p class="subnote">Safe Mode and loader access do <b>not</b> guarantee independent firmware recovery.</p></div></article>
+</div></section>
+<section class="section" id="sound" data-section="sound" aria-labelledby="heading-sound">
+<div class="section-title"><div><div class="eyebrow">// SOUND</div><h2 id="heading-sound">SOUND DESIGN</h2><p>The controls that most change your sound.</p></div><span class="section-count">08 CARDS</span></div>
+<div class="cards">
+<article class="card" data-search="SOUND DESIGN SOUND: the four macros 01 / THE HOME PAGE play sound morph etch tone cutoff space" aria-label="SOUND: the four macros"><div class="card-top"><span class="card-index">01 / THE HOME PAGE</span><span class="card-pip" aria-hidden="true"></span></div><h3>SOUND: the four macros</h3><div class="card-content"><div class="knobs"><div><span>K1</span><strong>MORPH</strong><small>Wave shape</small></div><div><span>K2</span><strong>ETCH</strong><small>C modulation</small></div><div><span>K3</span><strong>TONE</strong><small>Cutoff</small></div><div><span>K4</span><strong>SPACE</strong><small>Reverb</small></div></div><p class="subnote">This is the fastest way to sculpt a loaded preset.</p></div></article>
+<article class="card" data-search="SOUND DESIGN MORPH: sculpt the carrier 02 / WAVE BLEND morph waveform A B C rate blend algorithm" aria-label="MORPH: sculpt the carrier"><div class="card-top"><span class="card-index">02 / WAVE BLEND</span><span class="card-pip" aria-hidden="true"></span></div><h3>MORPH: sculpt the carrier</h3><div class="card-content"><div class="knobs"><div><span>K1</span><strong>WAVE A</strong></div><div><span>K2</span><strong>WAVE B</strong></div><div><span>K3</span><strong>MORPH</strong></div><div><span>K4</span><strong>C RATE</strong></div></div><p>Set two contrasting shapes, hold a note and sweep MORPH. The <b>ALGORITHM</b> encoder adjusts ETCH depth here.</p></div></article>
+<article class="card" data-search="SOUND DESIGN ENV + FILTER 03 / SHAPE &amp; TONE attack decay sustain release ADSR filter resonance drive" aria-label="ENV + FILTER"><div class="card-top"><span class="card-index">03 / SHAPE & TONE</span><span class="card-pip" aria-hidden="true"></span></div><h3>ENV + FILTER</h3><div class="card-content"><div class="mini-table"><div><b>ENV</b><span>K1 Attack · K2 Decay · K3 Sustain · K4 Release</span></div><div><b>FILTER</b><span>K1 Type · K2 Cutoff · K3 Resonance · K4 Drive</span></div></div><p class="subnote">Short attack/release: plucks. Longer attack/release: pads and strings.</p></div></article>
+<article class="card" data-search="SOUND DESIGN MOD WAVE: give Wave C a job 04 / MODULATION wave c modulation LFO rate keyed free tempo phase" aria-label="MOD WAVE: give Wave C a job"><div class="card-top"><span class="card-index">04 / MODULATION</span><span class="card-pip" aria-hidden="true"></span></div><h3>MOD WAVE: give Wave C a job</h3><div class="card-content"><div class="mini-table"><div><b>K1</b><span>Wave C source</span></div><div><b>K2</b><span>DEPTH</span></div><div><b>K3</b><span>RATE / ratio</span></div><div><b>K4</b><span>Destination: PHASE or MORPH</span></div></div><p><kbd>SELECT</kbd> switches KEYED / FREE / TEMPO. Start with low depth; high-rate modulation can become aggressive.</p></div></article>
+<article class="card" data-search="SOUND DESIGN WAVE AMP 05 / NEW IN V1.84 wave amp amplitude volume waveform depth envelope V184" aria-label="WAVE AMP"><div class="card-top"><span class="card-index">05 / NEW IN V1.84</span><span class="card-pip" aria-hidden="true"></span></div><h3>WAVE AMP</h3><div class="card-content"><p>Your drawn waveform becomes a <b>repeating volume curve at oscillator speed</b>, not a one-shot ADSR envelope.</p><div class="mini-table"><div><b>K1 SOURCE</b><span>OFF / A / B / MORPH</span></div><div><b>K2 DEPTH</b><span>0–100%</span></div></div><p>At full depth: high wave = full volume, low wave = silence. Use a rounded shape for softer results. Set SOURCE OFF or DEPTH 0 to disable.</p></div></article>
+<article class="card" data-search="SOUND DESIGN ORGANIC + EVOLUTION 06 / MOVEMENT organic drift evolution fold sharp stair mono" aria-label="ORGANIC + EVOLUTION"><div class="card-top"><span class="card-index">06 / MOVEMENT</span><span class="card-pip" aria-hidden="true"></span></div><h3>ORGANIC + EVOLUTION</h3><div class="card-content"><div class="mini-table"><div><b>ORGANIC</b><span>Drift · Rate · Phase · Variance</span></div><div><b>EVOLUTION</b><span>Depth · Rate · Shape · Sync</span></div></div><p>ORGANIC introduces slow, smooth analogue-style drift. EVOLUTION animates the waveform (FOLD / SHARP / STAIR) without rewriting it.</p><p class="subnote">Some advanced editors are MONO-only to protect FM1 performance.</p></div></article>
+<article class="card" data-search="SOUND DESIGN MOD MATRIX 07 / ROUTING matrix velocity aftertouch keytrack modulation routing" aria-label="MOD MATRIX"><div class="card-top"><span class="card-index">07 / ROUTING</span><span class="card-pip" aria-hidden="true"></span></div><h3>MOD MATRIX</h3><div class="card-content"><p>Up to <b>four</b> real-time routes:</p><div class="mini-table"><div><b>K1</b><span>Route 1–4</span></div><div><b>K2</b><span>Source (e.g. velocity, envelope, C, keytrack)</span></div><div><b>K3</b><span>Destination: MORPH / C DEPTH / FILTER / SPACE</span></div><div><b>K4</b><span>Amount −100 to +100</span></div></div><p class="subnote">Set SOURCE OFF or AMOUNT 0 to disable. Aftertouch requires compatible MIDI input.</p></div></article>
+<article class="card" data-search="SOUND DESIGN FX BYPASS 08 / CPU-AWARE EFFECTS fx bypass CPU effects audio" aria-label="FX BYPASS"><div class="card-top"><span class="card-index">08 / CPU-AWARE EFFECTS</span><span class="card-pip" aria-hidden="true"></span></div><h3>FX BYPASS</h3><div class="card-content"><ol><li>Switch to ADVANCED and <b>hold FX</b> about 700 ms.</li><li><kbd>K1</kbd> selects an effect.</li><li><kbd>K4</kbd> or <kbd>SEL</kbd> toggles ON / BYP.</li><li><kbd>K2</kbd> bypasses all; <kbd>K3</kbd> restores all.</li></ol><p class="subnote">Heavy effect processing is skipped where supported. FX values remain unchanged. Bypass state is temporary in RAM.</p></div></article>
+</div></section>
+<section class="section" id="editing" data-section="editing" aria-labelledby="heading-editing">
+<div class="section-title"><div><div class="eyebrow">// EDITING</div><h2 id="heading-editing">DRAW & EDIT</h2><p>Turn a blank shape into your own instrument.</p></div><span class="section-count">04 CARDS</span></div>
+<div class="cards">
+<article class="card" data-search="DRAW &amp; EDIT DRAW: the essentials 01 / FOUR KNOBS draw waveform edit x y harmonic part gain" aria-label="DRAW: the essentials"><div class="card-top"><span class="card-index">01 / FOUR KNOBS</span><span class="card-pip" aria-hidden="true"></span></div><h3>DRAW: the essentials</h3><div class="card-content"><div class="knobs"><div><span>K1</span><strong>X</strong><small>Position</small></div><div><span>K2</span><strong>Y</strong><small>Draw</small></div><div><span>K3</span><strong>PART</strong><small>Harmonic</small></div><div><span>K4</span><strong>GAIN</strong><small>Harmonic level</small></div></div><p><kbd>EDIT</kbd> enters DRAW. <kbd>SELECT</kbd> picks A, B or C. The editor auditions the selected wave alone. Undo = <kbd>ENV</kbd>; Redo = <kbd>LFO</kbd>.</p></div></article>
+<article class="card" data-search="DRAW &amp; EDIT Blank waveform: start fresh 02 / FLAT LINE blank flat line clear edit hold yes no undo" aria-label="Blank waveform: start fresh"><div class="card-top"><span class="card-index">02 / FLAT LINE</span><span class="card-pip" aria-hidden="true"></span></div><h3>Blank waveform: start fresh</h3><div class="card-content"><ol><li>Enter DRAW and select Wave A, B or C.</li><li><b>Hold EDIT</b> for ~700 ms.</li><li>Choose <b>YES</b> with <kbd>K1</kbd>; confirm with <kbd>SEL</kbd>.</li><li>Draw from the flat zero line. <kbd>ENV</kbd> undoes the change.</li></ol><p class="subnote">NO is selected by default; only the chosen wave is cleared.</p></div></article>
+<article class="card" data-search="DRAW &amp; EDIT Wave tools &amp; BAKE 03 / SHAPING tools bake sculpt wave fx genetics waveform" aria-label="Wave tools &amp; BAKE"><div class="card-top"><span class="card-index">03 / SHAPING</span><span class="card-pip" aria-hidden="true"></span></div><h3>Wave tools & BAKE</h3><div class="card-content"><p>TOOLS offers LINE, SMOOTH, MIRROR, INVERT, NORMALIZE, FLATTEN, RANDOM, SINE, TRIANGLE, SAW, SQUARE, PHASE ROTATE and WAVE GENETICS.</p><p>From DRAW, use <kbd>FX</kbd> for <b>WFX 1 → WFX 2 → SCULPT</b>. A confirmed <b>BAKE</b> writes processing into editable wave points. Use Undo before saving if needed.</p></div></article>
+<article class="card" data-search="DRAW &amp; EDIT Library: save &amp; load a wave 04 / REUSE wave library waveform save load REC twice" aria-label="Library: save &amp; load a wave"><div class="card-top"><span class="card-index">04 / REUSE</span><span class="card-pip" aria-hidden="true"></span></div><h3>Library: save & load a wave</h3><div class="card-content"><div class="mini-table"><div><b>SAVE</b><span>DRAW → SAVE → K1 slot · K2 position · K3 character · K4 backspace → SAVE</span></div><div><b>LOAD</b><span>LIBRARY → K1 slot → K2 A/B/C target → REC twice</span></div></div><p class="subnote">A wave stored in the library is not the same as saving the full preset.</p></div></article>
+</div></section>
+<section class="section" id="rhythm" data-section="rhythm" aria-labelledby="heading-rhythm">
+<div class="section-title"><div><div class="eyebrow">// RHYTHM</div><h2 id="heading-rhythm">PLAY & PERFORM</h2><p>Move from a single note to a full pattern.</p></div><span class="section-count">05 CARDS</span></div>
+<div class="cards">
+<article class="card" data-search="PLAY &amp; PERFORM ARP + RIFF 01 / QUICK RIFF arp riff generator harmony 16 steps" aria-label="ARP + RIFF"><div class="card-top"><span class="card-index">01 / QUICK RIFF</span><span class="card-pip" aria-hidden="true"></span></div><h3>ARP + RIFF</h3><div class="card-content"><ol><li>Choose your root and scale in HARM.</li><li>Open ARP and select <b>mode 7 (RIFF)</b> with <kbd>K1</kbd>.</li><li>Set rate on <kbd>K2</kbd> and octave range on <kbd>K3</kbd>.</li><li>Hold a note and turn <kbd>K4</kbd> to generate a 16-step riff.</li><li>Save the preset to retain it.</li></ol><p class="subnote">RIFF LAB: K1 Density · K2 Mutate · K3 Variant · K4 New Riff.</p></div></article>
+<article class="card" data-search="PLAY &amp; PERFORM SEQ + live record 02 / RHYTHM sequencer 256 live record swing gate steps locks" aria-label="SEQ + live record"><div class="card-top"><span class="card-index">02 / RHYTHM</span><span class="card-pip" aria-hidden="true"></span></div><h3>SEQ + live record</h3><div class="card-content"><div class="mini-table"><div><b>SEQ</b><span>K1 Length · K2 Rate · K3 Swing · K4 Gate</span></div><div><b>TRANSPORT</b><span>PLAY/STOP to run; REC to start/stop live recording</span></div><div><b>STEP EDIT</b><span>Stop transport; SELECT chooses step; keyboard enters note triggers</span></div></div><p>Up to 256 steps with eight triggers per step. Advanced editors: GRID, HOLD, LOCKS, BAKE, CLOCK. Destructive edits require confirmation.</p></div></article>
+<article class="card" data-search="PLAY &amp; PERFORM HARM + SCALE GUIDE 03 / STAY IN KEY harm chord guide circle fifths scale root" aria-label="HARM + SCALE GUIDE"><div class="card-top"><span class="card-index">03 / STAY IN KEY</span><span class="card-pip" aria-hidden="true"></span></div><h3>HARM + SCALE GUIDE</h3><div class="card-content"><div class="mini-table"><div><b>K1</b><span>Root</span></div><div><b>K2</b><span>Mode / scale</span></div><div><b>K3</b><span>Keylock OFF / GUIDE / LOCK</span></div><div><b>K4</b><span>Chord type</span></div></div><p>GUIDE shows scale and chord information. Its NOTE control changes the <em>displayed chord root</em>; it does not automatically transpose the synth.</p></div></article>
+<article class="card" data-search="PLAY &amp; PERFORM GROUPS / PERFORMANCE 04 / LIVE PLAY groups splits zones scenes performance macros" aria-label="GROUPS / PERFORMANCE"><div class="card-top"><span class="card-index">04 / LIVE PLAY</span><span class="card-pip" aria-hidden="true"></span></div><h3>GROUPS / PERFORMANCE</h3><div class="card-content"><div class="mini-table"><div><b>GROUPS</b><span>HOME + FX → split keyboard into two optional preset zones + MAIN</span></div><div><b>PERFORMANCE</b><span>HOME + ARP → assign four macros and capture scenes A/B</span></div></div><p>GROUPS share the total eight-voice budget. Save a PROJECT to retain group ranges and performance scene assignments.</p></div></article>
+<article class="card" data-search="PLAY &amp; PERFORM MOTION REC 05 / AUTOMATION motion automation record macros 6.4 seconds" aria-label="MOTION REC"><div class="card-top"><span class="card-index">05 / AUTOMATION</span><span class="card-pip" aria-hidden="true"></span></div><h3>MOTION REC</h3><div class="card-content"><p>On SYSTEM → MOTION, <kbd>REC</kbd> starts/stops recording movement of MORPH, ETCH, CUTOFF and SPACE. <kbd>PLAY/STOP</kbd> toggles motion playback.</p><p class="subnote">Up to ~6.4 seconds. Starting a new motion clip replaces the previous working clip.</p></div></article>
+</div></section>
+<section class="section" id="saving" data-section="saving" aria-labelledby="heading-saving">
+<div class="section-title"><div><div class="eyebrow">// SAVING</div><h2 id="heading-saving">SAVE & RECOVER</h2><p>Protect the sounds you cannot recreate.</p></div><span class="section-count">05 CARDS</span></div>
+<div class="cards">
+<article class="card" data-search="SAVE &amp; RECOVER Save a preset or project 01 / PERSISTENCE save project preset name confirm verify" aria-label="Save a preset or project"><div class="card-top"><span class="card-index">01 / PERSISTENCE</span><span class="card-pip" aria-hidden="true"></span></div><h3>Save a preset or project</h3><div class="card-content"><ol><li>Outside DRAW, press <kbd>SAVE</kbd>.</li><li>Choose <b>PRESET</b> or <b>PROJECT</b> with <kbd>SELECT</kbd>.</li><li><kbd>K1</kbd> slot · <kbd>K2</kbd> name position · <kbd>K3</kbd> character · <kbd>K4</kbd> backspace.</li><li>Press <kbd>SAVE</kbd>, confirm overwrite if requested.</li><li><b>Wait for the final success confirmation.</b></li></ol></div></article>
+<article class="card" data-search="SAVE &amp; RECOVER Back up the current sound to PC 02 / .ETCHPRESET etchpreset USB webapp backup read live sound" aria-label="Back up the current sound to PC"><div class="card-top"><span class="card-index">02 / .ETCHPRESET</span><span class="card-pip" aria-hidden="true"></span></div><h3>Back up the current sound to PC</h3><div class="card-content"><ol><li>Connect FM1 with a USB data cable.</li><li>Open the V1.84 Project/Preset Manager in desktop Chrome or Edge.</li><li>Grant MIDI/SysEx, choose FM1 and check the protocol.</li><li><b>Read current sound</b> → <b>Save .etchpreset</b>.</li></ol><p class="subnote">Works with V1.77+ live-snapshot firmware. The file includes sound/waves, not complete projects or samples.</p></div></article>
+<article class="card" data-search="SAVE &amp; RECOVER Restore a .etchpreset 03 / RAM IMPORT restore import etchpreset RAM manager" aria-label="Restore a .etchpreset"><div class="card-top"><span class="card-index">03 / RAM IMPORT</span><span class="card-pip" aria-hidden="true"></span></div><h3>Restore a .etchpreset</h3><div class="card-content"><ol><li>Back up any currently active unsaved sound first.</li><li>Use <b>Open .etchpreset</b> in the Manager.</li><li>Stop the sequencer and release held notes.</li><li>Select <b>Send to FM1 (RAM only)</b>.</li><li>Save the imported sound separately on the FM1 if you want it stored permanently.</li></ol></div></article>
+<article class="card" data-search="SAVE &amp; RECOVER STORAGE LOCKED / foreign data 04 / DON’T WIPE BLINDLY storage locked foreign format yes no erase danger" aria-label="STORAGE LOCKED / foreign data"><div class="card-top"><span class="card-index">04 / DON’T WIPE BLINDLY</span><span class="card-pip" aria-hidden="true"></span></div><h3>STORAGE LOCKED / foreign data</h3><div class="card-content"><p class="warning"><b>Storage blocked?</b> Keep your sound in RAM. Export it before rebooting or flashing.</p><p>At first boot, ETCH may offer to format its <em>designated storage area</em>. <b>NO</b> preserves foreign data; <b>YES</b> can erase previous samples in the affected sectors.</p><p>YES requires an additional confirmation and a deliberate <b>SAVE hold for 3 seconds</b>. Back up foreign data before taking ownership.</p></div></article>
+<article class="card" data-search="SAVE &amp; RECOVER Firmware and compatibility 05 / SAFETY firmware v184 PJT32 FM-1_1500 OTA compatibility recovery" aria-label="Firmware and compatibility"><div class="card-top"><span class="card-index">05 / SAFETY</span><span class="card-pip" aria-hidden="true"></span></div><h3>Firmware and compatibility</h3><div class="card-content"><p><b>V1.84</b> uses project format <code>PJT32</code> and fixed firmware identity <code>FM-1_1500</code>. It can read PJT31; older ETCH versions may not read newly saved PJT32 projects.</p><p>Flashing, full stock recovery and cross-firmware transitions are <b>not physically qualified</b> by software tests alone. Verify checksums, back up your data and use a proven independent recovery procedure.</p></div></article>
+</div></section>
+<section class="section" id="help" data-section="help" aria-labelledby="heading-help">
+<div class="section-title"><div><div class="eyebrow">// HELP</div><h2 id="heading-help">IF SOMETHING GOES WRONG</h2><p>Fast diagnosis without risky recovery guesses.</p></div><span class="section-count">04 CARDS</span></div>
+<div class="cards">
+<article class="card" data-search="IF SOMETHING GOES WRONG No sound / silent modulation 01 / AUDIO no sound mod wave mono poly bypass volume" aria-label="No sound / silent modulation"><div class="card-top"><span class="card-index">01 / AUDIO</span><span class="card-pip" aria-hidden="true"></span></div><h3>No sound / silent modulation</h3><div class="card-content"><p>Check MASTER, ENV sustain, FILTER cutoff, and FX BYPASS. For Wave C, verify SOURCE, DEPTH, RATE and PHASE/MORPH destination. If POLY hides advanced editors, switch to MONO.</p></div></article>
+<article class="card" data-search="IF SOMETHING GOES WRONG Clicks, pops or overload 02 / PERFORMANCE click pop plop audio stop usb CPU" aria-label="Clicks, pops or overload"><div class="card-top"><span class="card-index">02 / PERFORMANCE</span><span class="card-pip" aria-hidden="true"></span></div><h3>Clicks, pops or overload</h3><div class="card-content"><p>Lower output volume, DRIVE and active FX. Test a clean patch with one note. V1.84 smooths note-on transitions, but analogue output pops are <b>not proven eliminated</b>.</p><p>For <b>AUDIO STOP</b>, review SYSTEM diagnostics; HOME + PLAY/STOP for ~1 second may locally rearm audio if responsive.</p></div></article>
+<article class="card" data-search="IF SOMETHING GOES WRONG Cannot save / cannot connect 03 / STORAGE &amp; MIDI storage full locked MIDI connect sysex web browser" aria-label="Cannot save / cannot connect"><div class="card-top"><span class="card-index">03 / STORAGE & MIDI</span><span class="card-pip" aria-hidden="true"></span></div><h3>Cannot save / cannot connect</h3><div class="card-content"><p>If saving fails: check final SAVE status and storage ownership. Do not reboot an unsaved sound. If the Manager cannot connect: use Chrome/Edge, grant SysEx, verify the cable/port, and close DAWs using the same MIDI device.</p></div></article>
+<article class="card" data-search="IF SOMETHING GOES WRONG What the colours mean 04 / PHOSPHOR UI colors phosphor coral lavender amber lime bypass" aria-label="What the colours mean"><div class="card-top"><span class="card-index">04 / PHOSPHOR UI</span><span class="card-pip" aria-hidden="true"></span></div><h3>What the colours mean</h3><div class="card-content"><div class="swatches"><span style="--sw:#F2E9D8">TEXT</span><span style="--sw:#C7F36B">ACTIVE</span><span style="--sw:#FF7668">WAVE A</span><span style="--sw:#B39AFF">WAVE B</span><span style="--sw:#FFC16E">SELECT</span><span style="--sw:#77717E">BYPASS</span><span style="--sw:#FF5263">ERROR</span></div><p class="subnote">ETCH V1.84 PHOSPHOR palette; status meaning also depends on the page and its labels.</p></div></article>
+</div></section>
+ <footer><span>ETCH V1.84 · SOFTWARE-TESTED EXPERIMENTAL FIRMWARE · REAL DEVICE BEHAVIOUR MAY DIFFER.</span><a href="https://github.com/SikkenWorks/ETCH" rel="noopener noreferrer" target="_blank">GITHUB / SIKKENWORKS</a><span>DRAW. MORPH. MODULATE. // BORN OUT OF PASSION.</span></footer>
+</main>
+</div>
+<script>
+(() => {
+  'use strict';
+  // Page-wide interaction policy: no text selection or right-click. One script only.
+  // Keep the search field editable: selecting search input text is necessary for typing.
+  document.addEventListener('selectstart', (event) => {
+    if (!event.target.closest('input,textarea')) event.preventDefault();
+  });
+  document.addEventListener('contextmenu', (event) => event.preventDefault());
+  document.addEventListener('dragstart', (event) => event.preventDefault());
+
+  const search = document.getElementById('search');
+  const cards = [...document.querySelectorAll('.card')];
+  const sections = [...document.querySelectorAll('.section')];
+  const chips = [...document.querySelectorAll('.chip')];
+  const result = document.getElementById('results');
+  const noResults = document.getElementById('no-results');
+  const navLinks = [...document.querySelectorAll('.nav-link')];
+  let filter = 'all';
+
+  function normalize(value) {
+    return (value || '').toLocaleLowerCase('en').normalize('NFKD');
+  }
+  function applyFilters() {
+    const needle = normalize(search.value.trim());
+    let shown = 0;
+    sections.forEach((section) => {
+      const inCategory = filter === 'all' || section.dataset.section === filter;
+      let sectionShown = 0;
+      section.querySelectorAll('.card').forEach((card) => {
+        const haystack = normalize(card.dataset.search + ' ' + card.textContent);
+        const visible = inCategory && (!needle || haystack.includes(needle));
+        card.hidden = !visible;
+        if (visible) { shown++; sectionShown++; }
+      });
+      section.hidden = sectionShown === 0;
+    });
+    result.textContent = shown + ' / ' + cards.length + ' CARDS VISIBLE';
+    noResults.hidden = shown !== 0;
+    navLinks.forEach((a) => a.classList.toggle('current',filter !== 'all' && a.dataset.link === filter));
+  }
+  chips.forEach((button) => button.addEventListener('click', () => {
+    filter = button.dataset.filter;
+    chips.forEach((chip) => chip.setAttribute('aria-pressed',String(chip === button)));
+    applyFilters();
+  }));
+  search.addEventListener('input',applyFilters);
+  document.getElementById('clear-search').addEventListener('click', () => { search.value=''; search.focus(); applyFilters(); });
+  document.getElementById('print').addEventListener('click', () => window.print());
+  navLinks.forEach((a) => a.addEventListener('click', () => {
+    if (filter !== 'all') {
+      filter = 'all'; chips.forEach((chip) => chip.setAttribute('aria-pressed',String(chip.dataset.filter === 'all')));
+      search.value = ''; applyFilters();
+    }
+  }));
+  document.addEventListener('keydown', (event) => {
+    const typing = event.target.matches('input,textarea,[contenteditable="true"]');
+    if (event.key === '/' && !typing && !event.ctrlKey && !event.metaKey && !event.altKey) { event.preventDefault();search.focus(); }
+    if (event.key === 'Escape' && document.activeElement === search) { search.value=''; applyFilters(); search.blur(); }
+  });
+  applyFilters();
+})();
+</script>
+</body>
+</html>
