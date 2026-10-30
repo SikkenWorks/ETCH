@@ -1,0 +1,29 @@
+#!/usr/bin/env python3
+"""Embed the two V1.80 variants with matching hashes, retain original FM-1_1500 identity."""
+import base64,hashlib,json,re
+from pathlib import Path
+root=Path(__file__).resolve().parents[1]
+manifest=json.loads((root/'RELEASE-MANIFEST.json').read_text()); assert manifest['firmware_identity']=='FM-1_1500'
+p=root/'WebInstaller.html';s=p.read_text()
+s=s.replace('V1.79','V1.80').replace('V179','V180')
+s=s.replace('PRESET BACKUP + SAVE FEEDBACK','BRAND CLEANUP + STABLE STARTUP')
+s=s.replace('V1.80 introduces a RAM-only preset snapshot protocol and save feedback.',
+'''V1.80 retains the RGB/VHS intro, removes the underline below the SIKKENWORKS slogan, and holds the unchanged clean branding for one second. The firmware then shows an ETCH SIMPLE / ADVANCED selection screen. The first-boot storage takeover confirmation is now composed off-screen and repainted only when its visible state changes, preventing repetitive black LCD clears. The original storage protection, RAM-only .etchpreset manager, audio engines and OTA identity are preserved.''')
+s=s.replace('V1.80: RAM-only sound backup via USB-MIDI, .etchpreset import/export and SAVE / VERIFYING status.',
+'''V1.80: branding screen without the decorative underline, one-second SIKKENWORKS hold and unchanged flicker-free SIMPLE / ADVANCED selection. V1.78 storage safeguards and .etchpreset manager remain available.''')
+for key,tag in [('etch','firmware-embedded'),('stock','firmware-embedded-stockhead')]:
+ raw=(root/manifest['packages'][key]['file']).read_bytes()
+ assert hashlib.sha256(raw).hexdigest()==manifest['packages'][key]['sha256']
+ pat=r'(<script id="'+tag+r'" type="application/octet-stream">)\s*[^<]*?\s*(</script>)'
+ s,n=re.subn(pat,lambda m:m.group(1)+'\n'+base64.b64encode(raw).decode()+'\n'+m.group(2),s)
+ assert n==1,tag
+for field,key in [('HASH_ET','etch'),('HASH_ET_STOCKHEAD','stock')]:
+ pat=field+r": '[0-9a-f]{64}'"
+ s,n=re.subn(pat,field+": '"+manifest['packages'][key]['sha256']+"'",s)
+ assert n==1,field
+assert "ID_ET: 'FM-1_1500'" in s
+for key,tag in [('etch','firmware-embedded'),('stock','firmware-embedded-stockhead')]:
+ raw=base64.b64decode(re.search(r'<script id="'+tag+r'" type="application/octet-stream">\s*([^<]+?)\s*</script>',s).group(1))
+ assert hashlib.sha256(raw).hexdigest()==manifest['packages'][key]['sha256']
+p.write_text(s)
+print('PASS V1.80 installer embed, both packages SHA256, product FM-1_1500')

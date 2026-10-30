@@ -1,0 +1,114 @@
+{
+  "passed": 18,
+  "total": 18,
+  "cases": [
+    {
+      "name": "audio",
+      "status": "PASS",
+      "seconds": 10.44,
+      "detail": "Native C core: silence, audible output, octave-safe release, voice bounds, max-depth stress and gain mute passed\n"
+    },
+    {
+      "name": "dsp",
+      "status": "PASS",
+      "seconds": 13.03,
+      "detail": "Native ADSR stage timing, channel-local bend, C ratio/free phase, filter/drive stress and long-stage resolution passed\n"
+    },
+    {
+      "name": "editor",
+      "status": "PASS",
+      "seconds": 10.19,
+      "detail": "Native wave editor: directional bounds, A/B/C, undo, DC rejection, mip bounds and 256-sample bank handoff passed\n"
+    },
+    {
+      "name": "fx",
+      "status": "PASS",
+      "seconds": 2.75,
+      "detail": "Native FX: exact dry bypass, delay echoes, bounded feedback passed\n"
+    },
+    {
+      "name": "midi",
+      "status": "PASS",
+      "seconds": 8.63,
+      "detail": "MIDI: channel separation, velocity, sustain, retrigger, CC120/121/123, panic isolation, note bounds; boot SAFE latch passed\n"
+    },
+    {
+      "name": "organic_smooth_v176",
+      "status": "PASS",
+      "seconds": 0.24,
+      "detail": "PASS V1.76 smooth organic: 2424 monotonic segments, zero endpoint jumps, zero-depth exact bypass, 2.5-9s cadence\n"
+    },
+    {
+      "name": "ota_target_0",
+      "status": "PASS",
+      "seconds": 0.14,
+      "detail": "OTA target: build gate 0, stopped-audio guard, ranges, RAM page copies, chunking, timer wrap and cancel passed\n"
+    },
+    {
+      "name": "ota_target_1",
+      "status": "PASS",
+      "seconds": 0.37,
+      "detail": "OTA target: build gate 1, stopped-audio guard, ranges, RAM page copies, chunking, timer wrap and cancel passed\n"
+    },
+    {
+      "name": "patch_swap",
+      "status": "PASS",
+      "seconds": 9.95,
+      "detail": "I03 transactional pattern prepare/commit, corrupt archive refusal, 8-voice nonstopping bank crossfade PASS\n"
+    },
+    {
+      "name": "poly",
+      "status": "PASS",
+      "seconds": 8.68,
+      "detail": "Native advanced: 256 poly steps, individual lengths, locks, keylock/chord, MIDI clock/start/stop pass\n"
+    },
+    {
+      "name": "project",
+      "status": "PASS",
+      "seconds": 5.2,
+      "detail": "V10 project: 256-step poly, lock/FX/harmony roundtrip, 16 fault cuts x2, CRC rollback, V2 upgrade, full-bank rejection PASS\n"
+    },
+    {
+      "name": "stage0_boot",
+      "status": "PASS",
+      "seconds": 0.14,
+      "detail": "PASS Stage0 RAM bootloop watchdog and late-fault loader handoff\n"
+    },
+    {
+      "name": "store",
+      "status": "PASS",
+      "seconds": 6.64,
+      "detail": "Native store: 64 slots, every write cut, CRC fallback, v1->v2 migration, 32 patch/name/sequence records passed\n"
+    },
+    {
+      "name": "tools",
+      "status": "PASS",
+      "seconds": 1.9,
+      "detail": "Native draw tools: normalization, square, invert, mirror, saw, rotation, flatten, random and smooth passed\n"
+    },
+    {
+      "name": "ui_navigation",
+      "status": "PASS",
+      "seconds": 0.36,
+      "detail": "PASS V0.77 all 33 page IDs, FX four-page SELECT, GLO GUIDE/FIFTHS/SYSTEM, ADSR via ENV, no destructive page transitions\n"
+    },
+    {
+      "name": "usb_audio",
+      "status": "PASS",
+      "seconds": 0.23,
+      "detail": "USB Audio UAC1: descriptor and 44.1k PCM capture, ring and disconnect PASS\n"
+    },
+    {
+      "name": "usb_audio_48k",
+      "status": "PASS",
+      "seconds": 2.49,
+      "detail": "PASS USB 44100 Hz: packets=11998 frames=529303 underrun=0 overrun=0\nPASS USB 48000 Hz: packets=119998 frames=5762756 underrun=0 overrun=0\nPASS USB 44100 Hz: packets=11998 frames=529252 underrun=0 overrun=0\nPASS USB 48000 Hz: packets=119998 frames=5761607 underrun=0 overrun=0\nPASS USB 44100 Hz: packets=11998 frames=529303 underrun=0 overrun=0\nPASS U02 44.1/48/44.1/48/44.1 rate-switch, 2x120s drift soak, stereo and descriptors\n"
+    },
+    {
+      "name": "v175_shared_undo",
+      "status": "PASS",
+      "seconds": 1.7,
+      "detail": "PASS V1.75: 25032 V1.74-equivalent undo/redo operations, all 3 waves; 12,288 bytes saved\n"
+    }
+  ]
+}

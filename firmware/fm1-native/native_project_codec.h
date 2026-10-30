@@ -17,7 +17,11 @@
 #include "native_group_router.h"
 #include "native_perf_scenes.h"
 #define ETCH_PROJECT_MAX_BYTES ((ETCH_P04_EXPANDED ? ETCH_STORE_EXT_BANK_BYTES : ETCH_STORE_SPARE_ENABLED ? ETCH_STORE_SPARE_BANK_BYTES : ETCH_STORE_BANK_BYTES)-256u)
-/* PJT26: independently saved, non-audio-IRQ state for each named preset. */
+/* PJT26: independently saved, non-audio-IRQ state for each named preset.
+ * PJT32 stores Wave AMP in previously reserved bits: spectral_wave [3:2]
+ * selects OFF/A/B/MORPH; velocity_curve [7:2] stores amount 0..63.
+ * Legacy low bits and fixed 33-byte record size remain unchanged.
+ */
 struct etch_preset_dsp {
  struct etch_organic_settings organic;
  struct etch_living_settings living;

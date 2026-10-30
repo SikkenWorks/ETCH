@@ -1,0 +1,12 @@
+{
+  "passed": 1,
+  "total": 1,
+  "cases": [
+    {
+      "name": "ota",
+      "status": "PASS",
+      "seconds": 14.63,
+      "detail": "ea clean                   ok\nno 'success' -> -13, no commit, area clean           ok\nunknown staging refused without erase                ok\naltered loader refused before erase                  ok\ndevice boot bytes preserved by app-only update       ok\noverflowing package address refused before erase     ok\nduplicate zero-offset OTA entry refused              ok\ncorrupt UFW header refused before erase              ok\n  121 success-path I/O points, zero/half-write API faults\nevery read/erase/page/record fault refuses commit    ok\npersistent flash fault reports cleanup failure       ok\nlate cleanup fault can retain confirmed record       ok\ncancel during staging cleans without commit          ok\nincoherent foreign OTA body rejected BEFORE erase    ok\ncorrupt bootheader container rejected BEFORE erase   ok\nmodified ISD configuration rejected before erase     ok\ncorrupted app directory refused BEFORE erase         ok\ntimeout across millisecond rollover refuses          ok\nota test passed\n"
+    }
+  ]
+}

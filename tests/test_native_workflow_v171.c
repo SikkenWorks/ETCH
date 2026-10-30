@@ -18,7 +18,7 @@ static void test_titles(void){
  }
  assert(strcmp(etch_ui_short_title(ETCH_UI_PROJECT_SAVE),"PROJ SAVE")==0);
  assert(strcmp(etch_ui_short_title(ETCH_UI_FX_TAPE),"TAPE FX")==0);
- assert(ETCH_UI_PAGE_COUNT==62);
+ assert(ETCH_UI_PAGE_COUNT==64);
 }
 static void test_footer_numeric(void){
  char value[11];
@@ -61,7 +61,7 @@ static void test_workflow(void){
  assert(etch_ui_workflow_fx(ETCH_UI_FX,ETCH_WORKFLOW_ADVANCED)==ETCH_UI_FX_DRIVE);
  assert(etch_ui_workflow_fx(ETCH_UI_FX_DRIVE,ETCH_WORKFLOW_ADVANCED)==ETCH_UI_PREFX_A);
  assert(etch_ui_workflow_lfo(ETCH_UI_MATRIX,1,ETCH_WORKFLOW_SIMPLE)==ETCH_UI_MOD);
- assert(etch_ui_workflow_lfo(ETCH_UI_MATRIX,1,ETCH_WORKFLOW_ADVANCED)==ETCH_UI_PATCH_BLEND);
+ assert(etch_ui_workflow_lfo(ETCH_UI_MATRIX,1,ETCH_WORKFLOW_ADVANCED)==ETCH_UI_WAVE_AMP);
  assert(etch_ui_workflow_seq(ETCH_UI_SEQ,ETCH_WORKFLOW_SIMPLE)==ETCH_UI_NOTES);
  assert(etch_ui_workflow_seq(ETCH_UI_NOTES,ETCH_WORKFLOW_SIMPLE)==ETCH_UI_SEQ);
  assert(etch_ui_workflow_seq(ETCH_UI_NOTES,ETCH_WORKFLOW_ADVANCED)==ETCH_UI_HARM);
@@ -83,6 +83,6 @@ static void test_workflow(void){
 int main(void){
  test_titles();test_footer_numeric();test_workflow();
  assert(etch_ui_refresh_interval(32,1,4)==150);
- puts("PASS V1.71: 62 page titles, fixed 4-column numeric bounds, SIMPLE/ADVANCED routing, 8 system tabs");
+ puts("PASS V1.71: 64 page titles, fixed 4-column numeric bounds, SIMPLE/ADVANCED routing, 8 system tabs");
  return 0;
 }

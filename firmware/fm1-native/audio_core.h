@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include "wave_editor.h"
 #include "native_fx.h"
+#include "native_fx_bypass_v181.h"
 #include "native_performance.h"
 #include "native_voice_budget.h"
 #include "native_motion.h"
@@ -14,6 +15,7 @@
 #include "native_mod_matrix.h"
 #include "native_group_router.h"
 #include "native_patch.h"
+#include "native_wave_amp.h"
 #define ETCH_NATIVE_VOICES 8
 extern struct etch_native_bank native_banks[3]; /* shared preallocated mip banks */
 #define ETCH_NATIVE_FRAMES 128
@@ -48,6 +50,7 @@ struct etch_native_controls {uint16_t morph,depth,gain;int8_t octave;const struc
  uint32_t attack_step,decay_step,release_step,mod_inc;
  uint16_t sustain_level,cutoff,resonance,drive,chorus,delay,reverb;
  struct etch_fx_settings fx_settings;
+ uint32_t fx_bypass_mask; /* runtime-only, non-destructive */
  uint8_t env_enabled,filter_type,mod_target,mod_mode,mod_ratio,mono_mode;
  const struct etch_arp_program *arp_program;
  uint32_t riff_seed;uint16_t riff_variant;uint8_t riff_mutation,riff_density;uint8_t preview_wave; /* 0=normal, 1=A, 2=B, 3=C */
@@ -57,7 +60,9 @@ struct etch_native_controls {uint16_t morph,depth,gain;int8_t octave;const struc
  struct etch_organic_settings organic;
  struct etch_living_settings living;
  struct etch_mod_matrix matrix;
- uint8_t velocity_curve; /* V1.40: 0 linear (legacy), 1 soft, 2 hard; runtime-only initially */
+ uint8_t velocity_curve; /* 0 linear, 1 soft, 2 hard. */
+ uint8_t wave_amp_mode; /* 0=off, 1=A, 2=B, 3=morph; no additional oscillator */
+ uint16_t wave_amp_depth; /* Q15 from packed per-preset setting */
  uint16_t seq_length;
  struct etch_harmony_settings harmony;
  const struct etch_native_pattern *pattern;

@@ -310,3 +310,16 @@ void etch_editor_sculpt(struct etch_wave_editor *e,uint8_t mode,uint16_t amount,
  for(uint32_t i=0;i<128;i++)dst[i]=shaped[i];
  e->dirty=1u;++e->revision;
 }
+
+/* Keep other two waves, all FX, and the entire preset untouched.
+ * A single checkpoint makes this destructive edit undoable.
+ * Repeating on an already flat wave is a true no-op. */
+void etch_editor_zero_line(struct etch_wave_editor *e){
+ if(!e || e->wave>=3u)return;
+ uint8_t different=0u;
+ for(uint32_t i=0;i<ETCH_EDIT_POINTS;i++)if(e->points[e->wave][i]){different=1u;break;}
+ if(!different)return;
+ etch_editor_checkpoint(e);
+ for(uint32_t i=0;i<ETCH_EDIT_POINTS;i++)e->points[e->wave][i]=0;
+ e->dirty=1u;++e->revision;
+}

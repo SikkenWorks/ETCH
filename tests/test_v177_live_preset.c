@@ -18,6 +18,14 @@ int main(void){
  p.magic=0;assert(!etch_live_validate(&p));p.magic=ETCH_LIVE_MAGIC;
  p.bytes--;assert(!etch_live_validate(&p));p.bytes++;
  assert(etch_live_validate(&p));
- printf("PASS v177 live preset layout: %zu bytes, corrupt bounds refused\n",sizeof p);
+ p.version=2u;
+ p.dsp.spectral_wave=etch_wamp_pack_wave(0u,3u);
+ p.dsp.velocity_curve=etch_wamp_pack_velocity(1u,63u);
+ assert(etch_live_validate(&p));
+ p.dsp.spectral_wave|=0x80u;assert(!etch_live_validate(&p));p.dsp.spectral_wave&=0x7fu;
+ p.version=1u;assert(!etch_live_validate(&p)); /* legacy v1 refuses V2 packed parameters */
+ p.dsp.spectral_wave=0u;p.dsp.velocity_curve=0u;assert(etch_live_validate(&p));
+ p.version=2u;assert(etch_live_validate(&p));
+ printf("PASS v177/v184 live preset layout: %zu bytes, corrupt bounds refused\n",sizeof p);
  return 0;
 }

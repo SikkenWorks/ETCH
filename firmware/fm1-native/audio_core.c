@@ -7,6 +7,7 @@
 #include "native_drive_softclip.h"
 #include "native_expressive.h"
 #include "native_project_codec.h"
+#include "native_attack_smoothing_v184.h"
 /* Weak host fallbacks keep the reusable DSP source independently testable.
  * The actual FM1 UI supplies these from the existing PJT29 snapshots. */
 __attribute__((weak)) const struct etch_fx_settings *etch_group_fx_for_preset(uint8_t preset){
@@ -219,7 +220,7 @@ static uint32_t on(struct etch_native_audio *s,uint8_t pitch,uint16_t identity){
  org->time=0u;org->pitch=org->goal=0;org->ready=org->phase_ready=0;org->living_lp=0;
  v->low=v->band=0;for(uint32_t w=0;w<2u;w++)v->pre_lp[w]=0;v->stage=0;v->env=0;v->note=identity;
  v->inc=etch_note_inc[pitch];v->active=v->held=v->down=1;
- v->velocity=127;v->last=0;v->tail=tail;v->fade=tail?ETCH_TRANSITION_SAMPLES:0;v->attack_fade=ETCH_TRANSITION_SAMPLES;
+ v->velocity=127;v->last=0;v->tail=tail;v->fade=tail?ETCH_TRANSITION_SAMPLES:0;v->attack_fade=ETCH_ATTACK_SAMPLES;
  return slot;
 }
 
@@ -447,13 +448,16 @@ static uint8_t pre_insert_enabled(const struct etch_fx_settings *fx){
 static int32_t carrier(struct etch_native_voice *v,const struct etch_fx_settings *fx,
  const struct etch_native_bank *bank,uint32_t p,uint32_t q,uint32_t inc,uint32_t modinc,int32_t morph,int32_t depth,uint8_t target,uint16_t evolution_amount,uint8_t evolution_mode,
  const struct etch_mip_lookup *carrier_mip,const struct etch_mip_lookup *mod_mip,
- uint8_t pre_active){
+ uint8_t pre_active,uint8_t amp_mode,int32_t *amp_signal){
  if(depth){
   int32_t mod=readwave_prepared(bank,2,q,mod_mip);
   if(target){morph=clamp15(morph+(int32_t)(((int32_t)mod*(int32_t)depth)/32768));if(morph<0)morph=0;}
   else p+=((uint32_t)mod*(uint32_t)depth*2u);
  }
  int32_t a=readwave_prepared(bank,0,p,carrier_mip),b=readwave_prepared(bank,1,p,carrier_mip);
+ /* Reuse samples ALREADY fetched for the audible carrier. Wave AMP does not
+  * allocate a phase accumulator or run an extra wavetable interpolation. */
+ if(amp_signal)*amp_signal=etch_wamp_source(amp_mode,a,b,(uint16_t)morph);
  if(pre_active){
   int32_t c_sample=readwave_prepared(bank,2,q,mod_mip);
   for(uint32_t i=0;i<2;i++){
@@ -688,6 +692,7 @@ static void render_internal(struct etch_native_audio *s,const struct etch_native
   const struct etch_mod_matrix *matrix;
   uint8_t preset,pre_active,matrix_active,matrix_needs_wave;
  } parts[4]={0};
+ struct etch_fx_settings masked_group_fx[2]; /* block-local; no heap or persistent RAM */
  parts[0].fx=&c->fx_settings;
  parts[0].pre_active=pre_insert_enabled(parts[0].fx);
  for(uint8_t pi=1u;pi<=2u;pi++){
@@ -695,6 +700,11 @@ static void render_internal(struct etch_native_audio *s,const struct etch_native
   if(parts[pi].patch){
    parts[pi].preset=group_patch_slot(pi);
    parts[pi].fx=etch_group_fx_for_preset(parts[pi].preset);
+   if(parts[pi].fx && (c->fx_bypass_mask & (ETCH_FXB_BIT(ETCH_FXB_A1)|ETCH_FXB_BIT(ETCH_FXB_A2)|ETCH_FXB_BIT(ETCH_FXB_B1)|ETCH_FXB_BIT(ETCH_FXB_B2)))){
+    masked_group_fx[pi-1u]=*parts[pi].fx;
+    etch_fxb_mask_pre(c->fx_bypass_mask,&masked_group_fx[pi-1u]);
+    parts[pi].fx=&masked_group_fx[pi-1u];
+   }
    parts[pi].dsp=etch_group_dsp_for_preset(parts[pi].preset);
    parts[pi].pre_active=pre_insert_enabled(parts[pi].fx);
   }
@@ -948,16 +958,21 @@ static void render_internal(struct etch_native_audio *s,const struct etch_native
       voice_living,matrix_pressure,matrix_note);
     if(space_output)matrix_global_done=1u;
    }
+
+   uint8_t amp_mode=group_patch?(voice_dsp?etch_wamp_mode(voice_dsp->spectral_wave):0u):c->wave_amp_mode;
+   uint16_t amp_depth=group_patch?(voice_dsp?etch_wamp_q15(etch_wamp_depth6(voice_dsp->velocity_curve)):0u):c->wave_amp_depth;
+   uint8_t amp_enabled=(uint8_t)(amp_mode && amp_depth);
+   int32_t amp_wave=0;
    int32_t sample=preview_mix==32767u?0:
     carrier(v,voice_fx,voice_bank,v->p,v->q,organic_incs[i],organic_modincs[i],voice_morph,voice_depth,group_patch?group_patch->mod_target:c->mod_target,voice_evo,evolving?e->mode:0u,&carrier_mip[i],&mod_mip[i],
-            parts[group_patch?owner:0u].pre_active);
+            parts[group_patch?owner:0u].pre_active,amp_mode,amp_enabled?&amp_wave:0);
    int32_t solo=preview_mix?preview_carrier(v,c,s->bank,v->p,v->q,organic_incs[i],organic_modincs[i],preview_selected,&carrier_mip[i],&mod_mip[i]):0;
    if(s->bank_fade && preview_mix && s->old_bank){
     int32_t older=preview_carrier(v,c,s->old_bank,v->p,v->q,organic_incs[i],organic_modincs[i],preview_selected,&carrier_mip[i],&mod_mip[i]);
     solo+=(int32_t)(((int64_t)(older-solo)*s->bank_fade)/256);
    }
    if(s->bank_fade && !group_patch && preview_mix<32767u){
-    int32_t old=carrier(v,0,s->old_bank,v->p,v->q,organic_incs[i],organic_modincs[i],voice_morph,voice_depth,c->mod_target,voice_evo,evolving?e->mode:0u,&carrier_mip[i],&mod_mip[i],0u);
+    int32_t old=carrier(v,0,s->old_bank,v->p,v->q,organic_incs[i],organic_modincs[i],voice_morph,voice_depth,c->mod_target,voice_evo,evolving?e->mode:0u,&carrier_mip[i],&mod_mip[i],0u,0u,0);
     sample+=(int32_t)(((int64_t)(old-sample)*s->bank_fade)/256);
    }
    /* One LIVING pass per active voice. V1.31 applied the fundamental
@@ -977,18 +992,28 @@ static void render_internal(struct etch_native_audio *s,const struct etch_native
     locked.filter_type=group_patch->filter_type;
    }else if(parts[owner].matrix_active)locked.cutoff=voice_cutoff;
    sample=filter(v,&locked,sample);
-   if(has_groups){uint16_t voice_drive=group_patch?group_patch->drive:c->drive;
+   if(has_groups){uint16_t voice_drive=(c->fx_bypass_mask & ETCH_FXB_BIT(ETCH_FXB_DRIVE))?0u:(group_patch?group_patch->drive:c->drive);
     if(voice_drive)sample=etch_drive_softclip(sample,voice_drive);
    }
    locked.cutoff=saved_cutoff;locked.resonance=saved_resonance;
    locked.filter_type=saved_filter_type;
    uint8_t velocity_curve=group_patch?etch_group_velocity_for_preset(gslot):c->velocity_curve;
    uint8_t expressive_velocity=etch_expressive_velocity(v->velocity,velocity_curve);
+   /* V1.84 per-voice audio-rate amplitude sculpt. ADSR remains independent;
+    * OFF/zero-depth keeps the legacy PCM bit-for-bit identical. */
+   /* Solo preview has its own carrier path; do not apply a stale gain from
+    * a carrier intentionally skipped during a full-wave audition. */
+   if(amp_enabled && preview_mix!=32767u){
+    sample=etch_wamp_apply(sample,amp_wave,amp_depth);
+    solo=etch_wamp_apply(solo,amp_wave,amp_depth);
+   }
    sample=(sample*v->env)/32768;sample=(sample*expressive_velocity)/127;
    solo=(solo*v->env)/32768;solo=(solo*expressive_velocity)/127;
    if(v->attack_fade){
-    solo=(int32_t)(((int64_t)solo*(ETCH_TRANSITION_SAMPLES-v->attack_fade))/ETCH_TRANSITION_SAMPLES);
-    sample=(int32_t)(((int64_t)sample*(ETCH_TRANSITION_SAMPLES-v->attack_fade))/ETCH_TRANSITION_SAMPLES);
+    /* Cubic zero-slope fade-in reduces click energy at note-on (and hard
+     * retrigger) without adding a buffer, delay, or a 64-bit multiply. */
+    solo=etch_attack_apply(solo,v->attack_fade);
+    sample=etch_attack_apply(sample,v->attack_fade);
     --v->attack_fade;
    }
    if(v->fade){sample+=(int32_t)(((int64_t)v->tail*v->fade)/ETCH_TRANSITION_SAMPLES);--v->fade;}
@@ -1101,8 +1126,9 @@ static void render_internal(struct etch_native_audio *s,const struct etch_native
     *destination=(uint16_t)(n<0?0:n>32767?32767:n);}
   }else if((f&31u)==0u)s->c_fx_smooth=0;
   if(matrix_global_done)locked.reverb=matrix_reverb;
+  etch_fxb_mask_master(c->fx_bypass_mask,&locked.fx_settings,&locked.chorus,&locked.delay,&locked.reverb);
   int16_t l=0,r=0;
-  etch_fx_process_stereo_ex(&s->fx,(int16_t)clamp15(mix),locked.chorus,locked.delay,locked.reverb,&locked.fx_settings,&l,&r);
+  etch_fx_process_stereo_masked(&s->fx,(int16_t)clamp15(mix),locked.chorus,locked.delay,locked.reverb,&locked.fx_settings,c->fx_bypass_mask,&l,&r);
   if(preview_mix){
    int32_t alpha=preview_mix;
    l=(int16_t)clamp15(((int32_t)l*(32767-alpha)+preview_dry*alpha)/32767);

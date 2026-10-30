@@ -55,3 +55,6 @@ uint16_t etch_editor_spectral_brightness(const struct etch_wave_editor *e);
 
 /* V1.41 SCULPT: preview is read-only; apply checkpoints exactly once. */
 void etch_editor_sculpt(struct etch_wave_editor *e,uint8_t mode,uint16_t amount,uint8_t pivot);
+
+/* V1.82: set current waveform to the zero axis with a single undo step. */
+void etch_editor_zero_line(struct etch_wave_editor *e);

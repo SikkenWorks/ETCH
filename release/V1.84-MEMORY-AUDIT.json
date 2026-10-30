@@ -1,0 +1,44 @@
+{
+  "type": "linker-static",
+  "hardware_tested": false,
+  "project": "ETCH V1.84",
+  "sections": {
+    ".ram_text": {
+      "v183_bytes": 2888,
+      "v184_bytes": 2888,
+      "delta_bytes": 0,
+      "free_to_limit_bytes": 13496
+    },
+    ".uac_ram": {
+      "v183_bytes": 6604,
+      "v184_bytes": 6604,
+      "delta_bytes": 0,
+      "free_to_limit_bytes": 1588
+    },
+    ".data": {
+      "v183_bytes": 100,
+      "v184_bytes": 100,
+      "delta_bytes": 0,
+      "free_to_limit_bytes": 98204
+    },
+    ".bss": {
+      "v183_bytes": 93900,
+      "v184_bytes": 93900,
+      "delta_bytes": 0,
+      "free_to_limit_bytes": 4292
+    },
+    ".pool": {
+      "v183_bytes": 334260,
+      "v184_bytes": 334264,
+      "delta_bytes": 4,
+      "free_to_limit_bytes": 9800
+    },
+    ".noinit": {
+      "v183_bytes": 12148,
+      "v184_bytes": 12148,
+      "delta_bytes": 0,
+      "free_to_limit_bytes": 140
+    }
+  },
+  "result": "PASS"
+}

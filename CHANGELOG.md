@@ -1,3 +1,45 @@
+## V1.84 — WAVE AMP / Note-On / VHS 2.0
+
+- New per-voice phase-locked WAVE AMP with Wave A/B/MORPH sources and depth; no extra oscillator or wavetable buffers.
+- Smoothed key onset with 256-sample cubic zero-slope ramp.
+- More realistic RGB/VHS boot: horizontal tearing, tracking dropout, chroma noise and head-switch interference, clean 1s branding unchanged.
+- New PJT32 preset parameters, legacy PJT31 input and updated `.etchpreset` V2 live snapshot support.
+- Original package identity `FM-1_1500`, protected boot region, trusted OTA loader and existing navigation preserved.
+
+## ETCH V1.84 — WAVE AMP
+
+See [CHANGELOG-V1.84.md](CHANGELOG-V1.84.md) for the audio-rate waveform-to-volume feature, PJT32 compatibility and implementation/test notes.
+
+## V1.83 – Native UI Alignment & Workflow Header
+
+- Centered four-parameter footer labels and values inside their own clipped, non-overlapping 240 × 240 LCD cells.
+- Reworked MORPH footer into stable balanced text/value rows for WAVE A, WAVE B, K3 MORPH, K4 C RATE, and ALG ETCH, including three-digit extremes.
+- Right-aligned an integrated `V183 S` / `V183 A` version + workflow indicator in the header of all versioned screens. Repaints when workflow changes, without requiring a page change.
+- Kept PHOSPHOR palette, full 63-screen navigation, all synth/audio features, USB-audio, `.etchpreset`, storage, FX bypass and PJT31 format intact.
+- Hardware identity `FM-1_1500`, existing protected 16 KiB bootheader and original trusted OTA loader remain unchanged.
+- Software validation: JieLi builds for normal + USB-audio at 44.1/48 kHz, 18 native regressions, OTA host regression, 63-page navigation test, 5,010 native-C morph geometry cases, RAM audit and installer payload/SHA parity. Hardware/LCD verification pending.
+- Four source-aligned previews use unchanged V1.82 native graph pixels and actual V1.83 C bitmap layout routines. They are not complete independent live native captures.
+
+## V1.82 – PHOSPHOR UI / CONFIRMED FLAT LINE
+
+- New coherent RGB565 PHOSPHOR palette across native UI rendering, with warm ivory, aubergine background, coral/lilac/blue wave accents, lime actions, amber selection and red errors.
+- In waveform DRAW, hold EDIT for 700 ms to open a YES/NO prompt. Default NO. YES resets only the selected waveform to the zero line and records one Undo checkpoint; no flash write.
+- Short EDIT press retains previous behavior. All advanced editors and current project/OTA identity remain unchanged.
+
+## V1.81 – Advanced FX Bypass & Color Reference (software-tested; physical tests pending)
+
+- ADVANCED + FX hold (700 ms) now opens a dedicated FX BYPASS page; regular FX tap and existing workflows remain available. The hub shows only configured global effects, four Wave A/B insert slots, and Wave C FX. K1 scrolls, K4/SEL toggles ON/BYP, K2 bypasses all, K3 restores all, FX closes.
+- Added 22 runtime-only bypass bits and guarded DSP processing. The heavy chorus/delay/reverb tap calculations and certain insert computations can be skipped during bypass, while a small amount of state/line housekeeping remains. No physical CPU-cycle measurements and no literal zero-CPU guarantee.
+- Preserved parameter values and PJT31 serializer: bypass is not saved, and turning an effect back on restores its previous settings. All 62 existing pages remain; FX BYPASS is appended as page 63. No changes to normal USB-MIDI / OTA package identity `FM-1_1500`, original protected boot header or trusted OTA loader.
+- Added `docs/ETCH-V1.81-COLOR-REFERENCE.docx` with 32 distinct explicitly defined RGB565 native colors, converted HEX swatches, counts and three coherent UI palette proposals. The palette suggestions are **not** applied to the current firmware.
+- Software results: three JieLi build configurations, PCM parity (four scenes), host FX hub/dry-path tests, package CRC/SHA, WebInstaller checks and OTA host fault injection. Actual FM1 screen/button behavior, USB load and CPU savings remain unverified.
+
+## V1.80 · Boot Brand Underscore Removal (software-tested candidate)
+
+- Removed the single 160-pixel decorative horizontal rule below `BORN OUT OF PASSION.` on the clean SIKKENWORKS boot screen. No change to letter glyphs, branding timing, VHS frames, or SIMPLE/ADVANCED prompt.
+- Kept all UI routes, audio, storage, preset transfer, and OTA source behavior unchanged.
+- Rebuilt native JieLi images and `.fwsc` under the existing `FM-1_1500` identity; checks are software-only, not a physical FM1 validation.
+
 ## V1.78 · First-Boot Storage Ownership Prompt (software-tested candidate)
 
 - On boot, detect `ETCH_STORE_FOREIGN` in the **ETCH target storage banks**, and offer a modal **FORMAT FOR ETCH? YES/NO** screen. NO is selected initially and exits to RAM-only operation without writes; the question returns on a future boot until storage is made compatible.

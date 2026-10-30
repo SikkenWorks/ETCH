@@ -1,11 +1,14 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * ETCH V1.77 RAM-only preset interchange. Little-endian native pi32v2 ABI.
  * Version 1 is defined by sizeof/field layout and may not be silently changed.
+ * Version 2 retains exactly the same 1044-byte ABI and adds PJT32 packed
+ * Wave AMP settings to formerly reserved per-preset bitfields.
  * Use host SHA-256 plus device CRC32; never treat CRC as authentication.
  */
 #pragma once
 #include <stdint.h>
 #include "native_project_codec.h"
+#include "native_wave_amp.h"
 #define ETCH_LIVE_MAGIC 0x48435445u /* ETCH in little endian */
 struct etch_live_preset {
  uint32_t magic;
@@ -19,13 +22,13 @@ struct etch_live_preset {
  uint8_t mono_mode,arp_rate,arp_octaves,seq_rate,seq_gate,seq_swing;
 };
 static inline uint8_t etch_live_validate(const struct etch_live_preset *v){
- if(!v||v->magic!=ETCH_LIVE_MAGIC||v->version!=1u||v->bytes!=sizeof(*v)||
+ if(!v||v->magic!=ETCH_LIVE_MAGIC||(v->version!=1u&&v->version!=2u)||v->bytes!=sizeof(*v)||
     v->patch.slot_a>=64u||v->patch.slot_b>=64u||v->patch.slot_c>=64u||
     v->patch.mod_mode>2u||v->patch.mod_target>1u||v->patch.mod_ratio>=12u||
     v->patch.filter_type>=4u||v->patch.morph>32767u||v->patch.depth>32767u||
     v->patch.sustain>32767u||v->patch.cutoff>32767u||v->patch.resonance>32767u||
     v->patch.drive>32767u||v->patch.chorus>32767u||v->patch.delay>32767u||v->patch.reverb>32767u||
-    v->dsp.velocity_curve>2u||v->dsp.spectral_wave>2u||v->dsp.spectral_part>32u||
+    (v->version==2u?((v->dsp.velocity_curve&3u)>2u|| (v->dsp.spectral_wave&0xf0u)!=0u || (v->dsp.spectral_wave&3u)>2u): (v->dsp.velocity_curve>2u||v->dsp.spectral_wave>2u))||v->dsp.spectral_part>32u||
     v->dsp.spectral_gain>100u||v->dsp.spectral_tilt>100u||
     v->dsp.blend_a>=32u||v->dsp.blend_b>=32u||v->dsp.blend_pct>100u||v->dsp.blend_on>1u||
     !etch_organic_valid(&v->dsp.organic)||!etch_living_valid(&v->dsp.living)||

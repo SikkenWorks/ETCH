@@ -1,0 +1,1 @@
+Source-aligned 1920x1920 nearest-neighbor previews; see docs/V1.83-UI-ALIGNMENT-AUDIT.md. Graph pixels unchanged from V1.82 native screenshot. Header/footer drawn via actual V1.83 C bitmap font/layout functions. Not fresh complete native LCD captures.

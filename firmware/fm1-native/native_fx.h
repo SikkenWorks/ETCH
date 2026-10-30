@@ -159,3 +159,6 @@ int16_t etch_fx_process(struct etch_native_fx *s,int16_t in,uint16_t chorus,uint
 /* Stereo return uses one shared delay/chorus/reverb buffer, with distinct
  * left/right wet taps. No second RAM-heavy effect instance. */
 void etch_fx_process_stereo_ex(struct etch_native_fx *s,int16_t in,uint16_t chorus,uint16_t delay,uint16_t reverb,const struct etch_fx_settings *settings,int16_t *left,int16_t *right);
+
+/* V1.81 effect-aware processing; legacy callers keep the original ABI. */
+void etch_fx_process_stereo_masked(struct etch_native_fx *s,int16_t in,uint16_t chorus,uint16_t delay,uint16_t reverb,const struct etch_fx_settings *settings,uint32_t bypass_mask,int16_t *left,int16_t *right);

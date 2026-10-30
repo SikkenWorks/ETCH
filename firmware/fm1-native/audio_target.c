@@ -9,7 +9,9 @@
 #include "native_performance_midi.h"
 #include "native_preset_ramp.h"
 static struct etch_native_audio native_audio __attribute__((section(".pool")));
-static volatile struct etch_native_controls native_controls;
+/* V1.81: published control snapshot resides in zeroed shared DSP pool.
+ * This reclaims main SRAM without changing the ISR ABI or flash layout. */
+static volatile struct etch_native_controls native_controls __attribute__((section(".pool")));
 static int32_t native_dma[ETCH_NATIVE_FRAMES*4] __attribute__((aligned(4)));
 static int16_t native_mono[ETCH_NATIVE_FRAMES] __attribute__((section(".noinit")));
 static int16_t native_stereo[ETCH_NATIVE_FRAMES*2] __attribute__((section(".noinit")));

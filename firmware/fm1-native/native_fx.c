@@ -4,6 +4,7 @@
  * The hard limiter and signed intermediate arithmetic keep feedback stable.
  */
 #include "native_fx.h"
+#include "native_fx_bypass_v181.h"
 /* The FM1 application has a single global FX instance. These buffers occupy
  * verified spare .noinit SRAM rather than the saturated DMA/voice POOL.
  * They are explicitly cleared by etch_fx_reset before sound starts. */
@@ -63,7 +64,7 @@ static int32_t etch_fx_slew(int32_t current,int32_t target){
  if(!delta)return current;
  return current+(delta>0?(delta+63)/64:-((-delta+63)/64));
 }
-static int16_t etch_fx_ring_eq(struct etch_native_fx *s,int16_t sample,const struct etch_fx_settings *c){
+static int16_t etch_fx_ring_eq(struct etch_native_fx *s,int16_t sample,const struct etch_fx_settings *c,uint32_t bypass_mask){
  int32_t x=sample;
  /* Slew gain and wet controls over approximately 1.5ms @44.1kHz. */
  s->ring_mix_smooth=etch_fx_slew(s->ring_mix_smooth,qclamp(c->ring_mix));
@@ -87,6 +88,7 @@ static int16_t etch_fx_ring_eq(struct etch_native_fx *s,int16_t sample,const str
   x+=(int32_t)(((int64_t)(wet-x)*s->ring_mix_smooth)/32767);
  }
  s->ring_phase+=s->ring_increment;
+ if(!(bypass_mask&ETCH_FXB_BIT(ETCH_FXB_EQ))){
  /* One-pole crossovers: low <~200Hz, mid ~200Hz..~6kHz, high >~6kHz.
   * The three bands recombine exactly to dry when each gain is at unity. */
  s->eq_lp_low+=(int32_t)(etch_fx_bounded_lp_step(x-s->eq_lp_low,900));
@@ -99,6 +101,12 @@ static int16_t etch_fx_ring_eq(struct etch_native_fx *s,int16_t sample,const str
   int32_t low=s->eq_lp_low,mid=s->eq_lp_high-low,high=x-s->eq_lp_high;
   x=(int32_t)(((int64_t)low*s->eq_gain_smooth[0]+(int64_t)mid*s->eq_gain_smooth[1]+
       (int64_t)high*s->eq_gain_smooth[2])/16384);
+ }
+ }else{
+  /* Skip EQ filters and band recombination entirely while bypassed.
+   * Reset small one-pole state to avoid resurrecting an old tone. */
+  s->eq_lp_low=s->eq_lp_high=s->eq_lp_hpf=0;
+  s->eq_gain_smooth[0]=s->eq_gain_smooth[1]=s->eq_gain_smooth[2]=16384;
  }
  return clip16(x);
 }
@@ -292,7 +300,7 @@ static int16_t fx_v102_process(struct etch_native_fx *s,int16_t sample,const str
  return clip16(x);
 }
 
-void etch_fx_process_stereo_ex(struct etch_native_fx *s,int16_t in,uint16_t chorus,uint16_t delay,uint16_t reverb,const struct etch_fx_settings *cfg,int16_t *left,int16_t *right){
+void etch_fx_process_stereo_masked(struct etch_native_fx *s,int16_t in,uint16_t chorus,uint16_t delay,uint16_t reverb,const struct etch_fx_settings *cfg,uint32_t bypass_mask,int16_t *left,int16_t *right){
  if(!left||!right)return;
  if(!s){*left=*right=in;return;}
  struct etch_fx_settings defaults;
@@ -383,8 +391,13 @@ void etch_fx_process_stereo_ex(struct etch_native_fx *s,int16_t in,uint16_t chor
   if(!s->tap3)s->tap3=1;
  }
  uint16_t feedback=qclamp(cfg->delay_feedback),decay=qclamp(cfg->reverb_decay);
- in=etch_fx_ring_eq(s,in,cfg);
+ if((bypass_mask&(ETCH_FXB_BIT(ETCH_FXB_RING)|ETCH_FXB_BIT(ETCH_FXB_EQ))) ==
+    (ETCH_FXB_BIT(ETCH_FXB_RING)|ETCH_FXB_BIT(ETCH_FXB_EQ))){
+  s->ring_mix_smooth=0;s->ring_phase=0;
+ }else in=etch_fx_ring_eq(s,in,cfg,bypass_mask);
  in=fx_v102_process(s,in,cfg);
+ int32_t chorus_delta=0,chorus_right=0;
+ if(!(bypass_mask&ETCH_FXB_BIT(ETCH_FXB_CHORUS))){
  uint32_t phase=s->chorus_phase;
  s->chorus_phase=(phase+s->rate_step)&65535u;
  uint32_t tri=phase<32768u?phase:65535u-phase;
@@ -397,17 +410,30 @@ void etch_fx_process_stereo_ex(struct etch_native_fx *s,int16_t in,uint16_t chor
  int32_t wetc_r=etch_fx_chorus_read(s,281u*256u+shift_r);
  s->chorus[s->chorus_pos]=in;
  s->chorus_pos=(s->chorus_pos+1u)&(ETCH_CHORUS_SIZE-1u);
- int32_t chorus_delta=((wetc-in)*(int32_t)chorus)/65536;
- int32_t chorus_right=((wetc_r-in)*(int32_t)chorus)/65536;
+ chorus_delta=((wetc-in)*(int32_t)chorus)/65536;
+ chorus_right=((wetc_r-in)*(int32_t)chorus)/65536;
+ }else{
+  /* Cheap zero-fill of a single ring entry avoids stale echoes on restore. */
+  s->chorus[s->chorus_pos]=0;
+  s->chorus_pos=(s->chorus_pos+1u)&(ETCH_CHORUS_SIZE-1u);
+ }
  /* Echo spans about 9..360ms @ 44.1kHz. Never read the write head. */
+ int32_t delay_delta=0,delay_right=0;
+ int32_t fxin=cfg->routing==1?in:clip16((int32_t)in+chorus_delta);
+ if(!(bypass_mask&ETCH_FXB_BIT(ETCH_FXB_DELAY))){
  uint32_t didx=(s->delay_pos-s->delay_samples)&(ETCH_DELAY_SIZE-1u);
  int32_t wetd=s->delay[didx];
  int32_t wetd_right=s->delay[(didx-97u)&(ETCH_DELAY_SIZE-1u)];
- int32_t fxin=cfg->routing==1?in:clip16((int32_t)in+chorus_delta);
  s->delay[s->delay_pos]=clip16(fxin+(int32_t)(((int64_t)wetd*feedback*27)>>20));
  s->delay_pos=(s->delay_pos+1u)&(ETCH_DELAY_SIZE-1u);
- int32_t delay_delta=(wetd*(int32_t)delay)/65536;
- int32_t delay_right=(wetd_right*(int32_t)delay)/65536;
+ delay_delta=(wetd*(int32_t)delay)/65536;
+ delay_right=(wetd_right*(int32_t)delay)/65536;
+ }else{
+  s->delay[s->delay_pos]=0;
+  s->delay_pos=(s->delay_pos+1u)&(ETCH_DELAY_SIZE-1u);
+ }
+ int32_t output=0,output_right=0;
+ if(!(bypass_mask&ETCH_FXB_BIT(ETCH_FXB_REVERB))){
  /* Three size-dependent taps share the original 4096-sample tank. */
  int32_t r1=s->reverb[(s->reverb_pos-s->tap1)&(ETCH_REVERB_SIZE-1u)];
  int32_t r2=s->reverb[(s->reverb_pos-s->tap2)&(ETCH_REVERB_SIZE-1u)];
@@ -443,15 +469,23 @@ void etch_fx_process_stereo_ex(struct etch_native_fx *s,int16_t in,uint16_t chor
  int32_t wet_right=clip16((early_b*5+early_a*2+r2*4+r3*3+r1*2)/12);
  s->reverb_mix_smooth=etch_fx_slew(s->reverb_mix_smooth,reverb);
  uint16_t space=(uint16_t)s->reverb_mix_smooth;
- int32_t output=(int32_t)(((int64_t)dry_left*(32767u-space)+
+ output=(int32_t)(((int64_t)dry_left*(32767u-space)+
                             (int64_t)wet_left*space)/32767);
- int32_t output_right=(int32_t)(((int64_t)dry_right*(32767u-space)+
+ output_right=(int32_t)(((int64_t)dry_right*(32767u-space)+
                                   (int64_t)wet_right*space)/32767);
+ }else{
+  s->reverb[s->reverb_pos]=0;
+  s->reverb_pos=(s->reverb_pos+1u)&(ETCH_REVERB_SIZE-1u);
+  s->reverb_mix_smooth=0;
+  output=cfg->routing==1?(int32_t)in+chorus_delta+delay_delta:clip16(fxin+delay_delta);
+  output_right=(int32_t)in+chorus_right+delay_right;
+ }
  /* Reverse delay: alternate recording and reading two disjoint blocks.
   * Entire last block is read backwards while current block is filled.
   * TIME maps 1024..8192 samples (23..186ms at 44.1k).
   * Playback/capture boundaries are guarded by a 128-sample triangular fade.
   * RATE changes only at a new capture block (no mid-block index tear). */
+ if(!(bypass_mask&ETCH_FXB_BIT(ETCH_FXB_REVERSE))){
  s->reverse_mix_smooth=etch_fx_slew(s->reverse_mix_smooth,qclamp(cfg->reverse_mix));
  if(!s->reverse_len)s->reverse_len=1024u;
  uint16_t n=s->reverse_len;
@@ -488,6 +522,9 @@ void etch_fx_process_stereo_ex(struct etch_native_fx *s,int16_t in,uint16_t chor
   output+=(int32_t)(((int64_t)(reverse_wet-output)*s->reverse_mix_smooth)/32767);
   output_right+=(int32_t)(((int64_t)(reverse_wet-output_right)*s->reverse_mix_smooth)/32767);
  }
+ }else{
+  s->reverse_mix_smooth=0;s->reverse_ready=0;s->reverse_accum=0;
+ }
  /* Rotary: complementary L/R spinning horn tremolo plus softened drive.
   * Global, bounded, mono-compatible by averaging the stereo return. */
  s->rotary_mix_smooth=etch_fx_slew(s->rotary_mix_smooth,qclamp(cfg->rotary_mix));
@@ -506,6 +543,9 @@ void etch_fx_process_stereo_ex(struct etch_native_fx *s,int16_t in,uint16_t chor
  s->rotary_phase+=s->rotary_step;
  *left=etch_fx_wet_safety(output,(uint8_t)(chorus||delay||reverb||s->reverse_mix_smooth||s->rotary_mix_smooth));
  *right=etch_fx_wet_safety(output_right,(uint8_t)(chorus||delay||reverb||s->reverse_mix_smooth||s->rotary_mix_smooth));
+}
+void etch_fx_process_stereo_ex(struct etch_native_fx *s,int16_t in,uint16_t chorus,uint16_t delay,uint16_t reverb,const struct etch_fx_settings *cfg,int16_t *left,int16_t *right){
+ etch_fx_process_stereo_masked(s,in,chorus,delay,reverb,cfg,0u,left,right);
 }
 int16_t etch_fx_process_ex(struct etch_native_fx *s,int16_t in,uint16_t chorus,uint16_t delay,uint16_t reverb,const struct etch_fx_settings *cfg){
  int16_t left=in,right=in;

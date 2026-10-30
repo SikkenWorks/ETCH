@@ -1,0 +1,33 @@
+{
+  "release_version": "1.80",
+  "firmware_identity": "FM-1_1500",
+  "project_format": "PJT31",
+  "app_sha256": "33e008b456b738be28cf3a6901ac968114639497fb37dfb7dcbde3e0de4d6348",
+  "app_bytes": 228148,
+  "native_storage_enabled": true,
+  "native_ota_enabled": true,
+  "usb_audio_44100": true,
+  "usb_audio_48000": true,
+  "hardware_verified": false,
+  "primary_fwsc": "release/ETCH-V1.80.fwsc",
+  "packages": {
+    "etch": {
+      "file": "release/ETCH-V1.80.fwsc",
+      "sha256": "a104fce86b757d9473e51587b32da10d39c477304c84b1e21e75efab97ba3b91",
+      "bytes": 610086,
+      "protected_boot_sha256": "a65e0e1a2fad1db943c00b529b45553c524257146145db61b69628cefcf2b2c9",
+      "ota_sha256": "d71d1b7c12adede951605e758a3580dacccedc427d49e1fceaf51decccc68a4b",
+      "identity": "FM-1_1500",
+      "type": "official"
+    },
+    "stock": {
+      "file": "compat/ETCH-V1.80-LEGACY-STOCK-HEAD.fwsc",
+      "sha256": "276c4426698b03f6ee85253664b4802841a82a031b9a2b23afee6368eb79ecc5",
+      "bytes": 610086,
+      "protected_boot_sha256": "d9f43191777656de01c7bed4f9e9ba2e34e94832c5d2ed02c3fc7ab7a6d9bd67",
+      "ota_sha256": "d71d1b7c12adede951605e758a3580dacccedc427d49e1fceaf51decccc68a4b",
+      "identity": "FM-1_1500",
+      "type": "installer-legacy-only"
+    }
+  }
+}
