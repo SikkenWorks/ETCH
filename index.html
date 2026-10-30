@@ -1,12 +1,13 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#15121C">
-<meta name="color-scheme" content="dark">
-<meta name="description" content="ETCH V1.86 for the M-VAVE FM1. Draw your waveforms, morph and modulate, and access the firmware WebInstaller, Cheat Sheet, Preset Manager and User Manual.">
-<link rel="icon" type="image/png" href="favicon.png">
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="#15121C" name="theme-color"/>
+<meta content="dark" name="color-scheme"/>
+<meta content="ETCH V1.88 for the M-VAVE FM1. Draw 128-point waveforms, morph and modulate them, use Phase Warp and Half Symmetry, and find the WebInstaller, Cheat Sheet, Preset Manager and User Manual." name="description"/>
+<link href="favicon.png" rel="icon" type="image/png"/>
 <title>ETCH // Draw. Morph. Modulate. // SikkenWorks</title>
 <style>
 :root{color-scheme:dark;--bg:#15121C;--panel:#25202D;--panel-deep:#1D1924;--ink:#F2E9D8;--sub:#A79AAE;--lime:#C7F36B;--coral:#FF7668;--lilac:#B39AFF;--blue:#82C8E8;--amber:#FFC16E;--red:#FF5263;--grid:#403749;--border:#4B4054;--shadow:#0B0A10}
@@ -104,71 +105,80 @@ a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var
 </head>
 <body>
 <div class="shell" id="top">
- <aside class="sidebar" aria-label="ETCH navigation">
-  <a class="logo" href="#top">ETCH <small>V1.86</small></a>
-  <div class="brandline">DRAW. MORPH. MODULATE.</div>
-  <div class="side-label">// NAVIGATE</div>
-  <nav class="nav" aria-label="Reference sections"><a class="nav-item" href="#what-is-etch" data-section="what-is-etch"><span class="nav-diamond" aria-hidden="true"></span>OVERVIEW</a>
-<a class="nav-item" href="#sound-engine" data-section="sound-engine"><span class="nav-diamond" aria-hidden="true"></span>SOUND ENGINE</a>
-<a class="nav-item" href="#getting-started" data-section="getting-started"><span class="nav-diamond" aria-hidden="true"></span>GETTING STARTED</a>
-<a class="nav-item" href="#controls-shortcuts" data-section="controls-shortcuts"><span class="nav-diamond" aria-hidden="true"></span>CONTROLS</a>
-<a class="nav-item" href="#draw-sculpt-play" data-section="draw-sculpt-play"><span class="nav-diamond" aria-hidden="true"></span>DRAW & SCULPT</a>
-<a class="nav-item" href="#sequencing-live-performance" data-section="sequencing-live-performance"><span class="nav-diamond" aria-hidden="true"></span>PERFORMANCE</a>
-<a class="nav-item" href="#presets-projects-backups" data-section="presets-projects-backups"><span class="nav-diamond" aria-hidden="true"></span>SAVE & BACKUP</a>
-<a class="nav-item" href="#installation-recovery" data-section="installation-recovery"><span class="nav-diamond" aria-hidden="true"></span>INSTALLATION</a>
-<a class="nav-item" href="#source-development" data-section="source-development"><span class="nav-diamond" aria-hidden="true"></span>SOURCE</a>
-<a class="nav-item" href="#credits-licensing" data-section="credits-licensing"><span class="nav-diamond" aria-hidden="true"></span>CREDITS / LICENSE</a></nav>
-  <div class="side-bottom">M-VAVE FM1 / PHOSPHOR UI<br>SIKKENWORKS<br>BORN OUT OF PASSION.<br><a href="https://github.com/SikkenWorks/ETCH" target="_blank" rel="noopener noreferrer">VIEW SOURCE ↗</a></div>
- </aside>
- <main class="main">
-  <div class="topline"><span>ETCH / M-VAVE FM1 / 2026</span><span class="status">DOCUMENTATION ONLINE</span></div>
-  <header class="hero">
-   <div class="hero-top"><span>SIKKENWORKS / SYNTHESIS</span><span class="rule"></span><span>V1.86</span></div>
-   <div class="hero-layout">
-    <div class="hero-description">
-     <h1>ETCH<span>.</span></h1>
-     <div class="tagline">DRAW. MORPH. MODULATE.</div>
-     <p class="hero-copy">An open-source waveform-sculpting synthesizer for the M-VAVE FM1. Draw your own waveforms, morph A and B into a new shape, and let Wave C modulate the result.</p>
-     <div class="hero-tags"><span class="tag color">FIRMWARE V1.86</span><span class="tag">FM-1_1500</span><span class="tag">PJT32</span><span class="tag">GPL-3.0-ONLY</span></div>
-    </div>
-    <div class="osc" role="img" aria-label="Oscilloscope drawing of Wave A, Wave B and their morphed result">
-     <div class="osc-head"><span>ETCH / OSCILLOSCOPE</span><b>WAVE A + B / MORPH</b></div>
-     <svg viewBox="0 0 650 270" preserveAspectRatio="none" aria-hidden="true">
-      <defs><pattern id="scopegrid" width="50" height="45" patternUnits="userSpaceOnUse"><path d="M50 0H0V45" fill="none" stroke="#51445B" stroke-width=".85"/></pattern></defs>
-      <rect x="1" y="1" width="648" height="268" fill="url(#scopegrid)" stroke="#51445B" stroke-width="1" />
-      <path d="M0 135H650" stroke="#C7F36B" stroke-width="1" opacity=".38"/>
-      <path d="M0 135L32 100L60 68L93 61L125 71L162 120L196 169L228 193L260 180L292 148L328 120L363 93L392 105L422 136L454 174L487 205L517 190L549 154L580 116L613 92L650 135" fill="none" stroke="#FF7668" stroke-width="3" stroke-linejoin="round"/>
-      <path d="M0 135L24 135L51 113L79 61L107 43L133 67L163 130L193 141L224 160L252 209L288 222L317 185L352 135L385 128L420 134L458 185L489 199L526 184L560 124L598 95L625 116L650 135" fill="none" stroke="#B39AFF" stroke-width="2.8" stroke-linejoin="round"/>
-      <path d="M0 135L25 121L56 94L86 61L116 56L146 98L176 137L208 164L237 190L274 188L306 165L340 125L371 109L405 125L435 154L468 184L504 197L536 166L567 131L603 100L630 111L650 135" fill="none" stroke="#C7F36B" stroke-width="3.3" stroke-linejoin="round"/>
-     </svg>
-     <div class="osc-foot"><span class="a">● WAVE A</span><span class="b">● WAVE B</span><span class="mix">● MORPH RESULT</span></div>
-    </div>
-   </div>
-  </header>
-  <div class="section-kicker" id="tools">// ETCH TOOLS &amp; GUIDES</div>
-  <div class="resource-grid" aria-label="ETCH resource links">
-   <a class="resource" href="WebInstaller.html"><div class="res-top"><span>FIRMWARE / USB-MIDI</span><span class="res-index">01</span></div><h2>WEBINSTALLER</h2><p>Install ETCH with firmware verification, compatibility checks and explicit safety confirmation.</p><span class="res-open">OPEN WEBINSTALLER ↗</span></a>
-   <a class="resource" href="CHEAT-SHEET.html"><div class="res-top"><span>QUICK REFERENCE</span><span class="res-index">02</span></div><h2>CHEAT SHEET</h2><p>Searchable shortcuts, essential controls, wave editing and troubleshooting.</p><span class="res-open">OPEN CHEAT SHEET ↗</span></a>
-   <a class="resource" href="ETCH-Project-Preset-Manager.html"><div class="res-top"><span>BACKUP / RESTORE</span><span class="res-index">03</span></div><h2>PROJECT / PRESET MANAGER</h2><p>Read and export the active sound to .etchpreset, or audition a saved sound in RAM.</p><span class="res-open">OPEN PRESET MANAGER ↗</span></a>
-   <a class="resource" href="USER_MANUAL.md"><div class="res-top"><span>FULL DOCUMENTATION</span><span class="res-index">04</span></div><h2>USER MANUAL</h2><p>Complete operating guide, including the screen-by-screen K1–K4 parameter reference.</p><span class="res-open">READ USER MANUAL ↗</span></a>
-  </div>
-  <div class="specs" aria-label="ETCH storage capacity"><div class="spec"><strong>128</strong><span>POINTS / WAVE</span></div><div class="spec"><strong>64</strong><span>WAVE SLOTS</span></div><div class="spec"><strong>32</strong><span>PRESET SLOTS</span></div><div class="spec"><strong>04</strong><span>PROJECT SLOTS</span></div></div>
-  <div class="section-kicker">// ABOUT / FEATURES / OPERATION / SOURCES</div>
-  <section class="content-section" id="what-is-etch"><div class="section-bar"><span class="section-pip"></span><span class="section-type">// 01 / DOCUMENTATION</span></div><div class="section-inner"><h2>What is ETCH?</h2><p>ETCH turns your FM1 into a hands-on synthesizer built around <strong>waveforms you draw yourself</strong>. Shape Wave A and Wave B, morph between them, use Wave C to modulate the result, and explore a full set of filters, effects and performance tools.</p><p><strong>Firmware:</strong> V1.86 · <strong>M-VAVE FM1</strong> · <strong>Package/USB identity:</strong> <code>FM-1_1500</code> · <strong>Project format:</strong> <code>PJT32</code> · <strong>License:</strong> GPL-3.0-only.</p></div></section>
-<section class="content-section" id="sound-engine"><div class="section-bar"><span class="section-pip"></span><span class="section-type">// 02 / DOCUMENTATION</span></div><div class="section-inner"><h2>Sound engine</h2><pre><code class="language-text">Wave A ── [A inserts] ──┐
+<aside aria-label="ETCH navigation" class="sidebar">
+<a class="logo" href="#top">ETCH <small>V1.88</small></a>
+<div class="brandline">DRAW. MORPH. MODULATE.</div>
+<div class="side-label">// NAVIGATE</div>
+<nav aria-label="Reference sections" class="nav"><a class="nav-item" data-section="what-is-etch" href="#what-is-etch"><span aria-hidden="true" class="nav-diamond"></span>OVERVIEW</a>
+<a class="nav-item" data-section="sound-engine" href="#sound-engine"><span aria-hidden="true" class="nav-diamond"></span>SOUND ENGINE</a>
+<a class="nav-item" data-section="getting-started" href="#getting-started"><span aria-hidden="true" class="nav-diamond"></span>GETTING STARTED</a>
+<a class="nav-item" data-section="controls-shortcuts" href="#controls-shortcuts"><span aria-hidden="true" class="nav-diamond"></span>CONTROLS</a>
+<a class="nav-item" data-section="draw-sculpt-play" href="#draw-sculpt-play"><span aria-hidden="true" class="nav-diamond"></span>DRAW &amp; SCULPT</a>
+<a class="nav-item" data-section="sequencing-live-performance" href="#sequencing-live-performance"><span aria-hidden="true" class="nav-diamond"></span>PERFORMANCE</a>
+<a class="nav-item" data-section="presets-projects-backups" href="#presets-projects-backups"><span aria-hidden="true" class="nav-diamond"></span>SAVE &amp; BACKUP</a>
+<a class="nav-item" data-section="installation-recovery" href="#installation-recovery"><span aria-hidden="true" class="nav-diamond"></span>INSTALLATION</a>
+<a class="nav-item" data-section="source-development" href="#source-development"><span aria-hidden="true" class="nav-diamond"></span>SOURCE</a>
+<a class="nav-item" data-section="credits-licensing" href="#credits-licensing"><span aria-hidden="true" class="nav-diamond"></span>CREDITS / LICENSE</a></nav>
+<div class="side-bottom">M-VAVE FM1 / PHOSPHOR UI<br/>SIKKENWORKS<br/>BORN OUT OF PASSION.<br/><a href="https://github.com/SikkenWorks/ETCH" rel="noopener noreferrer" target="_blank">VIEW SOURCE ↗</a></div>
+</aside>
+<main class="main">
+<div class="topline"><span>ETCH / M-VAVE FM1 / 2026</span><span class="status">DOCUMENTATION ONLINE</span></div>
+<header class="hero">
+<div class="hero-top"><span>SIKKENWORKS / SYNTHESIS</span><span class="rule"></span><span>V1.88</span></div>
+<div class="hero-layout">
+<div class="hero-description">
+<h1>ETCH<span>.</span></h1>
+<div class="tagline">DRAW. MORPH. MODULATE.</div>
+<p class="hero-copy">An open-source waveform-sculpting synthesizer for the M-VAVE FM1. Draw your own waveforms, morph A and B into a new shape, and let Wave C modulate the result.</p>
+<div class="hero-tags"><span class="tag color">FIRMWARE V1.88</span><span class="tag">FM-1_1500</span><span class="tag">PJT32</span><span class="tag">GPL-3.0-ONLY</span><span class="tag">PHASE WARP</span><span class="tag">HALF SYMM</span></div>
+</div>
+<div aria-label="Oscilloscope drawing of Wave A, Wave B and their morphed result" class="osc" role="img">
+<div class="osc-head"><span>ETCH / OSCILLOSCOPE</span><b>WAVE A + B / MORPH</b></div>
+<svg aria-hidden="true" preserveaspectratio="none" viewbox="0 0 650 270">
+<defs><pattern height="45" id="scopegrid" patternunits="userSpaceOnUse" width="50"><path d="M50 0H0V45" fill="none" stroke="#51445B" stroke-width=".85"></path></pattern></defs>
+<rect fill="url(#scopegrid)" height="268" stroke="#51445B" stroke-width="1" width="648" x="1" y="1"></rect>
+<path d="M0 135H650" opacity=".38" stroke="#C7F36B" stroke-width="1"></path>
+<path d="M0 135L32 100L60 68L93 61L125 71L162 120L196 169L228 193L260 180L292 148L328 120L363 93L392 105L422 136L454 174L487 205L517 190L549 154L580 116L613 92L650 135" fill="none" stroke="#FF7668" stroke-linejoin="round" stroke-width="3"></path>
+<path d="M0 135L24 135L51 113L79 61L107 43L133 67L163 130L193 141L224 160L252 209L288 222L317 185L352 135L385 128L420 134L458 185L489 199L526 184L560 124L598 95L625 116L650 135" fill="none" stroke="#B39AFF" stroke-linejoin="round" stroke-width="2.8"></path>
+<path d="M0 135L25 121L56 94L86 61L116 56L146 98L176 137L208 164L237 190L274 188L306 165L340 125L371 109L405 125L435 154L468 184L504 197L536 166L567 131L603 100L630 111L650 135" fill="none" stroke="#C7F36B" stroke-linejoin="round" stroke-width="3.3"></path>
+</svg>
+<div class="osc-foot"><span class="a">● WAVE A</span><span class="b">● WAVE B</span><span class="mix">● MORPH RESULT</span></div>
+</div>
+</div>
+</header>
+<div class="section-kicker" id="tools">// ETCH TOOLS &amp; GUIDES</div>
+<div aria-label="ETCH resource links" class="resource-grid">
+<a class="resource" href="WebInstaller.html"><div class="res-top"><span>FIRMWARE / USB-MIDI</span><span class="res-index">01</span></div><h2>WEBINSTALLER</h2><p>Install ETCH via USB MIDI with firmware verification, compatibility checks and safety confirmation.</p><span class="res-open">OPEN WEBINSTALLER ↗</span></a>
+<a class="resource" href="CHEAT-SHEET.html"><div class="res-top"><span>QUICK REFERENCE</span><span class="res-index">02</span></div><h2>CHEAT SHEET</h2><p>V1.88 quick reference: shortcuts, DRAW brushes, Phase Warp, Half Symmetry, saving and troubleshooting.</p><span class="res-open">OPEN CHEAT SHEET ↗</span></a>
+<a class="resource" href="ETCH-Project-Preset-Manager.html"><div class="res-top"><span>BACKUP / RESTORE</span><span class="res-index">03</span></div><h2>PROJECT / PRESET MANAGER</h2><p>Back up the current FM1 sound to .etchpreset or load a sound into RAM without flashing firmware.</p><span class="res-open">OPEN PRESET MANAGER ↗</span></a>
+<a class="resource" href="USER_MANUAL.md"><div class="res-top"><span>FULL DOCUMENTATION</span><span class="res-index">04</span></div><h2>USER MANUAL</h2><p>V1.88 operating manual covering waveform tools, synth controls, performance, storage and recovery.</p><span class="res-open">READ USER MANUAL ↗</span></a>
+</div>
+<div aria-label="ETCH storage capacity" class="specs"><div class="spec"><strong>128</strong><span>POINTS / WAVE</span></div><div class="spec"><strong>64</strong><span>WAVE SLOTS</span></div><div class="spec"><strong>32</strong><span>PRESET SLOTS</span></div><div class="spec"><strong>04</strong><span>PROJECT SLOTS</span></div></div>
+<div class="section-kicker">// ABOUT / FEATURES / OPERATION / SOURCES</div>
+<section class="content-section" id="what-is-etch"><div class="section-bar"><span class="section-pip"></span><span class="section-type">// 01 / DOCUMENTATION</span></div><div class="section-inner"><h2>What is ETCH?</h2>
+<p>ETCH turns your FM1 into a hands-on synthesizer built around <strong>waveforms you draw yourself</strong>. Shape Wave A and Wave B, morph between them, use Wave C to modulate the result, and explore a full set of filters, effects and performance tools.</p>
+<p><strong>Firmware:</strong> V1.88 · <strong>M-VAVE FM1</strong> · <strong>Package/USB identity:</strong> <code>FM-1_1500</code> · <strong>Project format:</strong> <code>PJT32</code> · <strong>License:</strong> GPL-3.0-only.</p>
+</div></section>
+<section class="content-section" id="sound-engine"><div class="section-bar"><span class="section-pip"></span><span class="section-type">// 02 / DOCUMENTATION</span></div><div class="section-inner"><h2>Sound engine</h2>
+<pre><code class="language-text">Wave A ── [A inserts] ──┐
                         ├─ MORPH ── FILTER / DRIVE ── WAVE AMP ── ADSR ── FX ── OUTPUT
 Wave B ── [B inserts] ──┘    ↑
                              │
 Wave C ──────────────── PHASE / MORPH / FX MODULATION
-</code></pre><ul>
+</code></pre>
+<ul>
 <li><strong>DRAW:</strong> edit all <strong>128 points</strong> of Wave A, B or C directly on the FM1.</li>
 <li><strong>Three drawing brushes:</strong> <strong>DETAIL</strong> (5-point local brush), <strong>SOFT</strong> (17-point smooth brush), <strong>EDGE</strong> (single-point sharp brush). Select with the <strong>ALGORITHM</strong> encoder in DRAW.</li>
+<li><strong>Wave shaping tools:</strong> <strong>PHASE WARP</strong> moves the waveform’s half-cycle boundary to create distinct harmonic movement; <strong>HALF SYMM</strong> blends the second half toward a flipped or repeated first half, suppressing or emphasizing even harmonics. Both work directly on editable points, offer CYAN/AMBER preview, and support Undo/Redo. Go to DRAW → FX → FX → FX → FX (TOOLS), choose tool 13 or 14 with K1, set signed amount with K2 (127 = neutral), select A/B/C using K3 and press SAVE to apply.</li>
 <li><strong>MORPH:</strong> blend the <em>shape</em> of A and B, rather than merely crossfading two audio channels.</li>
 <li><strong>WAVE AMP:</strong> use A, B or their morphed wave to control volume at oscillator speed, with adjustable depth. ADSR remains independent.</li>
 <li><strong>Modulation:</strong> Wave C phase/morph/FX destinations, four-route Mod Matrix, EVOLUTION, ORGANIC analogue-style drift, LIVING, SPECTRAL and PATCH BLEND.</li>
 <li><strong>Effects:</strong> pre-morph Wave A/B inserts and global chorus, delay, reverb, drive, modulation and dynamics effects. <strong>FX BYPASS</strong> skips supported expensive processing while preserving values.</li>
 <li><strong>Performance:</strong> up to eight shared voices, ARP/RIFF, up to 256 sequencer steps, harmony tools, GROUPS keyboard splits, four performance macros and two scenes.</li>
-</ul><p><strong>Sound design tip:</strong> use EDGE at lower/mid pitches with the filter open to hear sharp harmonic differences. High notes use band-limited wavetables, so sharp shapes may sound closer together. SOFT gives smoother contours. The editor is polled every 25 ms; audible wavetable updates may trail the cursor briefly because compiling is throttled to protect audio. <strong>Keyboard auditioning does not edit wave points:</strong> brief K1–K4 encoder deltas around physical note-on/off are ignored in DRAW, then normal controls resume while the note is held.</p><h3 id="three-different-kinds-of-saved-data">Three different kinds of saved data</h3><div class="table-scroll"><table>
+</ul>
+<p><strong>Sound design tip:</strong> use EDGE at lower/mid pitches with the filter open to hear sharp harmonic differences. High notes use band-limited wavetables, so sharp shapes may sound closer together. SOFT gives smoother contours. DRAW encoder input is polled every 20 ms; edited wavetables are requested from 40 ms when audio is healthy, or 55 ms with USB audio, and automatically paced more conservatively under audio pressure. The on-screen cursor is rendered before wavetable compilation; cursor motion does not itself trigger a wavetable rebuild. <strong>Keyboard auditioning does not edit wave points:</strong> brief K1–K4 encoder deltas around physical note-on/off are ignored in DRAW, then normal controls resume while the note is held.</p>
+<h3 id="three-different-kinds-of-saved-data">Three different kinds of saved data</h3>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Save type</th>
@@ -193,14 +203,19 @@ Wave C ──────────────── PHASE / MORPH / FX MODUL
 <td style="text-align:right">4 slots</td>
 </tr>
 </tbody>
-</table></div><p class="notice">A computer <code>.etchpreset</code> is a <strong>sound snapshot</strong>, not a full project, sample or sequencer backup.</p></div></section>
-<section class="content-section" id="getting-started"><div class="section-bar"><span class="section-pip"></span><span class="section-type">// 03 / DOCUMENTATION</span></div><div class="section-inner"><h2>Getting started</h2><ol>
+</table></div>
+<p class="notice">A computer <code>.etchpreset</code> is a <strong>sound snapshot</strong>, not a full project, sample or sequencer backup.</p>
+</div></section>
+<section class="content-section" id="getting-started"><div class="section-bar"><span class="section-pip"></span><span class="section-type">// 03 / DOCUMENTATION</span></div><div class="section-inner"><h2>Getting started</h2>
+<ol>
 <li>Turn down <strong>MASTER</strong> and start ETCH. After the VHS-style SIKKENWORKS intro, choose <strong>SIMPLE</strong> or <strong>ADVANCED</strong> using <strong>K1</strong> and <strong>SEL</strong>.</li>
 <li>Press <strong>HOME</strong> for <strong>SOUND</strong>. Try <strong>K1 MORPH</strong>, <strong>K2 ETCH</strong>, <strong>K3 TONE</strong> and <strong>K4 SPACE</strong>.</li>
 <li>Turn <strong>SELECT</strong> to <strong>MORPH</strong>. Use <strong>K1/K2</strong> to select Waves A/B and <strong>K3</strong> to morph between them. <strong>K4</strong> sets Wave C rate; <strong>ALGORITHM</strong> adjusts ETCH depth on this page.</li>
 <li>Press <strong>EDIT</strong>. Turn <strong>SELECT</strong> to choose A/B/C. Use <strong>K1</strong> for horizontal position and <strong>K2</strong> to raise/lower the waveform, and <strong>ALGORITHM</strong> for the brush. K3/K4 edit harmonics.</li>
 <li>Return to SOUND with <strong>HOME</strong>. Set FILTER, ENV and FX to taste, then <strong>save the waveform and preset separately</strong> if you want a reusable wave and a saved sound.</li>
-</ol><h3 id="simple-and-advanced">SIMPLE and ADVANCED</h3><div class="table-scroll"><table>
+</ol>
+<h3 id="simple-and-advanced">SIMPLE and ADVANCED</h3>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Mode</th>
@@ -217,8 +232,12 @@ Wave C ──────────────── PHASE / MORPH / FX MODUL
 <td>Full editor navigation and the 64-page WORKFLOW catalog</td>
 </tr>
 </tbody>
-</table></div><p>To switch: <strong>GLO → SYSTEM / WORKFLOW → K2</strong>. In ADVANCED, the WORKFLOW catalog uses <strong>K3</strong> to select and <strong>K4</strong> to open a permitted page. Some CPU-heavy modulation pages require MONO mode. The header displays <code>V186S</code> or <code>V186A</code> according to the selected workflow.</p></div></section>
-<section class="content-section" id="controls-shortcuts"><div class="section-bar"><span class="section-pip"></span><span class="section-type">// 04 / DOCUMENTATION</span></div><div class="section-inner"><h2>Controls &amp; shortcuts</h2><p><strong>K1–K4</strong> always control the parameters displayed on the current page. <strong>SEL</strong> is a button; <strong>SELECT</strong> is a rotary encoder.</p><div class="table-scroll"><table>
+</table></div>
+<p>To switch: <strong>GLO → SYSTEM / WORKFLOW → K2</strong>. In ADVANCED, the WORKFLOW catalog uses <strong>K3</strong> to select and <strong>K4</strong> to open a permitted page. Some CPU-heavy modulation pages require MONO mode. The header displays <code>V188S</code> or <code>V188A</code> according to the selected workflow.</p>
+</div></section>
+<section class="content-section" id="controls-shortcuts"><div class="section-bar"><span class="section-pip"></span><span class="section-type">// 04 / DOCUMENTATION</span></div><div class="section-inner"><h2>Controls &amp; shortcuts</h2>
+<p><strong>K1–K4</strong> always control the parameters displayed on the current page. <strong>SEL</strong> is a button; <strong>SELECT</strong> is a rotary encoder.</p>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Action</th>
@@ -287,25 +306,46 @@ Wave C ──────────────── PHASE / MORPH / FX MODUL
 <td>Hold <strong>HOME + PLAY/STOP</strong> ~1 s</td>
 </tr>
 </tbody>
-</table></div><p><strong>Do not use double-HOME for PROJECTS.</strong> Use HOME + SAVE. The full <a href="USER_MANUAL.md">user manual</a> contains the screen-by-screen K1–K4 reference and the <a href="CHEAT-SHEET.html">interactive cheat sheet</a> provides searchable shortcuts.</p></div></section>
-<section class="content-section" id="draw-sculpt-play"><div class="section-bar"><span class="section-pip"></span><span class="section-type">// 05 / DOCUMENTATION</span></div><div class="section-inner"><h2>Draw, sculpt &amp; play</h2><p>In <strong>DRAW</strong>, K1 selects one of the 128 waveform points and K2 adjusts it vertically. DETAIL is for precise contours; SOFT produces rounded slopes; EDGE introduces sharp shapes and stronger harmonic contrasts. The editor uses the existing wavetable banks, recompiling only changed waves. Waveform edits still support <strong>16 shared Undo/Redo history snapshots</strong>.</p><p><strong>Flat line:</strong> hold EDIT, choose YES with K1, press SEL. Only the active wave becomes a zero line, and ENV can undo. Selecting NO or HOME cancels without touching it.</p><p><strong>Live effects vs waveform tools:</strong> WFX, SCULPT and tools alter the editable waveform when baked; Wave A/B inserts and global FX process playback without changing those saved points. Use <strong>DRAW → SAVE</strong> for a reusable wave, and normal <strong>SAVE → PRESET</strong> for a playable patch.</p><p><strong>WAVE AMP:</strong> in ADVANCED, use LFO navigation or WORKFLOW to open WAVE AMP. <strong>K1</strong> selects OFF/A/B/MORPH; <strong>K2</strong> sets depth. This is <em>audio-rate</em> volume modulation, not a one-shot volume envelope.</p><p><strong>FX BYPASS:</strong> hold FX in ADVANCED. <strong>K1</strong> selects an effect; <strong>K4 or SEL</strong> toggles ON/BYP; <strong>K2</strong> bypasses all; <strong>K3</strong> restores all. Bypass status is temporary in RAM and does not change saved effect settings.</p></div></section>
-<section class="content-section" id="sequencing-live-performance"><div class="section-bar"><span class="section-pip"></span><span class="section-type">// 06 / DOCUMENTATION</span></div><div class="section-inner"><h2>Sequencing &amp; live performance</h2><ul>
+</table></div>
+<p><strong>Do not use double-HOME for PROJECTS.</strong> Use HOME + SAVE. The full <a href="USER_MANUAL.md">user manual</a> contains the screen-by-screen K1–K4 reference and the <a href="CHEAT-SHEET.html">interactive cheat sheet</a> provides searchable shortcuts.</p>
+</div></section>
+<section class="content-section" id="draw-sculpt-play"><div class="section-bar"><span class="section-pip"></span><span class="section-type">// 05 / DOCUMENTATION</span></div><div class="section-inner"><h2>Draw, sculpt &amp; play</h2>
+<p>In <strong>DRAW</strong>, K1 selects one of the 128 waveform points and K2 adjusts it vertically. DETAIL is for precise contours; SOFT produces rounded slopes; EDGE introduces sharp shapes and stronger harmonic contrasts. The editor uses the existing wavetable banks, recompiling only changed waves. Waveform edits still support <strong>16 shared Undo/Redo history snapshots</strong>.</p>
+<p><strong>Flat line:</strong> hold EDIT, choose YES with K1, press SEL. Only the active wave becomes a zero line, and ENV can undo. Selecting NO or HOME cancels without touching it.</p>
+<p><strong>Live effects vs waveform tools:</strong> WFX, SCULPT and tools alter the editable waveform when baked; Wave A/B inserts and global FX process playback without changing those saved points. Use <strong>DRAW → SAVE</strong> for a reusable wave, and normal <strong>SAVE → PRESET</strong> for a playable patch.</p>
+<p><strong>WAVE AMP:</strong> in ADVANCED, use LFO navigation or WORKFLOW to open WAVE AMP. <strong>K1</strong> selects OFF/A/B/MORPH; <strong>K2</strong> sets depth. This is <em>audio-rate</em> volume modulation, not a one-shot volume envelope.</p>
+<p><strong>FX BYPASS:</strong> hold FX in ADVANCED. <strong>K1</strong> selects an effect; <strong>K4 or SEL</strong> toggles ON/BYP; <strong>K2</strong> bypasses all; <strong>K3</strong> restores all. Bypass status is temporary in RAM and does not change saved effect settings.</p>
+</div></section>
+<section class="content-section" id="sequencing-live-performance"><div class="section-bar"><span class="section-pip"></span><span class="section-type">// 06 / DOCUMENTATION</span></div><div class="section-inner"><h2>Sequencing &amp; live performance</h2>
+<ul>
 <li><strong>ARP / RIFF:</strong> eight ARP modes including mode 7 RIFF, a scale-aware 16-step generator. In mode 7, turn K4 for another riff.</li>
 <li><strong>SEQ:</strong> up to 256 steps and eight note triggers per step; live REC, HOLD, GRID, LOCKS, BAKE and CLOCK editors. Six lock destinations: MORPH, ETCH, cutoff, chorus, delay, reverb.</li>
 <li><strong>GROUPS:</strong> HOME + FX opens two optional saved-preset keyboard zones alongside MAIN; all parts share the total eight-voice budget and post-mix effects.</li>
 <li><strong>PERFORMANCE:</strong> HOME + ARP opens four assignable macros and scene A/B capture/recall. Save a project to retain scenes.</li>
 <li><strong>MOTION:</strong> record a short performance of MORPH, ETCH, cutoff and SPACE controls.</li>
 <li><strong>USB MIDI:</strong> notes, clock and implemented expression handling. Booting while holding SEQ starts a MIDI-keyboard-only mode, with local synth audio disabled.</li>
-</ul></div></section>
-<section class="content-section" id="presets-projects-backups"><div class="section-bar"><span class="section-pip"></span><span class="section-type">// 07 / DOCUMENTATION</span></div><div class="section-inner"><h2>Presets, projects &amp; backups</h2><p><strong>To save a preset or project:</strong> press SAVE outside DRAW, use SELECT to choose the kind of save, then <strong>K1 slot</strong>, <strong>K2 name position</strong>, <strong>K3 character</strong> and <strong>K4 backspace</strong>. Confirm with SAVE. Wait for <strong>SAVING / VERIFYING</strong> and a clear success before powering off. If ETCH reports NOT SAVED, the current patch is still RAM-only.</p><p><strong>To save a wave:</strong> while in DRAW, press SAVE and use the same slot/name controls. <strong>To load a saved wave:</strong> LIBRARY → K1 slot → K2 A/B/C destination → REC twice.</p><p><strong>Computer backup:</strong> use the bundled <a href="ETCH-Project-Preset-Manager.html"><code>ETCH-Project-Preset-Manager.html</code></a> with Chrome/Edge and Web MIDI/SysEx to read the current sound from RAM, download <code>.etchpreset</code> or send one to RAM. It does not include entire projects or sequencer patterns and does not automatically write to flash. The current snapshot protocol supports WAVE AMP and <code>.etchpreset</code> V1/V2.</p><h3 id="storage-locked-foreign-data">STORAGE LOCKED / foreign data</h3><p>ETCH protects data belonging to other firmwares. If a first-boot prompt offers <strong>FORMAT FOR ETCH?</strong>, <strong>NO</strong> preserves it but leaves the affected storage locked. <strong>YES</strong>, SEL and an additional <strong>three-second SAVE hold</strong> may format only ETCH's designated region (<code>0xB4000–0xDBFFF</code>), destroying any previous data in those sectors. Do not choose YES without a backup of affected data. A valid ETCH project or flash read error should not trigger destructive takeover.</p><p class="notice notice-coral"><strong>If your sound is unsaved, do not reboot, format or update the firmware.</strong> Make a RAM-based <code>.etchpreset</code> backup first when the running firmware supports it.</p></div></section>
-<section class="content-section" id="installation-recovery"><div class="section-bar"><span class="section-pip"></span><span class="section-type">// 08 / DOCUMENTATION</span></div><div class="section-inner"><h2>Installation &amp; recovery</h2><ul>
-<li><strong>Current firmware:</strong> <a href="release/ETCH-V1.86.fwsc"><code>release/ETCH-V1.86.fwsc</code></a>, one regular public package, original identity <code>FM-1_1500</code>.</li>
+</ul>
+</div></section>
+<section class="content-section" id="presets-projects-backups"><div class="section-bar"><span class="section-pip"></span><span class="section-type">// 07 / DOCUMENTATION</span></div><div class="section-inner"><h2>Presets, projects &amp; backups</h2>
+<p><strong>To save a preset or project:</strong> press SAVE outside DRAW, use SELECT to choose the kind of save, then <strong>K1 slot</strong>, <strong>K2 name position</strong>, <strong>K3 character</strong> and <strong>K4 backspace</strong>. Confirm with SAVE. Wait for <strong>SAVING / VERIFYING</strong> and a clear success before powering off. If ETCH reports NOT SAVED, the current patch is still RAM-only.</p>
+<p><strong>To save a wave:</strong> while in DRAW, press SAVE and use the same slot/name controls. <strong>To load a saved wave:</strong> LIBRARY → K1 slot → K2 A/B/C destination → REC twice.</p>
+<p><strong>Computer backup:</strong> use the bundled <a href="ETCH-Project-Preset-Manager.html"><code>ETCH-Project-Preset-Manager.html</code></a> with Chrome/Edge and Web MIDI/SysEx to read the current sound from RAM, download <code>.etchpreset</code> or send one to RAM. It does not include entire projects or sequencer patterns and does not automatically write to flash. The current snapshot protocol supports WAVE AMP and <code>.etchpreset</code> V1/V2.</p>
+<h3 id="storage-locked-foreign-data">STORAGE LOCKED / foreign data</h3>
+<p>ETCH protects data belonging to other firmwares. If a first-boot prompt offers <strong>FORMAT FOR ETCH?</strong>, <strong>NO</strong> preserves it but leaves the affected storage locked. <strong>YES</strong>, SEL and an additional <strong>three-second SAVE hold</strong> may format only ETCH's designated region (<code>0xB4000–0xDBFFF</code>), destroying any previous data in those sectors. Do not choose YES without a backup of affected data. A valid ETCH project or flash read error should not trigger destructive takeover.</p>
+<p class="notice notice-coral"><strong>If your sound is unsaved, do not reboot, format or update the firmware.</strong> Make a RAM-based <code>.etchpreset</code> backup first when the running firmware supports it.</p>
+</div></section>
+<section class="content-section" id="installation-recovery"><div class="section-bar"><span class="section-pip"></span><span class="section-type">// 08 / DOCUMENTATION</span></div><div class="section-inner"><h2>Installation &amp; recovery</h2>
+<ul>
+<li><strong>Current firmware:</strong> <a href="release/ETCH-V1.88.fwsc"><code>release/ETCH-V1.88.fwsc</code></a>, one regular public package, original identity <code>FM-1_1500</code>.</li>
 <li><strong>Installer:</strong> <a href="WebInstaller.html"><code>WebInstaller.html</code></a>, in the clean PHOSPHOR layout. Its critical checks and risk confirmation are still required even though long technical notes are tucked into a neutral expandable section.</li>
 <li><strong>Required browser:</strong> desktop Chrome/Edge, Web MIDI/SysEx permissions, proper USB data cable and exclusive access to the FM1 MIDI port.</li>
 <li><strong>Safety:</strong> keep a verified backup, trusted package checksums and an independently tested recovery procedure for your FM1. Device-side package validation, loader checks and post-update verification must succeed. Never bypass a failed CHECK.</li>
 <li><strong>Cross-firmware OTA:</strong> structurally compatible Felucca-family application-only updates are validated by the installed device-side loader/check path. Official stock restore uses a separately verified official package/loader. A successful USB transfer is <strong>not</strong> proof of guaranteed firmware switching or physical recovery.</li>
-</ul><p class="notice notice-amber"><strong>Status:</strong> V1.86 is software-built and host-tested, but long-term USB-audio reliability, listening tests, flash transitions and independent ROM recovery <strong>have not been fully qualified on physical FM1 hardware</strong>. Smooth note-on, wavetable-switch and voice-steal fades reduce some digital clicks; they cannot guarantee elimination of every audible or analogue startup pop.</p></div></section>
-<section class="content-section" id="source-development"><div class="section-bar"><span class="section-pip"></span><span class="section-type">// 09 / SOURCE &amp; ATTRIBUTION</span></div><div class="section-inner"><h2>Source &amp; development</h2><div class="table-scroll"><table>
+</ul>
+<p class="notice notice-amber"><strong>Status:</strong> V1.88 is software-built and host-tested, but long-term USB-audio reliability, listening tests, flash transitions and independent ROM recovery <strong>have not been fully qualified on physical FM1 hardware</strong>. Smooth note-on, wavetable-switch and voice-steal fades reduce some digital clicks; they cannot guarantee elimination of every audible or analogue startup pop.</p>
+</div></section>
+<section class="content-section" id="source-development"><div class="section-bar"><span class="section-pip"></span><span class="section-type">// 09 / SOURCE &amp; ATTRIBUTION</span></div><div class="section-inner"><h2>Source &amp; development</h2>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Path</th>
@@ -354,8 +394,13 @@ Wave C ──────────────── PHASE / MORPH / FX MODUL
 <td>Searchable offline quick reference</td>
 </tr>
 </tbody>
-</table></div><p>Building requires an independently obtained JieLi pi32v2 toolchain, Python 3 and the repository's build scripts. Source tests and a successful compile do <strong>not</strong> prove hardware flash or recovery safety. Follow the appropriate project scripts for the platform; never substitute unrelated stock boot data.</p></div></section>
-<section class="content-section" id="credits-licensing"><div class="section-bar"><span class="section-pip"></span><span class="section-type">// 10 / SOURCE &amp; ATTRIBUTION</span></div><div class="section-inner"><h2>Credits and licensing</h2><p>ETCH is an independent <strong>SikkenWorks</strong> project. The waveform-drawing, A/B shape-morphing and Wave C-centred instrument design, plus ETCH-specific synth, editing and performance work, are developed on top of existing FM1 community foundations.</p><h3 id="core-project-and-directly-derived-foundation">Core project and directly derived foundation</h3><div class="table-scroll"><table>
+</table></div>
+<p>Building requires an independently obtained JieLi pi32v2 toolchain, Python 3 and the repository's build scripts. Source tests and a successful compile do <strong>not</strong> prove hardware flash or recovery safety. Follow the appropriate project scripts for the platform; never substitute unrelated stock boot data.</p>
+</div></section>
+<section class="content-section" id="credits-licensing"><div class="section-bar"><span class="section-pip"></span><span class="section-type">// 10 / SOURCE &amp; ATTRIBUTION</span></div><div class="section-inner"><h2>Credits and licensing</h2>
+<p>ETCH is an independent <strong>SikkenWorks</strong> project. The waveform-drawing, A/B shape-morphing and Wave C-centred instrument design, plus ETCH-specific synth, editing and performance work, are developed on top of existing FM1 community foundations.</p>
+<h3 id="core-project-and-directly-derived-foundation">Core project and directly derived foundation</h3>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Credit</th>
@@ -390,7 +435,11 @@ Wave C ──────────────── PHASE / MORPH / FX MODUL
 <td>B1 HF2 implementation adapted to the ETCH WebInstaller; upstream Felucca notices retained</td>
 </tr>
 </tbody>
-</table></div><p><strong>Felucca is not merely an inspiration:</strong> its GPL-covered firmware and updater infrastructure provide substantive foundations in ETCH. Retain its notices and corresponding source when redistributing a modified firmware or installer.</p><h3 id="additional-upstream-projects-and-attribution-inventory">Additional upstream projects and attribution inventory</h3><p>The upstream Felucca licensing inventory also records the following authors and projects. <strong>They are credited here for provenance, reference or inherited notices; this list does not claim that every listed synthesis engine or font binary is present or used directly in ETCH.</strong> Consult the source and license folders for actual inclusion.</p><div class="table-scroll"><table>
+</table></div>
+<p><strong>Felucca is not merely an inspiration:</strong> its GPL-covered firmware and updater infrastructure provide substantive foundations in ETCH. Retain its notices and corresponding source when redistributing a modified firmware or installer.</p>
+<h3 id="additional-upstream-projects-and-attribution-inventory">Additional upstream projects and attribution inventory</h3>
+<p>The upstream Felucca licensing inventory also records the following authors and projects. <strong>They are credited here for provenance, reference or inherited notices; this list does not claim that every listed synthesis engine or font binary is present or used directly in ETCH.</strong> Consult the source and license folders for actual inclusion.</p>
+<div class="table-scroll"><table>
 <thead>
 <tr>
 <th>Project / author</th>
@@ -450,9 +499,18 @@ Wave C ──────────────── PHASE / MORPH / FX MODUL
 <td>Reference credit · <a href="https://github.com/tgies/klattsch">klattsch</a></td>
 </tr>
 </tbody>
-</table></div><p><strong>License files retained in this project:</strong> <a href="LICENSE"><code>LICENSE</code></a> (GNU GPL v3), <a href="LICENSES/FELUCCA-LICENSING.txt"><code>LICENSES/FELUCCA-LICENSING.txt</code></a> (upstream provenance) and <a href="firmware/fm1-native/LICENSES/"><code>firmware/fm1-native/LICENSES/</code></a> (MIT, Apache-2.0 and SIL OFL notices). These copyright and license notices take precedence over this prose summary. No third-party font files are offered for download by this README.</p><p>ETCH is not officially endorsed by <strong>M-VAVE</strong>, <strong>JieLi Technology</strong>, <strong>Hügelton Instruments</strong> or the credited upstream projects.</p></div></section>
-  <footer class="finalfooter"><span>ETCH © SIKKENWORKS · BORN OUT OF PASSION.</span><span><a href="https://github.com/SikkenWorks/ETCH" target="_blank" rel="noopener noreferrer">GITHUB</a><a href="USER_MANUAL.md">USER MANUAL</a><a href="CHEAT-SHEET.html">CHEAT SHEET</a><a href="LICENSE">LICENSE</a><a href="#top">BACK TO TOP ↑</a></span></footer>
- </main>
+</table></div>
+<p><strong>License files retained in this project:</strong> <a href="LICENSE"><code>LICENSE</code></a> (GNU GPL v3), <a href="LICENSES/FELUCCA-LICENSING.txt"><code>LICENSES/FELUCCA-LICENSING.txt</code></a> (upstream provenance) and <a href="firmware/fm1-native/LICENSES/"><code>firmware/fm1-native/LICENSES/</code></a> (MIT, Apache-2.0 and SIL OFL notices). These copyright and license notices take precedence over this prose summary. No third-party font files are offered for download by this README.</p>
+<p>ETCH is not officially endorsed by <strong>M-VAVE</strong>, <strong>JieLi Technology</strong>, <strong>Hügelton Instruments</strong> or the credited upstream projects.</p>
+<hr/>
+<div align="center">
+<p><strong>ETCH · SikkenWorks</strong><br/>
+<em>Born out of passion.</em></p>
+<p><a href="https://github.com/SikkenWorks/ETCH">Source</a> · <a href="USER_MANUAL.md">User manual</a> · <a href="CHEAT-SHEET.html">Cheat sheet</a> · <a href="LICENSE">License</a></p>
+</div>
+</div></section>
+<footer class="finalfooter"><span>ETCH © SIKKENWORKS · BORN OUT OF PASSION.</span><span><a href="https://github.com/SikkenWorks/ETCH" rel="noopener noreferrer" target="_blank">GITHUB</a><a href="USER_MANUAL.md">USER MANUAL</a><a href="CHEAT-SHEET.html">CHEAT SHEET</a><a href="LICENSE">LICENSE</a><a href="#top">BACK TO TOP ↑</a></span></footer>
+</main>
 </div>
 <script>
 'use strict';
