@@ -201,3 +201,5 @@ ETCH is not officially endorsed by **M-VAVE**, **JieLi Technology**, **Hügelton
 [Source](https://github.com/SikkenWorks/ETCH) · [User manual](USER_MANUAL.md) · [Cheat sheet](CHEAT-SHEET.html) · [License](LICENSE)
 
 </div>
+
+You can also try ETCH in the browser, no flashing needed, in the free community [FM-1 Emulator](https://fm1-emulator.atst.tools/).
